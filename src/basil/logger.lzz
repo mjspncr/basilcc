@@ -1,0 +1,47 @@
+namespace basil
+{
+  class Logger
+  {
+  public:
+    Logger (std::ostream & os)
+      : m_os (os), m_has_error (false) 
+    {}
+    // error, return stream
+    std::ostream & error ()
+    {
+      m_has_error = true;
+      return m_os;
+    }
+    void error (std::string const & msg)
+    {
+      error () << msg << '\n';
+    }
+    // true if any errors
+    bool hasError () const
+    {
+      return m_has_error;
+    }
+
+    // warning, return stream
+    std::ostream & warning ()
+    {
+      return m_os;
+    }
+    void warning (std::string const & msg)
+    {
+      warning () << msg << '\n';
+    }
+  private:
+    std::ostream & m_os;
+    bool m_has_error;
+  }
+}
+
+#hdr
+#include <basil/loc.h>
+#include <iosfwd>
+#end
+
+#src
+#include <iostream>
+#end

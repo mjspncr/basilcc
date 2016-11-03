@@ -1,0 +1,51 @@
+namespace basilcc
+{
+  class BasilCC;
+
+  // return new rule name
+  RuleNamePtr getRuleName (BasilCC & cc, char const * name, basil::Loc const & loc, bool is_node)
+  {
+    string cap_string = toCapString (name);
+    return cc.getTable <RuleNameTable> ().getRuleName (name, loc, is_node, cc.intern (cap_string));
+  }
+}
+
+using namespace basilcc;
+using namespace std; 
+
+namespace
+{
+  class RuleNameTable : public Table
+  {
+  public:
+    RuleNameTable (BasilCC & cc)
+    {}
+    ~ RuleNameTable ()
+    {
+      deleteObjects (m_rule_names.begin (), m_rule_names.end ());
+    }
+
+    // get rule name, always allocates new rule name
+    RuleNamePtr getRuleName (char const * name, basil::Loc const & loc, bool is_node, char const * cap_string)
+    {
+      return * m_rule_names.insert (m_rule_names.end (), new RuleName (name, loc, is_node, cap_string));
+    }
+
+    enum { TABLE = TABLE_RULE_NAME }
+  private:
+    RuleNamePtrVector m_rule_names;
+  }
+}
+
+#hdr
+#include <basil/loc.h>
+#include <basilcc/rule_name_ptr.h>
+#end
+
+#src
+#include <basilcc/basilcc.h>
+#include <basilcc/rule_name.h>
+#include <basilcc/rule_name_ptr_vector.h>
+#include <basilcc/table.h>
+#include <basilcc/util.h>
+#end

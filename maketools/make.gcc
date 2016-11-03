@@ -1,0 +1,8 @@
+ifeq ($(BUILD),OPT)
+DEBUGFLAG := -O3
+OPTSUFFIX := _opt
+else
+DEBUGFLAG := -g
+endif
+# dynamic load lib
+DL := dl

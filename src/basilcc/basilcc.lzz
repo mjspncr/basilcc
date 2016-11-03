@@ -1,0 +1,60 @@
+namespace basilcc
+{
+  // maintains state
+  class BasilCC
+  {
+  public:
+    BasilCC ()
+    {
+      fill (m_tables, ARRAY_END (m_tables), (Table *) 0);
+    }
+    ~ BasilCC ()
+    {
+      deleteObjects (m_tables, ARRAY_END (m_tables));
+    }
+
+    // intern string, return char *
+    inline char const * intern (std::string const & str)
+    {
+      return m_strings.insert (str).first->c_str ();
+    }
+
+    // get table T, create if doesn't exist
+    template <class T>
+    T & getTable ()
+    {
+      TablePtr & table = m_tables [T::TABLE];
+      if (! table)
+      {
+        table = new T (* this);
+      }
+      return static_cast <T &> (* table);
+    }
+    // const version
+    template <class T>
+    T const & getTable () const
+    {
+      return const_cast <BasilCC &> (* this).getTable <T> ();
+    }
+  private:
+    // cached strings
+    std::set <std::string> m_strings;
+    // tables
+    TablePtr m_tables [NUM_TABLES];
+  }
+}
+
+using namespace std;
+
+#hdr
+#include <basilcc/table_number.h>
+#include <basilcc/table_ptr.h>
+#include <set>
+#include <string>
+#end
+
+#src
+#include <basilcc/symbol_api.h>
+#include <basilcc/table.h>
+#include <basilcc/util.h>
+#end

@@ -1,0 +1,65 @@
+namespace basilcc
+{
+  class BasilCC;
+
+  // get base rule from rule and position
+  BaseRulePtr getBaseRule (BasilCC & cc, RulePtr rule, int pos = 0)
+  {
+    return cc.getTable <BaseRuleTable> ().getBaseRule (rule, pos);
+  }
+
+  // get base rule at next position
+  BaseRulePtr getNextBaseRule (BasilCC & cc, BaseRulePtr base_rule)
+  {
+    return cc.getTable <BaseRuleTable> ().getBaseRule (base_rule->getRule (), base_rule->getPos () + 1);
+  }
+}
+
+using namespace basilcc;
+
+namespace
+{
+  class BaseRuleTable : public Table
+  {
+  public:
+    BaseRuleTable (BasilCC & cc)
+    {}
+    ~ BaseRuleTable ()
+    {
+      deleteObjects (m_base_rules.begin (), m_base_rules.end ());
+    }
+    
+    // get base rule
+    BaseRulePtr getBaseRule (RulePtr rule, int pos)
+    {
+      m_base_rule_trie.push (unsigned (rule));
+      m_base_rule_trie.push (pos);
+      BaseRulePtr & base_rule = m_base_rule_trie.commit (0);
+      if (! base_rule)
+      {
+        base_rule = * m_base_rules.insert (m_base_rules.end (), new BaseRule (m_base_rules.size (), rule, pos));
+      }
+      return base_rule;
+    }
+
+    enum { TABLE = TABLE_BASE_RULE }
+  private:
+    BaseRulePtrTrie m_base_rule_trie;
+    BaseRulePtrVector m_base_rules;
+  }
+}
+
+#hdr
+#include <basilcc/base_rule_ptr.h>
+#include <basilcc/rule_ptr.h>
+#end
+
+#src
+#include <algorithm>
+#include <basilcc/base_rule.h>
+#include <basilcc/base_rule_ptr_trie.h>
+#include <basilcc/base_rule_ptr_vector.h>
+#include <basilcc/basilcc.h>
+#include <basilcc/table.h>
+#include <basilcc/util.h>
+#end

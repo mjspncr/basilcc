@@ -1,0 +1,67 @@
+namespace basilcc
+{
+  class BasilCC;
+
+  // get lazy action seq from actions
+  LazyActionSeqPtr getLazyActionSeq (BasilCC & cc, LazyActionPtrVector & lazy_actions)
+  {
+    return cc.getTable <LazyActionSeqTable> ().getLazyActionSeq (lazy_actions);
+  }
+}
+
+using namespace basilcc;
+using namespace std;
+
+namespace
+{
+  class LazyActionSeqTable : public Table
+  {
+  public:
+    LazyActionSeqTable (BasilCC & cc)
+    {}
+    ~ LazyActionSeqTable ()
+    {
+      deleteObjects (m_lazy_action_seqs.begin (), m_lazy_action_seqs.end ());
+    }
+
+    // get lazy action seq from actions, actions will be stolen if new action seq
+    LazyActionSeqPtr getLazyActionSeq (LazyActionPtrVector & lazy_actions)
+    {
+      for_each (lazy_actions.begin (), lazy_actions.end (), PushLazyAction (m_lazy_action_seq_trie));
+      LazyActionSeqPtr & lazy_action_seq = m_lazy_action_seq_trie.commit (0);
+      if (! lazy_action_seq)
+      {
+        lazy_action_seq = new LazyActionSeq (lazy_actions);
+        m_lazy_action_seqs.push_back (lazy_action_seq);
+      }
+      return lazy_action_seq;
+    }
+
+    enum { TABLE = TABLE_LAZY_ACTION_SEQ }
+  private:
+    LazyActionSeqPtrTrie m_lazy_action_seq_trie;
+    LazyActionSeqPtrVector m_lazy_action_seqs;
+  }
+
+  // append lazy action to trie key
+  inline void PushLazyAction (LazyActionSeqPtrTrie & trie; LazyActionPtr lazy_action) const
+  {
+    trie.push (unsigned (lazy_action));
+  }
+}
+
+#hdr
+#include <basilcc/lazy_action_ptr_vector.h>
+#include <basilcc/lazy_action_seq_ptr.h>
+#end
+
+#src
+#include <algorithm>
+#include <basilcc/basilcc.h>
+#include <basilcc/lazy_action_ptr_vector.h>
+#include <basilcc/lazy_action_seq.h>
+#include <basilcc/lazy_action_seq_ptr_trie.h>
+#include <basilcc/lazy_action_seq_ptr_vector.h>
+#include <basilcc/table.h>
+#include <basilcc/util.h>
+#end

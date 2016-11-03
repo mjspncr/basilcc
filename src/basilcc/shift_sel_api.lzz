@@ -1,0 +1,76 @@
+namespace basilcc
+{
+  class BasilCC;
+
+  // get shift sel from shifts
+  ShiftSelPtr getShiftSel (BasilCC & cc, ShiftPtrVector & shifts)
+  {
+    return cc.getTable <ShiftSelTable> ().getShiftSel (shifts);
+  }
+
+  // get all shift sels
+  ShiftSelPtrVector const & getShiftSels (BasilCC & cc)
+  {
+    return cc.getTable <ShiftSelTable> ().getShiftSels ();
+  }
+}
+
+using namespace basilcc;
+using namespace std;
+
+namespace
+{
+  class ShiftSelTable : public Table
+  {
+  public:
+    ShiftSelTable (BasilCC & cc)
+    {}
+    ~ ShiftSelTable ()
+    {
+      deleteObjects (m_shift_sels.begin (), m_shift_sels.end ());
+    }
+
+    // get shift sel
+    ShiftSelPtr getShiftSel (ShiftPtrVector & shifts)
+    {
+      for_each (shifts.begin (), shifts.end (), PushShift (m_shift_sel_trie));
+      ShiftSelPtr & shift_sel = m_shift_sel_trie.commit (ShiftSelPtr (0));
+      if (! shift_sel)
+      {
+        shift_sel = new ShiftSel (m_shift_sels.size (), shifts);
+        m_shift_sels.push_back (shift_sel);
+      }
+      return shift_sel;
+    }
+
+    // get all shift sels
+    inline ShiftSelPtrVector const & getShiftSels () const
+    {
+      return m_shift_sels;
+    }
+
+    enum { TABLE = TABLE_SHIFT_SEL }
+  private:
+    ShiftSelPtrTrie m_shift_sel_trie;
+    ShiftSelPtrVector m_shift_sels;
+  }
+
+  inline void PushShift (ShiftSelPtrTrie & trie; ShiftPtr shift) const
+  {
+    trie.push (unsigned (shift));
+  }
+}
+
+#hdr
+#include <basilcc/shift_ptr_vector.h>
+#include <basilcc/shift_sel_ptr_vector.h>
+#end
+
+#src
+#include <basilcc/basilcc.h>
+#include <basilcc/shift_sel.h>
+#include <basilcc/shift_sel_ptr_trie.h>
+#include <basilcc/table.h>
+#include <basilcc/util.h>
+#include <algorithm>
+#end

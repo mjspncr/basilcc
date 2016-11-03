@@ -1,0 +1,66 @@
+namespace basilcc
+{
+  class BasilCC;
+
+  // get follow kernel from follow rules
+  FollowKernelPtr getFollowKernel (BasilCC & cc, FollowRulePtrVector & follow_rules)
+  {
+    return cc.getTable <FollowKernelTable> ().getFollowKernel (follow_rules);
+  }
+}
+
+using namespace std;
+using namespace basilcc;
+
+namespace
+{
+  class FollowKernelTable : public Table
+  {
+  public:
+    FollowKernelTable (BasilCC & cc)
+    {}
+    ~ FollowKernelTable ()
+    {
+      deleteObjects (m_follow_kernels.begin (), m_follow_kernels.end ());
+    }
+
+    // get follow kernel from rules
+    FollowKernelPtr getFollowKernel (FollowRulePtrVector & follow_rules)
+    {
+      for_each (follow_rules.begin (), follow_rules.end (), PushFollowRule (m_follow_kernel_trie));
+      FollowKernelPtr & follow_kernel = m_follow_kernel_trie.commit (0);
+      if (! follow_kernel)
+      {
+        follow_kernel = * m_follow_kernels.insert (m_follow_kernels.end (), new FollowKernel (m_follow_kernels.size (), follow_rules));
+      }
+      return follow_kernel;
+    }
+
+    enum { TABLE = TABLE_FOLLOW_KERNEL }
+  private:
+    FollowKernelPtrTrie m_follow_kernel_trie;
+    FollowKernelPtrVector m_follow_kernels;
+  }
+
+  // append follow_rule to trie key
+  inline void PushFollowRule (FollowKernelPtrTrie & trie; FollowRulePtr follow_rule) const
+  {
+    trie.push (unsigned (follow_rule));
+  }
+}
+
+#hdr
+#include <basilcc/follow_kernel_ptr.h>
+#include <basilcc/follow_rule_ptr_vector.h>
+#end
+
+#src
+#include <algorithm>
+#include <basilcc/basilcc.h>
+#include <basilcc/follow_kernel.h>
+#include <basilcc/follow_kernel_ptr_trie.h>
+#include <basilcc/follow_kernel_ptr_vector.h>
+#include <basilcc/follow_rule_ptr_vector.h>
+#include <basilcc/table.h>
+#include <basilcc/util.h>
+#end

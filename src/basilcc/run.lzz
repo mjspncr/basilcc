@@ -1,0 +1,46 @@
+namespace basilcc
+{
+  class BasilCC;
+
+  #if 0
+  // generate parser, print fsm, nodes and states files; return int pair, number of conflicts and number of states
+  std::pair <int, int> run (BasilCC & cc, std::string const & fsm_filename, std::string const & nodes_filename, std::string const & states_filename)
+  {
+    int num_conflicts = closure (cc, num_states);
+    // print fsm and nodes only if no conflicts 
+    if (num_conflicts == 0)
+    {
+      setGoto (cc);
+      if (! fsm_filename.empty ())
+      {
+        serialize (cc, fsm_filename);
+      }
+      if (! nodes_filename.empty ())
+      {
+        printNodes (cc, nodes_filename);
+      }
+    }
+    if (! states_filename.empty ())
+    {
+      printStates (cc, 0, states_filename);
+    }
+    return IntPair (num_conflicts, num_states);
+  }
+  #endif
+}
+
+#hdr
+#include <string>
+#end
+
+#src
+#include <basilcc/check_rules.h>
+#include <basilcc/closure.h>
+#include <basilcc/print_nodes.h>
+#include <basilcc/print_state.h>
+#include <basilcc/serialize.h>
+#include <basilcc/set_first.h>
+#include <basilcc/set_goto.h>
+#include <basilcc/state_api.h>
+#include <basilcc/symbol_api.h>
+#end

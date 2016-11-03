@@ -1,0 +1,348 @@
+int main (int argc, char * argv [])
+{
+  try
+  {
+    parseCmdLine (argc, argv);
+    if (print_help)
+    {
+      printHelp ();
+      return 0;
+    }
+    char const * scripts_dir = getenv ("BASILSCRIPTS");
+    if (! scripts_dir)
+    {
+      throw BasilError ("BASILSCRIPTS not set");
+    }
+    if (bootstrap)
+    {
+      (Bootstrap (scripts_dir) ());
+    }
+    else
+    {
+      if (rules_filename.empty ())
+      {
+        throw BasilError ("missing rules filename");
+      }
+      compile (scripts_dir, rules_filename, string ());
+    }
+  }
+  catch (exception const & e)
+  {
+    cout << e.what () << '\n';
+    return 1;
+  }
+  return 0;
+}
+
+using namespace std;
+using namespace basil;
+using namespace basilcc;
+
+namespace
+{
+  bool print_help = false;
+  string rules_filename;
+  bool bootstrap = false;
+  int print_state_flags = 0;
+
+  void parseCmdLine (int argc, char * argv [])
+  {
+    for (int i = 1; i < argc; ++ i)
+    {
+      char const * arg = argv [i];
+      if (arg [0] == '-')
+      {
+        ++ arg;
+        if (arg [0] == '\0')
+        {
+          throw BasilError ("stray '-'");
+        }
+        Option opt;
+        if (! isOption (arg, opt))
+        {
+          throw BasilError (Message ("not a valid option: %") << arg); 
+        }
+        if (opt == OPT_HELP)
+        {
+          print_help = true;
+        }
+        else if (opt == OPT_BOOTSTRAP)
+        {
+          bootstrap = true; 
+        }
+        else if (opt == OPT_PRINT_KERNEL_ONLY)
+        {
+          print_state_flags |= PRINT_KERNEL_ONLY;
+        }
+        else if (opt == OPT_PRINT_SHIFT)
+        {
+          print_state_flags |= PRINT_SHIFT;
+        }
+        else if (opt == OPT_PRINT_FOLLOW)
+        {
+          print_state_flags |= PRINT_FOLLOW;
+        }
+      }
+      else
+      {
+        if (! rules_filename.empty ())
+        {
+          throw BasilError (Message ("extra filename argument: %") << arg);
+        }
+        rules_filename = arg;
+      }
+    }
+  }
+
+  enum Option
+  {
+    OPT_BOOTSTRAP,
+    OPT_PRINT_KERNEL_ONLY,
+    OPT_PRINT_SHIFT,
+    OPT_PRINT_FOLLOW,
+    OPT_HELP,
+  };
+  struct OptionTag
+  {
+    char const * tag;
+    Option opt;
+  };
+  inline bool IsTag (string const & str; OptionTag const & option_tag) const
+  {
+    return option_tag.tag == str;
+  }
+  OptionTag option_tags [] =
+  {
+    { "b", OPT_BOOTSTRAP }, 
+    { "k", OPT_PRINT_KERNEL_ONLY }, 
+    { "s", OPT_PRINT_SHIFT }, 
+    { "f", OPT_PRINT_FOLLOW }, 
+    { "h", OPT_HELP }, 
+  };
+  bool isOption (string const & str, Option & opt)
+  {
+    OptionTag const * i = option_tags, * endi = ARRAY_END (option_tags);
+    i = std::find_if (i, endi, IsTag (str));
+    if (i != endi)
+    {
+      opt = i->opt;
+      return true;
+    }
+    return false;
+  }
+
+  struct BasilCCApp
+  {
+    BasilCCApp (lua_State * L)
+    {
+      registerCC (L, cc);
+    }
+    void run (string const & name)
+    {
+      int num_conflicts = closure (cc);
+      cout << getNumStates (cc) << " states, " << num_conflicts << " conflicts" << endl;
+      if (num_conflicts == 0)
+      {
+        // state machine
+        serialize (cc, name + ".fsm");
+        // lua nodes
+        printNodes (cc, name + "_nodes.lua");
+      }
+      // states
+      printStates (cc, print_state_flags, name + "_states.txt");
+    }
+    BasilCC cc;
+  };
+
+  // bootstrap basil parser
+  char const BASIL_BOOTSTRAP [] = "basil_bootstrap.lua";
+  void Bootstrap (string const & scripts_dir;) : LuaEnv (scripts_dir), BasilCCApp (L)
+  {
+    string boostrap_filename = path (BASIL_BOOTSTRAP);
+    if (luaL_dofile (L, boostrap_filename.c_str ()) != 0)
+    {
+      string errmsg = lua_tostring (L, -1);
+      lua_pop (L, 1);
+      throw BasilError (errmsg);
+    }
+    run (path ("basil"));
+  }
+
+  // compile grammar
+  char const BASIL_FSM [] = "basil.fsm";
+  char const BASIL_APP [] = "basil_app.lua";
+  void Compiler (string const & scripts_dir; string const & rules_filename, string const & name)
+    : App (scripts_dir, BASIL_FSM, rule_lexer::token_numbers, rule_lexer::token_numbers_end, BASIL_APP), BasilCCApp (L)
+  {
+    rule_lexer::RuleLexer lexer (cc, rules_filename);
+    Logger logger (cout);
+    App::run (lexer, logger);
+    if (logger.hasError ())
+    {
+      return;
+    }
+    return BasilCCApp::run (name.empty () ? guessName (rules_filename) : name);
+  }
+  inline void compile (string const & scripts_dir, string const & rules_filename, string const & name)
+  {
+    return Compiler (scripts_dir) (rules_filename, name);
+  }
+
+  // from rules file guess parser name
+  string guessName (string const & rules_filename)
+  {
+    string path, basename, root; 
+    getPathAndName (rules_filename, path, basename);
+    basename = remExt (basename);
+    size_t i = basename.find_last_of ('_');
+    if (i > 0 && i < basename.length () - 1)
+    {
+      string suffix = basename.substr (i + 1);
+      if (suffix == "rules" || suffix == "grammar")
+      {
+        root = basename.substr (0, i);
+      }
+    }
+    if (root.empty ())
+    {
+      root = "parser";
+    }
+    return join (path, root);
+  }
+
+  // print help text
+  void printHelp ()
+  {
+    cout << "Usage: basilcc [options] grammar_filename" << endl;
+    cout << "Basil Compiler Compiler" << endl;
+    cout << "Options:" << endl;
+    cout << " -h    display this help text" << endl;
+    cout << " -b    bootstrap grammar parser" << endl;
+    cout << " -k    print only kernel rules in states file" << endl;
+    cout << " -s    show shift priority on rules in states file" << endl; 
+    cout << " -f    show shift priority and follow set on rules in states file" << endl;
+    cout << "Generates an LR parser FSM, Lua node definitions, and a dump of all states." << endl;
+    cout << "Point environment variable BASILSCRIPTS to basilscripts directory, and" << endl;
+    cout << "bootstrap grammar parser before first use." << endl; 
+    cout << "Copyright (C) 2016 Michael Spencer; Lua Copyright (C) 1994-2016 Lua.org, PUC-Rio" << endl;
+  }
+
+  //
+  // utility functions
+  //
+
+  // join dirname and filename with slash
+  std::string join (std::string const & dirname, std::string const & filename)
+  {
+    string result = dirname;
+    size_t len = result.length ();
+    if (len > 0)
+    {
+#ifdef WINDOWS
+      if (! (result [len - 1] == '/' || result [len - 1] == '\\'))
+      {
+        result += '\\';
+      }
+#else
+      if (! (result [len - 1] == '/'))
+      {
+        result += '/';
+      }
+#endif
+    }
+    result += filename;
+    return result;
+  }
+
+  // get path and name
+  void getPathAndName (std::string const & filename, std::string & path, std::string & name)
+  {
+#ifdef WINDOWS
+    size_t len = filename.length ();
+    while (len > 0 && (filename [len - 1] == '\\' || filename [len - 1] == '/'))
+    {
+      -- len;
+    }
+    size_t p = filename.find_last_of ("/\\", len);
+    if (p == string::npos)
+    {
+      name = filename.substr (0, len);
+      path = ".\\";
+    }
+    else
+    {
+      path = filename.substr (0, p + 1);
+      name = filename.substr (p + 1, len - (p + 1)); 
+    }
+#else
+    size_t len = filename.length ();
+    while (len > 0 && filename [len - 1] == '/')
+    {
+      -- len;
+    }
+    size_t p = filename.rfind ('/', len);
+    if (p == string::npos)
+    {
+      name = filename.substr (0, len);
+      path = "./";
+    }
+    else
+    {
+      path = filename.substr (0, p + 1);
+      name = filename.substr (p + 1, len - (p + 1));
+    }
+#endif
+  }
+
+  // true if has extension, set extension if yes
+  bool hasExt (std::string const & filename, std::string & ext)
+  {
+    bool res (false);
+    size_t dot = filename.find_last_of ('.');
+    size_t slash = filename.find_last_of ("/\\");
+    if (dot != string::npos && (slash == string::npos || slash < dot))
+    {
+      ext = filename.substr (dot + 1);
+      res = true;
+    }
+    return res;
+  }
+
+  // remove extension
+  std::string remExt (std::string const & filename)
+  {
+    string base;
+    size_t dot   = filename.find_last_of ('.');
+    size_t slash = filename.find_last_of ("/\\");
+    if (dot != string::npos && (slash == string::npos || slash < dot))
+    {
+      base = filename.substr (0, dot);
+    }
+    else
+    {
+      base = filename;
+    }      
+    return base;
+  }
+}
+
+#src
+#include <basil/error.h>
+#include <basil/message.h>
+#include <basil/lua_env.h>
+#include <basil/app.h>
+#include <basilcc/basilcc.h>
+#include <basilcc/basilcc_lua.h>
+#include <basilcc/closure.h>
+#include <basilcc/print_nodes.h>
+#include <basilcc/print_state.h>
+#include <basilcc/state_api.h>
+#include <basilcc/rule_lexer.h>
+#include <basilcc/serialize.h>
+#include <basilcc/symbol_api.h>
+#include <algorithm>
+#include <iostream>
+#include <string>
+
+#define ARRAY_END(X) (X + sizeof (X) / sizeof (X [0]))
+#end

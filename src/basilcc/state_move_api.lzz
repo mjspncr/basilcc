@@ -1,0 +1,70 @@
+namespace basilcc
+{
+  class BasilCC;
+
+  // get state move from components
+  StateMovePtr getStateMove (BasilCC & cc, MoveSelPtr move_sel, ActionSeqPtr def_action_seq)
+  {
+    return cc.getTable <StateMoveTable> ().getStateMove (move_sel, def_action_seq);
+  }
+
+  // get all state moves
+  StateMovePtrVector const & getStateMoves (BasilCC const & cc)
+  {
+    return cc.getTable <StateMoveTable> ().getStateMoves ();
+  }
+}
+
+using namespace basilcc;
+
+namespace
+{
+  class StateMoveTable : public Table
+  {
+  public:
+    StateMoveTable (BasilCC & cc)
+    {}
+    ~ StateMoveTable ()
+    {
+      deleteObjects (m_state_moves.begin (), m_state_moves.end ());
+    }
+
+    // get state move from components
+    StateMovePtr getStateMove (MoveSelPtr move_sel, ActionSeqPtr def_action_seq)
+    {
+      m_state_move_trie.push (unsigned (move_sel));
+      m_state_move_trie.push (unsigned (def_action_seq));
+      StateMovePtr & state_move = m_state_move_trie.commit (0);
+      if (! state_move)
+      {
+        state_move = * m_state_moves.insert (m_state_moves.end (), new StateMove (m_state_moves.size (), move_sel, def_action_seq));
+      }
+      return state_move;
+    }
+
+    // get all state moves
+    inline StateMovePtrVector const & getStateMoves () const
+    {
+      return m_state_moves;
+    }
+
+    enum { TABLE = TABLE_STATE_MOVE }
+  private:
+    StateMovePtrTrie m_state_move_trie;
+    StateMovePtrVector m_state_moves;
+  }
+}
+
+#hdr
+#include <basilcc/action_seq_ptr.h>
+#include <basilcc/move_sel_ptr.h>
+#include <basilcc/state_move_ptr_vector.h>
+#end
+
+#src
+#include <basilcc/basilcc.h>
+#include <basilcc/state_move.h>
+#include <basilcc/state_move_ptr_trie.h>
+#include <basilcc/table.h>
+#include <basilcc/util.h>
+#end

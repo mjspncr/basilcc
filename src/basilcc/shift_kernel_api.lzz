@@ -1,0 +1,69 @@
+namespace basilcc
+{
+  class BasilCC;
+  
+  // get shift kernel from follow rules
+  ShiftKernelPtr getShiftKernel (BasilCC & cc, FollowRulePtrVector const & follow_rules)
+  {
+    ShiftRulePtrVector shift_rules;
+    shift_rules.reserve (follow_rules.size ());
+    transform (follow_rules.begin (), follow_rules.end (), back_inserter (shift_rules), getFollowShiftRule);
+    return cc.getTable <ShiftKernelTable> ().getShiftKernel (shift_rules);
+  }
+}
+
+using namespace basilcc;
+using namespace std;
+
+namespace
+{
+  class ShiftKernelTable : public Table
+  {
+  public:
+    ShiftKernelTable (BasilCC & cc)
+    {}
+    ~ ShiftKernelTable ()
+    {
+      deleteObjects (m_shift_kernels.begin (), m_shift_kernels.end ());
+    }
+
+    // get shift kernel from kernel shift rules
+    ShiftKernelPtr getShiftKernel (ShiftRulePtrVector & shift_rules)
+    {
+      for_each (shift_rules.begin (), shift_rules.end (), PushShiftRule (m_shift_kernel_trie));
+      ShiftKernelPtr & shift_kernel = m_shift_kernel_trie.commit (0);
+      if (! shift_kernel)
+      {
+        shift_kernel = * m_shift_kernels.insert (m_shift_kernels.end (), new ShiftKernel (shift_rules));
+      }
+      return shift_kernel;
+    }
+
+    enum { TABLE = TABLE_SHIFT_KERNEL }
+  private:
+    ShiftKernelPtrTrie m_shift_kernel_trie;
+    ShiftKernelPtrVector m_shift_kernels;
+  }
+
+  inline void PushShiftRule (ShiftKernelPtrTrie & trie; ShiftRulePtr shift_rule)
+  {
+    trie.push (unsigned (shift_rule));
+  }
+}
+
+#hdr
+#include <basilcc/follow_rule_ptr_vector.h>
+#include <basilcc/shift_kernel_ptr.h>
+#end
+
+#src
+#include <basilcc/basilcc.h>
+#include <basilcc/follow_rule.h>
+#include <basilcc/shift_kernel.h>
+#include <basilcc/shift_kernel_ptr_trie.h>
+#include <basilcc/shift_kernel_ptr_vector.h>
+#include <basilcc/shift_rule_ptr_vector.h>
+#include <basilcc/table.h>
+#include <basilcc/util.h>
+#include <algorithm>
+#end

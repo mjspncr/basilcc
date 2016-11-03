@@ -1,0 +1,51 @@
+namespace basilcc
+{
+  class Node
+  {
+  public:
+    Node (char const * name)
+      : m_num (0), m_name (name), m_rule (0)
+    {}
+    ~ Node ()
+    {}
+    // set/get number
+    void setNumber (int num)
+    {
+      m_num = num;
+    }
+    int getNumber () const
+    {
+      return m_num;
+    }
+    // get name
+    char const * getName () const
+    {
+      return m_name;
+    }
+    // set/get rule
+    void setRule (RulePtr rule)
+    {
+      m_rule = rule;
+    }
+    RulePtr getRule () const
+    {
+      return m_rule;
+    }
+  private:
+    int m_num;
+    char const * m_name;
+    RulePtr m_rule;
+  }
+
+  // true if a name < b name
+  bool nodeNameLess (Node const * a, Node const * b)
+  {
+    return strcmp (a->getName (), b->getName ()) < 0;
+  }
+}
+
+#hdr
+#include <basilcc/rule_ptr.h>
+#include <cstddef>
+#include <cstring>
+#end

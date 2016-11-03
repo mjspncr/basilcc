@@ -1,0 +1,82 @@
+namespace basilcc
+{
+  class BasilCC;
+
+  // get shift lazy action
+  LazyActionPtr getShiftLazyAction  (BasilCC & cc)
+  {
+    return cc.getTable <LazyActionTable> ().getShiftLazyAction ();
+  }
+
+  // get reduce lazy action
+  LazyActionPtr getReduceLazyAction (BasilCC & cc, RulePtr rule, SymbolPtr shortcut, bool accept)
+  {
+    return cc.getTable <LazyActionTable> ().getReduceLazyAction (rule, shortcut, accept);
+  }
+}
+
+using namespace basilcc;
+
+namespace
+{
+  class LazyActionTable : public Table
+  {
+  public:
+    LazyActionTable (BasilCC & cc)
+    {}
+    ~ LazyActionTable ()
+    {
+      deleteObjects (m_lazy_actions.begin (), m_lazy_actions.end ());
+    }
+
+    // get shift lazy action
+    LazyActionPtr getShiftLazyAction ()
+    {
+      // there's only one shift lazy action
+      LazyActionPtr & lazy_action = m_lazy_action_trie.commit (0);
+      if (! lazy_action)
+      {
+        lazy_action = new ShiftLazyAction ();
+        m_lazy_actions.push_back (lazy_action); 
+      }
+      return lazy_action;
+    }
+
+    // get reduce lazy action
+    LazyActionPtr getReduceLazyAction (RulePtr rule, SymbolPtr shortcut, bool accept)
+    {
+      m_lazy_action_trie.push (unsigned (rule));
+      m_lazy_action_trie.push (unsigned (shortcut));
+      m_lazy_action_trie.push (accept ? 1 : 0);
+      LazyActionPtr & lazy_action = m_lazy_action_trie.commit (0);
+      if (! lazy_action)
+      {
+        lazy_action = new ReduceLazyAction (rule, shortcut, accept);
+        m_lazy_actions.push_back (lazy_action);
+      }
+      return lazy_action;
+    }
+
+    enum { TABLE = TABLE_LAZY_ACTION }
+  private:
+    LazyActionPtrTrie m_lazy_action_trie;
+    LazyActionPtrVector m_lazy_actions;
+  }
+}
+
+#hdr
+#include <basilcc/lazy_action_ptr.h>
+#include <basilcc/rule_ptr.h>
+#include <basilcc/symbol_ptr.h>
+#end
+
+#src
+#include <basilcc/basilcc.h>
+#include <basilcc/lazy_action.h>
+#include <basilcc/lazy_action_ptr_trie.h>
+#include <basilcc/lazy_action_ptr_vector.h>
+#include <basilcc/rule_ptr.h>
+#include <basilcc/symbol_ptr.h>
+#include <basilcc/table.h>
+#include <basilcc/util.h>
+#end

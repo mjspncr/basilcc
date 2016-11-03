@@ -1,0 +1,14 @@
+namespace basilcc
+{
+  typedef Trie <unsigned int, 0xFFFFFFFF, 512, MoveSelPtr> MoveSelPtrTrie;
+  template class Trie <unsigned int, 0xFFFFFFFF, 512, MoveSelPtr>;
+}
+
+#hdr
+#include <basilcc/move_sel_ptr.h>
+#include <basilcc/trie.h>
+#end
+
+#src
+#include <basilcc/trie.tpl>
+#end

@@ -1,0 +1,57 @@
+namespace basilcc
+{
+  class BasilCC;
+  class Priority;
+  class LexState;
+
+  // return new rule symbol
+  RuleSymbolPtr getRuleSymbol (BasilCC & cc, SymbolPtr symbol, basil::Loc const & loc, Priority const & reduce_priority,
+      Priority const & first_priority, Priority const & shift_priority, LexState const & lex_state, bool sticky, bool accept)
+  {
+    return cc.getTable <RuleSymbolTable> ().getRuleSymbol (symbol, loc, reduce_priority, first_priority, shift_priority,
+        lex_state, sticky, accept);
+  }
+}
+
+using namespace basilcc;
+
+namespace
+{
+  class RuleSymbolTable : public Table
+  {
+  public:
+    RuleSymbolTable (BasilCC & cc)
+    {}
+    ~ RuleSymbolTable ()
+    {
+      deleteObjects (m_rule_symbols.begin (), m_rule_symbols.end ());
+    }
+
+    // get rule symbol, always allocates new rule symbol
+    RuleSymbolPtr getRuleSymbol (SymbolPtr symbol, basil::Loc const & loc, Priority const & reduce_priority,
+        Priority const & first_priority, Priority const & shift_priority, LexState const & lex_state, bool sticky, bool accept)
+    {
+      RuleSymbolPtr rule_symbol = new RuleSymbol (symbol, loc, reduce_priority, first_priority, shift_priority, lex_state, sticky, accept);
+      m_rule_symbols.push_back (rule_symbol);
+      return rule_symbol;
+    }
+
+    enum { TABLE = TABLE_RULE_SYMBOL }
+  private:
+    RuleSymbolPtrVector m_rule_symbols;
+  }
+}
+
+#hdr
+#include <basil/loc.h>
+#include <basilcc/rule_symbol_ptr.h>
+#include <basilcc/symbol_ptr.h>
+#end
+
+#src
+#include <basilcc/basilcc.h>
+#include <basilcc/rule_symbol.h>
+#include <basilcc/rule_symbol_ptr_vector.h>
+#include <basilcc/table.h>
+#include <basilcc/util.h>
+#end

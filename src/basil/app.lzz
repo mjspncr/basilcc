@@ -2,28 +2,27 @@ namespace basil
 {
   class Lexer;
 
-  // parser application -- AppEnv?
-  class App : public LuaEnv
+  class BasilApp
   {
   public:
-    // fsm and app filenames relative to scripts_dir
-    App (std::string const & scripts_dir, std::string const & fsm_filename, TokenNumberPtr beg, TokenNumberPtr end, std::string const & app_filename)
-      : LuaEnv (scripts_dir), fsm (path (fsm_filename), beg, end), app_mt (LUA_NOREF), node_mts (LUA_NOREF)
+    BasilApp (FSM & fsm)
+      : fsm (fsm), app_mt (LUA_NOREF), node_mts (LUA_NOREF)
+    {}
+    ~ BasilApp ()
     {
-      registerLoc (L);
-      Parser::registerToken (L);
-      Loader loader (L, fsm.getNodes ());
-      app_mt = loader.load (path (app_filename), node_mts);
+      // unref app_mt, node_mts
+      // ...
     }
 
-    // keywords for lexer 
-    StringIntVector const & getKeywords () const
+    // load app, initialize app and node metatables
+    void load (lua_State * L, std::string const & app_filename)
     {
-      return fsm.getKeywords ();
+      Loader loader (L, fsm.getNodes ());
+      app_mt = loader.load (app_filename, node_mts);
     }
 
     // create new application instance and run it
-    void run (Lexer & lexer, Logger & logger)
+    void run (lua_State * L, Lexer & lexer, Logger & logger)
     {
       Runner runner (L);
       runner.run (fsm, app_mt, node_mts, lexer, logger);
@@ -31,12 +30,12 @@ namespace basil
 
   private:
     // parser finite state machine
-    FSM fsm;
+    FSM & fsm;
     // app metatable
     int app_mt;
     // array of node metatables 
     int node_mts;
-  }
+  };
 }
 
 using namespace basil;
@@ -291,13 +290,12 @@ namespace
 #hdr
 #include <basil/fsm.h>
 #include <basil/logger.h>
-#include <basil/lua_env.h>
 #include <string>
+#include <lua.hpp>
 #end
 
 #src
 #include <basil/error.h>
-#include <basil/loc_lua.h>
 #include <basil/message.h>
 #include <basil/parser.h>
 #include <algorithm>

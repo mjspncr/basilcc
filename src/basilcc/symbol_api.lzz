@@ -13,6 +13,10 @@ namespace basilcc
   {
     return cc.getTable <SymbolTable> ().getSymbol (name);
   }
+  SymbolPtr getSymbol (BasilCC & cc, std::string const & name)
+  {
+    return cc.getTable <SymbolTable> ().getSymbol (cc.intern (name));
+  }
 
   // get all tokens
   SymbolPtrVector const & getTokens (BasilCC const & cc)

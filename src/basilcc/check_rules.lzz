@@ -9,6 +9,8 @@ namespace basilcc
     {
       throw BasilError ("missing start rule");
     }
+    // can just check all non terminals directly ...
+
     RulePtrVector const & rules = getRules (cc);
     for_each (rules.begin (), rules.end (), CheckRule (cc));
   }

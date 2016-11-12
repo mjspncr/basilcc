@@ -153,12 +153,14 @@ namespace
     }
     void compile (string const & rules_filename, string const & name)
     {
-      FSM fsm (path (BASIL_FSM), rule_lexer::token_numbers, rule_lexer::token_numbers_end);
-      BasilApp basil_app (fsm);
-      basil_app.load (L, path (BASIL_APP));
-      rule_lexer::RuleLexer lexer (cc, rules_filename);
       Logger logger (cout);
-      basil_app.run (L, lexer, logger);
+      {
+        FSM fsm (path (BASIL_FSM), rule_lexer::token_numbers, rule_lexer::token_numbers_end);
+        ParserApp parser_app (L, fsm);
+        parser_app.load (path (BASIL_APP));
+        rule_lexer::RuleLexer lexer (cc, rules_filename);
+        parser_app.run (lexer, logger);
+      }
       if (! logger.hasError ())
       {
         generate (name.empty () ? guessName (rules_filename) : name);
@@ -327,10 +329,10 @@ namespace
 }
 
 #src
-#include <basil/app.h>
 #include <basil/error.h>
 #include <basil/lua_env.h>
 #include <basil/message.h>
+#include <basil/parser_app.h>
 #include <basilcc/basilcc.h>
 #include <basilcc/basilcc_lua.h>
 #include <basilcc/closure.h>
@@ -342,6 +344,5 @@ namespace
 #include <algorithm>
 #include <iostream>
 #include <string>
-
 #define ARRAY_END(X) (X + sizeof (X) / sizeof (X [0]))
 #end

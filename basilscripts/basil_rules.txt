@@ -1,4 +1,4 @@
-# basil rule grammar
+# basil grammar
 
 start -> rule-seq-opt
 

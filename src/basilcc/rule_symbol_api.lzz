@@ -1,15 +1,14 @@
 namespace basilcc
 {
   class BasilCC;
-  class Priority;
-  class LexState;
 
   // return new rule symbol
-  RuleSymbolPtr getRuleSymbol (BasilCC & cc, SymbolPtr symbol, basil::Loc const & loc, Priority const & reduce_priority,
-      Priority const & first_priority, Priority const & shift_priority, LexState const & lex_state, bool sticky, bool accept)
+  RuleSymbolPtr getRuleSymbol (BasilCC & cc, std::string const & name, basil::Loc const & loc = basil::Loc (),
+      Priority const & reduce_priority = Priority (), Priority const & first_priority = Priority (), Priority const & shift_priority = Priority (),
+      LexState const & lex_state = LexState (), bool sticky = false, bool accept = false)
   {
-    return cc.getTable <RuleSymbolTable> ().getRuleSymbol (symbol, loc, reduce_priority, first_priority, shift_priority,
-        lex_state, sticky, accept);
+    SymbolPtr symbol = getSymbol (cc, name);
+    return cc.getTable <RuleSymbolTable> ().getRuleSymbol (symbol, loc, reduce_priority, first_priority, shift_priority, lex_state, sticky, accept);
   }
 }
 
@@ -44,6 +43,8 @@ namespace
 
 #hdr
 #include <basil/loc.h>
+#include <basilcc/priority.h>
+#include <basilcc/lex_state.h>
 #include <basilcc/rule_symbol_ptr.h>
 #include <basilcc/symbol_ptr.h>
 #end
@@ -52,6 +53,7 @@ namespace
 #include <basilcc/basilcc.h>
 #include <basilcc/rule_symbol.h>
 #include <basilcc/rule_symbol_ptr_vector.h>
+#include <basilcc/symbol_api.h>
 #include <basilcc/table.h>
 #include <basilcc/util.h>
 #end

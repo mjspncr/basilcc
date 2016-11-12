@@ -9,7 +9,7 @@ namespace basil
   class Parser
   {
   public:
-    Parser (lua_State * L, FSM & fsm, int nodes, Lexer & lexer, int app, Logger & logger)
+    Parser (lua_State * L, FSM & fsm, IntVector const & nodes, Lexer & lexer, int app, Logger & logger)
       : L (L), fsm (fsm), nodes (nodes), lexer (lexer), app (app), logger (logger)
     {}
     ~ Parser ()
@@ -228,14 +228,10 @@ namespace basil
         }
         else
         {
-          // make the object an instance of node class
-          lua_rawgeti (L, LUA_REGISTRYINDEX, nodes);
-          lua_rawgeti (L, -1, node + 1);
-          // move node class down one, replacing node class array
-          lua_replace (L, -2);
-          // class is metatable of object
+          // set node metatable
+          lua_rawgeti (L, LUA_REGISTRYINDEX, nodes [node]);
           lua_setmetatable (L, -2);
-          // call onNode if user defined semantic actions on node
+          // call semantic actions if defined
           lua_getfield (L, -1, "onNode");
           if (lua_isnil (L, -1))
           {
@@ -243,7 +239,7 @@ namespace basil
           }
           else
           {
-            // function first then node object
+            // first function then node
             lua_rotate (L, -2, 1);
             // and app, or nil if no app defined
             if (app == LUA_NOREF)
@@ -442,7 +438,7 @@ namespace basil
   private:
     lua_State * L;
     FSM & fsm;
-    int nodes;
+    IntVector const & nodes;
     Lexer & lexer;
     int app;
     Logger & logger;

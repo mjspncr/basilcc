@@ -16,7 +16,6 @@ namespace basil
       // leave error handler on the stack in position 1
       lua_pushcfunction (L, error_handler);
       assert (lua_gettop (L) == 1);
-
       registerLoc (L);
       Parser::registerToken (L);
     }

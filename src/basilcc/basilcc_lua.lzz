@@ -2,15 +2,17 @@ namespace basilcc
 {
   class BasilCC;
 
-  // register compiler compiler api, just what is needed to add rules
+  // register compiler compiler functions
   void registerCC (lua_State * L, BasilCC & cc)
   {
-    registerPriority (L);
-    registerRuleSymbol (L, cc);
-    registerRuleName (L, cc);
+    lua_newtable (L);
+    register_symbol (L, cc);
+    register_priority (L);
+    register_rule_name (L, cc);
     lua_pushlightuserdata (L, & cc);
     lua_pushcclosure (L, add_rule, 1);
-    lua_setglobal (L, "addRule");
+    lua_setfield (L, -2, "rule"); 
+    lua_setglobal (L, "basil");
   }
 }
 
@@ -20,169 +22,391 @@ using namespace std;
 
 namespace
 {
-  char const META_PRIORITY [] = "Priority";
-  char const META_RULE_SYMBOL [] = "RuleSymbol";
-  char const META_RULE_NAME [] = "RuleName";
-
-  //
-  // Priority
-  //
-  
-  void registerPriority (lua_State * L)
+  // register priority
+  char const META_PRIORITY [] = "__priority__";
+  void register_priority (lua_State * L)
   {
     luaL_newmetatable (L, META_PRIORITY);
     lua_pushcfunction (L, priority_add);
     lua_setfield (L, -2, "__add");
     lua_pop (L, 1);
-    lua_register (L, "Priority", priority_ctor);
+    lua_pushcfunction (L, create_priority);
+    lua_setfield (L, -2, "priority");
   }
-  // Priority (count, bang)
-  int priority_ctor (lua_State * L)
+
+  // priority constructor
+  int create_priority (lua_State * L)
   {
-    int count = static_cast <int> (luaL_optinteger (L, 1, 0));
-    int bang  = static_cast <int> (luaL_optinteger (L, 2, 0));
-    pushPriority (L, Priority (count, bang));
+    luaL_checktype (L, 1, LUA_TTABLE);
+    int count = get_int_element (L, 1, 1);
+    int bang = opt_int_field (L, 1, "bang");
+    push_priority (L, Priority (count, bang));
     return 1;
   }
-  // __add, + operator
+
+  // priority __add operator
   int priority_add (lua_State * L)
   {
-    // one or the other might be nil, in which case default it 
-    Priority p1 = optPriority (L, 1, Priority ());
-    Priority p2 = optPriority (L, 2, Priority ());
-    pushPriority (L, p1 + p2);
+    // one or the other might be nil
+    Priority p1 = opt_priority (L, 1);
+    Priority p2 = opt_priority (L, 2);
+    push_priority (L, p1 + p2);
     return 1;
   }
 
   // push priority on stack
-  void pushPriority (lua_State * L, basilcc::Priority const & priority)
+  void push_priority (lua_State * L, Priority const & priority)
   {
     new (lua_newuserdata (L, sizeof (Priority))) Priority (priority);
     luaL_setmetatable (L, META_PRIORITY);
   }
 
-  // get priority at arg with default 
-  Priority const & optPriority (lua_State * L, int arg, Priority const & def)
+  // get priority
+  Priority get_priority (lua_State * L, int idx)
   {
-    return lua_isnoneornil (L, arg) ? def : * static_cast <Priority *> (luaL_checkudata (L, arg, META_PRIORITY));
+    Priority priority;
+    int type = lua_type (L, idx);
+    if (type == LUA_TNUMBER)
+    {
+      int count = lua_tointeger (L, idx);
+      priority = Priority (count);
+    }
+    else
+    {
+      priority = * static_cast <Priority *> (luaL_checkudata (L, idx, META_PRIORITY));
+    }
+    return priority;
   }
 
-  //
-  // Symbol (RuleSymbol)
-  //
-
-  void registerRuleSymbol (lua_State * L, BasilCC & cc)
+  // get optional priority
+  Priority opt_priority (lua_State * L, int idx, Priority const & def = Priority ())
   {
-    // metatable
-    luaL_newmetatable (L, META_RULE_SYMBOL);
+    return lua_isnoneornil (L, idx) ? def : get_priority (L, idx);
+  }
+
+  // get optional priority field
+  Priority opt_priority_field (lua_State * L, int idx, char const * name, Priority const & def = Priority ())
+  {
+    Priority priority = def;
+    if (has_field (L, idx, name))
+    {
+      priority = get_priority (L, -1);
+      lua_pop (L, 1);
+    }
+    return priority;
+  }
+
+  // symbol
+
+  // register sybol
+  char const META_SYMBOL [] = "__symbol__";
+  void register_symbol (lua_State * L, BasilCC & cc)
+  {
+    luaL_newmetatable (L, META_SYMBOL);
     lua_pop (L, 1);
     lua_pushlightuserdata (L, & cc);
-    lua_pushcclosure (L, rulesymbol_ctor, 1);
-    // to lua this is just a symbol 
-    lua_setglobal (L, "Symbol");
+    lua_pushcclosure (L, create_symbol, 1);
+    lua_setfield (L, -2, "symbol");
   }
 
-  // Symbol (name, loc, reduce_priority, first_priority, shift_priority, lex_state, sticky, accept)
-  int rulesymbol_ctor (lua_State * L)
+  // symbol constructor
+  int create_symbol (lua_State * L)
   {
     BasilCC & cc = * (BasilCC *) lua_touserdata (L, lua_upvalueindex (1));
-    char const * name = luaL_checkstring (L, 1);
-    name = cc.intern (name);
-    Loc loc = optLoc (L, 2);
-    Priority rp = optPriority (L, 3, Priority ());
-    Priority fp = optPriority (L, 4, Priority ());
-    Priority sp = optPriority (L, 5, Priority ());
-    LexState lex_state (static_cast <int> (luaL_optinteger (L, 6, LEX_STATE_UNSET)));
-    bool sticky = lua_toboolean (L, 7) != 0; 
-    bool accept = lua_toboolean (L, 8) != 0;
-    SymbolPtr symbol = getSymbol (cc, name);
-    RuleSymbolPtr rule_symbol = getRuleSymbol (cc, symbol, loc, rp, fp, sp, lex_state, sticky, accept);
+    luaL_checktype (L, 1, LUA_TTABLE);
+    string name = get_string_element (L, 1, 1);
+    Loc loc = opt_loc_field (L, 1, "loc");
+    Priority rp = opt_priority_field (L, 1, "reduce_priority");
+    Priority fp = opt_priority_field (L, 1, "first_priority");
+    Priority sp = opt_priority_field (L, 1, "shift_priority");
+    int lex_state = opt_int_field (L, 1, "lex_state", LEX_STATE_UNSET);
+    bool sticky = opt_bool_field (L, 1, "sticky");
+    bool accept = opt_bool_field (L, 1, "accept");
+    RuleSymbolPtr rule_symbol = getRuleSymbol (cc, name, loc, rp, fp, sp, lex_state, sticky, accept);
     * (void **) lua_newuserdata (L, sizeof (void *)) = rule_symbol;
-    luaL_setmetatable (L, META_RULE_SYMBOL);
+    luaL_setmetatable (L, META_SYMBOL);
     return 1;
   }
 
-  // check rule symbol at arg
-  RuleSymbolPtr checkRuleSymbol (lua_State * L, int arg)
+  // get symbol
+  RuleSymbolPtr get_symbol (lua_State * L, BasilCC & cc, int idx)
   {
-    return * static_cast <RuleSymbolPtr *> (luaL_checkudata (L, arg, META_RULE_SYMBOL));
+    RuleSymbolPtr rule_symbol = 0;
+    if (lua_type (L, idx) == LUA_TSTRING)
+    {
+      string name = lua_tostring (L, idx);
+      rule_symbol = getRuleSymbol (cc, name);
+    }
+    else
+    {
+      rule_symbol = * static_cast <RuleSymbolPtr *> (luaL_checkudata (L, idx, META_SYMBOL));
+    }
+    return rule_symbol;
   }
 
-  // get options rule symbols at arg
-  void optRuleSymbols (lua_State * L, int arg, RuleSymbolPtrVector & rule_symbols)
+  // get symbol feild
+  RuleSymbolPtr get_symbol_field (lua_State * L, BasilCC & cc, int idx, char const * name)
   {
-    if (! lua_isnoneornil (L, arg))
+    get_field (L, idx, name);
+    RuleSymbolPtr rule_symbol = get_symbol (L, cc, -1);
+    lua_pop (L, 1);
+    return rule_symbol;
+  }
+
+  // get optional symbols from field
+  void opt_symbols_field (lua_State * L, BasilCC & cc, int idx, char const * name, RuleSymbolPtrVector & rule_symbols)
+  {
+    if (has_type_field (L, idx, name, LUA_TTABLE))
     {
-      luaL_checktype (L, arg, LUA_TTABLE);
       lua_pushnil (L);
-      while (lua_next (L, arg) != 0)
+      while (lua_next (L, -2) != 0)
       {
-        rule_symbols.push_back (checkRuleSymbol (L, -1));
+        rule_symbols.push_back (get_symbol (L, cc, -1));
         lua_pop (L, 1);
       }
+      lua_pop (L, 1);
     }
   }
 
-  //
-  // RuleName
-  //
+  // rule name
 
-  void registerRuleName (lua_State * L, BasilCC & cc)
+  // register rule name
+  char const META_RULE_NAME [] = "__rule_name__";
+  void register_rule_name (lua_State * L, BasilCC & cc)
   {
     luaL_newmetatable (L, META_RULE_NAME);
     lua_pop (L, 1);
     lua_pushlightuserdata (L, & cc);
-    lua_pushcclosure (L, rulename_ctor, 1);
-    // to lua this is just a name 
-    lua_setglobal (L, "Name");
+    lua_pushcclosure (L, create_rule_name, 1);
+    lua_setfield (L, -2, "name");
   }
 
-  // Name (name, loc, is_node)
-  int rulename_ctor (lua_State * L)
+  // rulename constructor
+  int create_rule_name (lua_State * L)
   {
     BasilCC & cc = * (BasilCC *) lua_touserdata (L, lua_upvalueindex (1));
-    char const * name = luaL_checkstring (L, 1);
-    name = cc.intern (name);
-    Loc loc = optLoc (L, 2);
-    bool is_node = lua_toboolean (L, 3) != 0;
+    luaL_checktype (L, 1, LUA_TTABLE);
+    string name = get_string_element (L, 1, 1);
+    Loc loc = opt_loc_field (L, 1, "loc");
+    bool is_node = opt_bool_field (L, 1, "is_node");
     RuleNamePtr rule_name = getRuleName (cc, name, loc, is_node);
     * (void **) lua_newuserdata (L, sizeof (void *)) = rule_name;
     luaL_setmetatable (L, META_RULE_NAME);
     return 1;
   }
 
-  // if arg nil or none return 0, otherwise return rule name
-  RuleNamePtr optRuleName (lua_State * L, int arg)
+  // get rule name
+  RuleNamePtr get_rule_name (lua_State * L, BasilCC & cc, int idx)
   {
-    return lua_isnoneornil (L, arg) ? 0 : * static_cast <RuleNamePtr *> (luaL_checkudata (L, arg, META_RULE_NAME));
+    RuleNamePtr rule_name = 0;
+    if (lua_type (L, idx) == LUA_TSTRING)
+    {
+      string name = lua_tostring (L, idx);
+      rule_name = getRuleName (cc, name);
+    }
+    else
+    {
+      rule_name = * static_cast <RuleNamePtr *> (luaL_checkudata (L, idx, META_RULE_NAME));
+    }
+    return rule_name;
   }
 
+  // get optional rule name
+  RuleNamePtr opt_rule_name_element (lua_State * L, BasilCC & cc, int idx, int i)
+  {
+    RuleNamePtr rule_name = 0;
+    if (has_element (L, idx, i))
+    {
+      rule_name = get_rule_name (L, cc, -1);
+      lua_pop (L, 1);
+    }
+    return rule_name;
+  }
 
-  // addRule (name, left_rule_symbol, right_rule_symbols, explicit_follow, no_bypass)
+  // add rule to basil cc
   int add_rule (lua_State * L)
   {
-    static string errmsg;
+    try
     {
-      // addRule can throw exceptions
-      try
-      {
-        BasilCC & cc = * (BasilCC *) lua_touserdata (L, lua_upvalueindex (1));
-        RuleNamePtr rule_name = optRuleName (L, 1);
-        RuleSymbolPtr left_rule_symbol = checkRuleSymbol (L, 2);
-        RuleSymbolPtrVector right_rule_symbols;
-        optRuleSymbols (L, 3, right_rule_symbols);
-        RuleSymbolPtrVector explicit_follow;
-        optRuleSymbols (L, 4, explicit_follow);
-        bool no_bypass = lua_toboolean (L, 5) != 0;
-        addRule (cc, rule_name, left_rule_symbol, right_rule_symbols, explicit_follow, no_bypass);
-        return 0;
-      }
-      catch (exception const & e)
-      {
-        errmsg = e.what ();
-      }
+      BasilCC & cc = * (BasilCC *) lua_touserdata (L, lua_upvalueindex (1));
+      luaL_checktype (L, 1, LUA_TTABLE);
+      RuleNamePtr rule_name = opt_rule_name_element (L, cc, 1, 1);
+      RuleSymbolPtr left_rule_symbol = get_symbol_field (L, cc, 1, "left_symbol");
+      RuleSymbolPtrVector right_rule_symbols;
+      opt_symbols_field (L, cc, 1, "right_symbols", right_rule_symbols);
+      RuleSymbolPtrVector explicit_follow;
+      opt_symbols_field (L, cc, 1, "explicit_follow", explicit_follow);
+      bool no_bypass = opt_bool_field (L, 1, "no_bypass");
+      addRule (cc, rule_name, left_rule_symbol, right_rule_symbols, explicit_follow, no_bypass);
     }
-    return luaL_error (L, errmsg.c_str ());
+    catch (exception const & e)
+    {
+      lua_pushstring (L, e.what ());
+      return lua_error (L);
+    }
+    return 0;
+  }
+
+  // get optional loc field
+  Loc opt_loc_field (lua_State * L, int idx, char const * name, Loc const & def = Loc ())
+  {
+    Loc loc = def;
+    if (has_field (L, idx, name))
+    {
+      loc = checkLoc (L, -1);
+      lua_pop (L, 1);
+    }
+    return loc;
+  }
+
+  //
+  // lua helper functions
+  //
+  
+  bool has_field (lua_State * L, int idx, char const * name, int & type)
+  {
+    if ((type = lua_getfield (L, idx, name)) == LUA_TNIL)
+    {
+      lua_pop (L, 1);
+      return false;
+    }
+    return true;
+  }
+
+  inline bool has_field (lua_State * L, int idx, char const * name)
+  {
+    int type;
+    return has_field (L, idx, name, type);
+  }
+
+  bool has_type_field (lua_State * L, int idx, char const * name, int type)
+  {
+    int value_type;
+    if (! has_field (L, idx, name, value_type))
+    {
+      return false;
+    }
+    if (value_type != type)
+    {
+      lua_pop (L, 1);
+      luaL_error (L, "%s is not a %s", name, lua_typename (L, type));;
+    }
+    return true;
+  }
+
+  bool has_element (lua_State * L, int idx, int i, int & type)
+  {
+    if ((type = lua_geti (L, idx, i)) == LUA_TNIL)
+    {
+      lua_pop (L, 1);
+      return false;
+    }
+    return true;
+  }
+
+  inline bool has_element (lua_State * L, int idx, int i)
+  {
+    int type;
+    return has_element (L, idx, i, type);
+  }
+
+  bool has_type_element (lua_State * L, int index, int i, int & type)
+  {
+    int value_type;
+    if (! has_element (L, index, i, value_type))
+    {
+      return false;
+    }
+    if (value_type != type)
+    {
+      lua_pop (L, 1);
+      luaL_error (L, "%d is not a %s", i, lua_typename (L, type));;
+    }
+    return true;
+  }
+
+  int get_field (lua_State * L, int index, char const * name)
+  {
+    int type;
+    if (! has_field (L, index, name, type))
+    {
+      luaL_error (L, "missing %s", name);
+    }
+    return type;
+  }
+
+  void get_type_field (lua_State * L, int index, char const * name, int type)
+  {
+    if (get_field (L, index, name) != type)
+    {
+      lua_pop (L, 1);
+      luaL_error (L, "%s is not a %s", name, lua_typename (L, type));;
+    }
+  }
+
+  int get_element (lua_State * L, int index, int i)
+  {
+    int type;
+    if (! has_element (L, index, i, type))
+    {
+      luaL_error (L, "missing %d", i);
+    }
+    return type;
+  }
+
+  void get_type_element (lua_State * L, int index, int i, int type)
+  {
+    if (get_element (L, index, i) != type)
+    {
+      lua_pop (L, 1);
+      luaL_error (L, "%d is not a %s", i, lua_typename (L, type));;
+    }
+  }
+
+  string get_string_field (lua_State * L, int index, char const * name)
+  {
+    get_type_field (L, index, name, LUA_TSTRING);
+    string str = lua_tostring (L, -1);
+    lua_pop (L, 1);
+    return str;
+  }
+
+  string get_string_element (lua_State * L, int index, int i)
+  {
+    get_type_element (L, index, i, LUA_TSTRING);
+    string str = lua_tostring (L, -1);
+    lua_pop (L, 1);
+    return str;
+  }
+
+  int get_int_element (lua_State * L, int index, int i)
+  {
+    get_type_element (L, index, i, LUA_TNUMBER);
+    int value = lua_tointeger (L, -1);
+    lua_pop (L, 1);
+    return value;
+  }
+
+  int opt_int_field (lua_State * L, int index, char const * name, int def = 0)
+  {
+    int value = def;
+    if (has_type_field (L, index, name, LUA_TNUMBER))
+    {
+      value = lua_tointeger (L, -1);
+      lua_pop (L, 1);
+    }
+    return value;
+  }
+
+  bool opt_bool_field (lua_State * L, int index, char const * name, bool def = false)
+  {
+    bool value = def;
+    if (has_type_field (L, index, name, LUA_TBOOLEAN))
+    {
+      value = lua_toboolean (L, -1) == 0 ? false : true;
+      lua_pop (L, 1);
+    }
+    return value;
   }
 }
 
@@ -200,7 +424,6 @@ namespace
 #include <basilcc/rule_symbol.h>
 #include <basilcc/rule_symbol_api.h>
 #include <basilcc/symbol.h>
-#include <basilcc/symbol_api.h>
 #include <basilcc/util.h>
 #include <exception>
 #include <sstream>

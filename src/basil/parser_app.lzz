@@ -1,42 +1,42 @@
 namespace basil
 {
   class Lexer;
+  typedef std::vector <int> IntVector;
 
-  // parser application -- AppEnv?
-  class App : public LuaEnv
+  class ParserApp
   {
   public:
-    // fsm and app filenames relative to scripts_dir
-    App (std::string const & scripts_dir, std::string const & fsm_filename, TokenNumberPtr beg, TokenNumberPtr end, std::string const & app_filename)
-      : LuaEnv (scripts_dir), fsm (path (fsm_filename), beg, end), app_mt (LUA_NOREF), node_mts (LUA_NOREF)
+    ParserApp (lua_State * L, FSM & fsm)
+      : L (L), m_fsm (fsm), m_app_mt (LUA_NOREF)
+    {}
+    ~ ParserApp ()
     {
-      registerLoc (L);
-      Parser::registerToken (L);
-      Loader loader (L, fsm.getNodes ());
-      app_mt = loader.load (path (app_filename), node_mts);
+      // unref metatables
+      luaL_unref (L, LUA_REGISTRYINDEX, m_app_mt);
+      for (IntVectorConstIter i = m_node_mts.begin (), endi = m_node_mts.end (); i != endi; ++ i)
+      {
+        luaL_unref (L, LUA_REGISTRYINDEX, * i);
+      }
     }
-
-    // keywords for lexer 
-    StringIntVector const & getKeywords () const
+    // load parser app
+    void load (std::string const & app_filename)
     {
-      return fsm.getKeywords ();
+      (Loader (L, m_fsm.getNodes (), m_app_mt, m_node_mts).load (app_filename));
     }
-
-    // create new application instance and run it
+    // create new parser app instance and run it
     void run (Lexer & lexer, Logger & logger)
     {
-      Runner runner (L);
-      runner.run (fsm, app_mt, node_mts, lexer, logger);
+      (Runner (L).run (m_fsm, m_app_mt, m_node_mts, lexer, logger));
     }
-
   private:
+    lua_State * L;
     // parser finite state machine
-    FSM fsm;
+    FSM & m_fsm;
     // app metatable
-    int app_mt;
-    // array of node metatables 
-    int node_mts;
-  }
+    int m_app_mt;
+    // node metatables
+    IntVector m_node_mts;
+  };
 }
 
 using namespace basil;
@@ -46,16 +46,17 @@ namespace
 {
   typedef std::vector <string> StringVector;
   typedef StringVector::const_iterator StringVectorConstIter;
-  typedef std::vector <int> IntVector;
   typedef IntVector::const_iterator IntVectorConstIter;
 
   // app loader
   class Loader
   {
   public:
-    Loader (lua_State * L, StringVector const & nodes)
-      : L (L), nodes (nodes), node_mts (nodes.size (), LUA_NOREF), app_mt (LUA_NOREF)
-    {}
+    Loader (lua_State * L, StringVector const & nodes, int & app_mt, IntVector & node_mts)
+      : L (L), m_nodes (nodes), m_app_mt (app_mt), m_node_mts (node_mts)
+    {
+      m_node_mts.resize (m_nodes.size (), LUA_NOREF);
+    }
     ~ Loader ()
     {
       // unregister funcs
@@ -65,18 +66,17 @@ namespace
         lua_setglobal (L, i->name);
       }
     }
-
     // run loader, parse app filename, set node metatable array and return app metatable
-    int load (string const & filename, int & node_mts_array)
+    void load (string const & filename)
     {
-      // register loader functions
+      // register global loader functions with loader as upvalue
       for (luaL_Reg const * i = loader_funcs, * endi = ARRAY_END (loader_funcs); i != endi; ++ i)
       {
         lua_pushlightuserdata (L, this);
         lua_pushcclosure (L, i->func, 1);
         lua_setglobal (L, i->name);
       }
-      // parse application
+      // parse lua app
       if (luaL_dofile (L, filename.c_str ()))
       {
         string errmsg = lua_tostring (L, -1);
@@ -84,48 +84,28 @@ namespace
         throw BasilError (errmsg);
       }
       // make sure all nodes defined
+      for (IntVectorConstIter i = m_node_mts.begin (), endi = m_node_mts.end (); i != endi; ++ i)
       {
-        StringVectorConstIter j = nodes.begin ();
-        for (IntVectorConstIter i = node_mts.begin (), endi = node_mts.end (); i != endi; ++ i, ++ j)
+        if (* i == LUA_NOREF)
         {
-          if (* i == LUA_NOREF)
-          {
-            throw BasilError (Message ("node % not defined") << * j);
-          }
+          throw BasilError (Message ("node % not defined") << m_nodes [i - m_node_mts.begin ()]);
         }
       }
-      // push all node metatables into array in node order (or just use the registry??)
-      int n = nodes.size ();
-      lua_createtable (L, n, 0);
-      int j = 1;
-      for (IntVectorConstIter i = node_mts.begin (), endi = node_mts.end (); i != endi; ++ i, ++ j)
-      {
-        int ref = * i;
-        lua_rawgeti (L, LUA_REGISTRYINDEX, ref);
-        lua_rawseti (L, -2, j);
-        luaL_unref  (L, LUA_REGISTRYINDEX, ref);
-      }        
-      // set reference to array and return app metatable
-      node_mts_array = luaL_ref (L, LUA_REGISTRYINDEX);
-      return app_mt;
     }          
-
-    //
-    // lua callbacks
-    //
-    
+    // node callback  
     int onNode ()
     {
       char const * name = luaL_checkstring (L, 1);
       {
         try
         {
-          StringVectorConstIter i = lower_bound (nodes.begin (), nodes.end (), name);
-          if (i == nodes.end () || * i != name)
+          // node names are sorted
+          StringVectorConstIter i = lower_bound (m_nodes.begin (), m_nodes.end (), name);
+          if (i == m_nodes.end () || * i != name)
           {
             throw BasilError (Message ("% is not a valid node name") << name);
           }
-          int & node_mt = node_mts [i - nodes.begin ()];
+          int & node_mt = m_node_mts [i - m_nodes.begin ()];
           if (node_mt != LUA_NOREF)
           {
             throw BasilError (Message ("% is already defined") << name);
@@ -135,42 +115,42 @@ namespace
         }
         catch (exception const & e)
         {
-          errmsg = e.what ();
+          m_errmsg = e.what ();
         }
         catch (...)
         {
-          errmsg = "unknown exception";
+          m_errmsg = "unknown exception";
         }
       }
-      return luaL_error (L, errmsg.c_str ());
+      return luaL_error (L, m_errmsg.c_str ());
     }
-
+    // app callback
     int onApplication ()
     {
       {
         try
         {
-          if (app_mt != LUA_NOREF)
+          if (m_app_mt != LUA_NOREF)
           {
             throw BasilError ("application already defined");
           }
-          app_mt = pushMetatable ();
+          m_app_mt = pushMetatable ();
           return 1;
         }
         catch (exception const & e)
         {
-          errmsg = e.what ();
+          m_errmsg = e.what ();
         }
         catch (...)
         {
-          errmsg = "unknown exception";
+          m_errmsg = "unknown exception";
         }
       }
-      return luaL_error (L, errmsg.c_str ());
+      return luaL_error (L, m_errmsg.c_str ());
     }
 
   private:
-    // push new metatable on stack and also return reference to it
+    // create metatable, save in registry and return ref, leave copy on stack
     int pushMetatable ()
     {
       lua_newtable (L);
@@ -179,20 +159,18 @@ namespace
       lua_pushvalue (L, -1);
       return luaL_ref (L, LUA_REGISTRYINDEX);
     }
-
   private:
     lua_State * L;
-    // FSM nodes indexed by name
-    StringVector const & nodes;
-    // node metatables indexed by node
-    IntVector node_mts;
+    // sorted node names 
+    StringVector const & m_nodes;
     // app metatable
-    int app_mt;
+    int & m_app_mt;
+    // node metatables indexed by node
+    IntVector & m_node_mts;
     // buffer for lua error message
-    string errmsg;
+    string m_errmsg;
   }
-
-  // exported loader functions
+  // loader functions
   int on_node (lua_State * L)
   {
     return ((Loader *) lua_touserdata (L, lua_upvalueindex (1)))->onNode ();
@@ -212,23 +190,22 @@ namespace
   {
   public:
     Runner (lua_State * L)
-      : L (L), app_ref (LUA_NOREF)
+      : L (L), m_app_ref (LUA_NOREF)
     {}
     ~ Runner ()
     {
-      luaL_unref (L, LUA_REGISTRYINDEX, app_ref);
+      luaL_unref (L, LUA_REGISTRYINDEX, m_app_ref);
     }
-
     // create new instance of parser app and run it
-    void run (FSM & fsm, int app_mt, int node_mts, Lexer & lexer, Logger & logger)
+    void run (FSM & fsm, int app_mt, IntVector const & node_mts, Lexer & lexer, Logger & logger)
     {
-      app_ref = newInstance (app_mt);
-      Parser (L, fsm, node_mts, lexer, app_ref, logger).parse (0);
-      // call app finalize method if no errors
-      if (app_ref != LUA_NOREF && ! logger.hasError ())
+      newInstance (app_mt);
+      Parser (L, fsm, node_mts, lexer, m_app_ref, logger).parse (0);
+      // call app finalize if no errors
+      if (m_app_ref != LUA_NOREF && ! logger.hasError ())
       {
-        lua_rawgeti (L, LUA_REGISTRYINDEX, app_ref);
-        lua_getfield (L, -1, "onTree"); // finalize
+        lua_rawgeti (L, LUA_REGISTRYINDEX, m_app_ref);
+        lua_getfield (L, -1, "finalize");
         if (lua_isnil (L, -1))
         {
           lua_pop (L, 2);
@@ -245,16 +222,16 @@ namespace
         }
       }
     }
-
   private:
-    // create and return new parser app instance
-    int newInstance (int app_mt)
+    // create new app instance
+    void newInstance (int app_mt)
     {
       if (app_mt == LUA_NOREF)
       {
-        return LUA_NOREF;
+        // no app object/state
+        return;
       }
-      // create instance, set class as metatable
+      // create app instance, set app_mt as metatable
       lua_newtable (L);
       lua_rawgeti (L, LUA_REGISTRYINDEX, app_mt);
       lua_setmetatable (L, -2);
@@ -278,26 +255,25 @@ namespace
           throw BasilError (errmsg);
         }
       }
-      return luaL_ref (L, LUA_REGISTRYINDEX);
+      m_app_ref = luaL_ref (L, LUA_REGISTRYINDEX);
     }
-
   private:
     lua_State * L;
     // app instance
-    int app_ref;
+    int m_app_ref;
   }
 }
 
 #hdr
 #include <basil/fsm.h>
 #include <basil/logger.h>
-#include <basil/lua_env.h>
 #include <string>
+#include <vector>
+#include <lua.hpp>
 #end
 
 #src
 #include <basil/error.h>
-#include <basil/loc_lua.h>
 #include <basil/message.h>
 #include <basil/parser.h>
 #include <algorithm>

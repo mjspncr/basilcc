@@ -3,10 +3,10 @@ namespace basilcc
   class BasilCC;
 
   // return new rule name
-  RuleNamePtr getRuleName (BasilCC & cc, char const * name, basil::Loc const & loc, bool is_node)
+  RuleNamePtr getRuleName (BasilCC & cc, std::string const & name, basil::Loc const & loc = basil::Loc (), bool is_node = false)
   {
-    string cap_string = toCapString (name);
-    return cc.getTable <RuleNameTable> ().getRuleName (name, loc, is_node, cc.intern (cap_string));
+    string cap_string = toCapString (name.c_str ());
+    return cc.getTable <RuleNameTable> ().getRuleName (cc.intern (name), loc, is_node, cc.intern (cap_string));
   }
 }
 

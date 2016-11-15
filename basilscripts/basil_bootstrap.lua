@@ -12,8 +12,7 @@ rule{left_symbol='rule-seq', right_symbols={'rule-seq', 'rule'}}
 rule{'rule', left_symbol='rule', right_symbols={symbol{'rule-name-opt', shift_priority=1}, 'symbol', 'ARROW', symbol{'symbol-seq-opt', shift_priority=1}}}
 rule{left_symbol='rule-name-opt'}
 rule{left_symbol='rule-name-opt', right_symbols={symbol{'rule-name', accept=true}}}
-rule{'rule_name_1', left_symbol='rule-name', right_symbols={'IDENT', 'EQUALS'}}
-rule{'rule_name_2', left_symbol='rule-name', right_symbols={'IDENT', 'COLON'}}
+rule{'rule_name', left_symbol='rule-name', right_symbols={'IDENT', 'COLON'}}
 rule{left_symbol='symbol-seq-opt'}
 rule{left_symbol='symbol-seq-opt', right_symbols={'symbol-seq'}}
 rule{'symbol_seq_1', left_symbol='symbol-seq', right_symbols={'symbol'}}

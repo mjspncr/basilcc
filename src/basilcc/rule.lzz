@@ -4,9 +4,9 @@ namespace basilcc
   {
   public:
     // constructor
-    Rule (size_t num, RuleNamePtr rule_name, bool is_start, RuleSymbolPtr left_rule_symbol, RuleSymbolPtrVector const & right_rule_symbols,
+    Rule (size_t num, NodePtr node, bool is_start, RuleSymbolPtr left_rule_symbol, RuleSymbolPtrVector const & right_rule_symbols,
         RuleSymbolPtrVector const & explicit_follow, bool can_bypass)
-      : m_num (num), m_rule_name (rule_name), m_is_start (is_start), m_left_rule_symbol (left_rule_symbol),
+      : m_num (num), m_node (node), m_is_start (is_start), m_left_rule_symbol (left_rule_symbol),
         m_right_rule_symbols (right_rule_symbols), m_explicit_follow (explicit_follow), m_can_bypass (can_bypass)
     {}
     ~ Rule ()
@@ -18,10 +18,10 @@ namespace basilcc
       return m_num;
     }
     
-    // get node by index, null if no name
-    RuleNamePtr getRuleName () const
+    // get node by index, null if no node
+    NodePtr getNode () const
     {
-      return m_rule_name;
+      return m_node;
     }
 
     // true if start rule
@@ -112,8 +112,7 @@ namespace basilcc
     }
   private:
     size_t m_num;
-    //  rule name, 0 if none
-    RuleNamePtr m_rule_name;
+    NodePtr m_node;
     bool m_is_start;
     RuleSymbolPtr m_left_rule_symbol;
     RuleSymbolPtrVector m_right_rule_symbols;
@@ -138,7 +137,7 @@ using namespace std;
 #include <basilcc/priority.h>
 #include <basilcc/rule_symbol_ptr_vector.h>
 #include <basilcc/symbol_ptr.h>
-#include <basilcc/rule_name_ptr.h>
+#include <basilcc/node_ptr.h>
 #include <basilcc/rule_ptr.h>
 #include <string>
 #end

@@ -4,7 +4,7 @@ namespace basilcc
   {
   public:
     Node (char const * name)
-      : m_num (0), m_name (name), m_rule (0)
+      : m_num (0), m_name (name)
     {}
     ~ Node ()
     {}
@@ -22,19 +22,9 @@ namespace basilcc
     {
       return m_name;
     }
-    // set/get rule
-    void setRule (RulePtr rule)
-    {
-      m_rule = rule;
-    }
-    RulePtr getRule () const
-    {
-      return m_rule;
-    }
   private:
     int m_num;
     char const * m_name;
-    RulePtr m_rule;
   }
 
   // true if a name < b name
@@ -45,7 +35,6 @@ namespace basilcc
 }
 
 #hdr
-#include <basilcc/rule_ptr.h>
 #include <cstddef>
 #include <cstring>
 #end

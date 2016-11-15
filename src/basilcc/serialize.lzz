@@ -71,10 +71,10 @@ namespace
   {
     // size and node name, 0 if no node name
     w << rule->getSize ();
-    RuleNamePtr rule_name = rule->getRuleName ();
-    if (rule_name)
+    NodePtr node = rule->getNode ();
+    if (node)
     {
-      w << getNode (cc, rule_name->getCapString ())->getNumber ();
+      w << node->getNumber ();
     }
     else
     {
@@ -271,7 +271,6 @@ namespace
 #include <basilcc/node.h>
 #include <basilcc/rule.h>
 #include <basilcc/rule_api.h>
-#include <basilcc/rule_name.h>
 #include <basilcc/shift_sel.h>
 #include <basilcc/shift_state_sel.h>
 #include <basilcc/shift_state_sel_api.h>

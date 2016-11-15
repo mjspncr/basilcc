@@ -31,32 +31,14 @@ namespace
   void PrintNode (char const * module, ostream & os; NodePtr node) const
   {
     char const * name = node->getName ();
-    RulePtr rule = node->getRule ();
-    os << "--";
-    if (rule)
-    {
-      os << ' ' << rule->toString ();
-    }
-    os << '\n';
+    os << "--" << '\n';
     os << "local " << name << " = node (\"" << name << "\")" << '\n';
-    // get functions if defined (otherwise have to use the bracket operators to get children)
-    if (rule)
-    {
-      RuleSymbolPtrVector const & rule_symbols = rule->getRightRuleSymbols ();
-      for_each (rule_symbols.begin (), rule_symbols.end (), PrintGetChild (name, os));
-    }
     // accept function
     os << "function " << name << ":accept (visitor)" << '\n';
     os << "   return visitor:on" << name << " (self)" << '\n';
     os << "end" << '\n';
     os << module << '.' << name << " = " << name << '\n'; 
     os << '\n';
-  }
-  void PrintGetChild (char const * name, ostream & os, int num = 0; RuleSymbolPtr rule_symbol)
-  {
-    os << "function " << name << ":get" << rule_symbol->getCapString () << " ()" << '\n';
-    os << "   return self [" << ++ num << ']' << '\n';
-    os << "end" << '\n';
   }
 }
 

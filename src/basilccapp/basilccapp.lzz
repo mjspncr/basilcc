@@ -17,7 +17,7 @@ int main (int argc, char * argv [])
         {
           throw BasilError ("stray '-'");
         }
-        Option opt;
+        Option opt = OPT_NULL;
         if (! isOption (arg, opt))
         {
           throw BasilError (Message ("not a valid option: %") << arg); 
@@ -93,6 +93,7 @@ namespace
 {
   enum Option
   {
+    OPT_NULL,
     OPT_BOOTSTRAP,
     OPT_PRINT_KERNEL_ONLY,
     OPT_PRINT_SHIFT,

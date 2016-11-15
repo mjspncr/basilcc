@@ -3,11 +3,10 @@ namespace basilcc
   class BasilCC;
 
   // add new rule to grammar
-  void addRule (BasilCC & cc, RuleNamePtr rule_name, RuleSymbolPtr left_rule_symbol, RuleSymbolPtrVector const & right_rule_symbols,
+  void addRule (BasilCC & cc, std::string const & rule_name, RuleSymbolPtr left_rule_symbol, RuleSymbolPtrVector const & right_rule_symbols,
       RuleSymbolPtrVector const & explicit_follow, bool no_bypass)
   {
-    bool is_start = left_rule_symbol->getSymbol () == getStartSymbol (cc);
-    cc.getTable <RuleTable> ().addRule (rule_name, is_start, left_rule_symbol, right_rule_symbols, explicit_follow, no_bypass);
+    cc.getTable <RuleTable> ().addRule (rule_name, left_rule_symbol, right_rule_symbols, explicit_follow, no_bypass);
   }
 
   // get rules that have left hand symbol
@@ -34,18 +33,6 @@ namespace basilcc
     return cc.getTable <RuleTable> ().isLeftHandSymbol (symbol);
   }
 
-  // true if node exists
-  bool hasNode (BasilCC & cc, char const * name)
-  {
-    return cc.getTable <RuleTable> ().hasNode (name);
-  }
-
-  // get node, must exist
-  NodePtr getNode (BasilCC const & cc, char const * name)
-  {
-    return cc.getTable <RuleTable> ().getNode (name);
-  }
-
   // get all nodes
   NodePtrVector const & getNodes (BasilCC const & cc)
   {
@@ -69,9 +56,8 @@ namespace
   {
   public:
     RuleTable (BasilCC & cc)
-      // this should be a config option, can do later
-      // or just deprecate this feature
-      : m_enable_bypass (false)
+      // enable_bypass should be a config option, can do later or just deprecate this feature
+      : m_cc (cc), m_enable_bypass (false)
     {}
     ~ RuleTable ()
     {
@@ -80,37 +66,30 @@ namespace
     }
 
     // add new rule to grammar
-    void addRule (RuleNamePtr rule_name, bool is_start, RuleSymbolPtr left_rule_symbol, RuleSymbolPtrVector const & right_rule_symbols,
+    void addRule (string const & rule_name, RuleSymbolPtr left_rule_symbol, RuleSymbolPtrVector const & right_rule_symbols,
         RuleSymbolPtrVector const & explicit_follow, bool no_bypass)
     {
       SymbolPtr const & left_symbol = left_rule_symbol->getSymbol ();
       if (left_symbol->isToken ())
       {
-        throw BasilError (Message (left_rule_symbol->getLoc (), "left symbol is not a non-terminal: %") << left_symbol->getName ());
+        throw BasilError (Message (left_rule_symbol->getLoc (), "left hand symbol is a token: %") << left_symbol->getName ());
       }
-      setRightHandCapStrings (right_rule_symbols);
-      bool can_bypass = ! is_start && canBypass (rule_name, right_rule_symbols, no_bypass);
-      RulePtr rule = * m_rules.insert (m_rules.end (), new Rule (m_rules.size (), rule_name, is_start, left_rule_symbol,
+      NodePtr node = 0;
+      if (! rule_name.empty ())
+      {
+        char const * node_name = m_cc.intern (toCapString (rule_name.c_str ()));
+        NodePtr & node_ = m_node_trie.insert (unsigned (node_name), 0);
+        if (! node_)
+        {
+          node_ = * m_nodes.insert (m_nodes.end (), new Node (node_name));
+        }
+        node = node_;
+      }
+      bool is_start = left_symbol == getStartSymbol (m_cc);
+      bool can_bypass = ! is_start && canBypass (node, right_rule_symbols, no_bypass);
+      RulePtr rule = * m_rules.insert (m_rules.end (), new Rule (m_rules.size (), node, is_start, left_rule_symbol,
               right_rule_symbols, explicit_follow, can_bypass));
       m_left_symbol_rules.insert (unsigned (left_rule_symbol->getSymbol ()), RulePtrVector ()).push_back (rule);
-      if (rule_name)
-      {
-        char const * node_name = rule_name->getCapString ();
-        NodePtr & node = m_node_trie.insert (unsigned (node_name), 0);
-        if (! node)
-        {
-          node = * m_nodes.insert (m_nodes.end (), new Node (node_name));
-        }
-        if (rule_name->isDef ())
-        {
-          // can define to one rule only
-          if (node->getRule ())
-          {
-            throw BasilError (Message (rule_name->getLoc (), "node already defined: %") << node_name);
-          }
-          node->setRule (rule);
-        }
-      }
     }
 
     // get rule with left hand symbol, must be a left symbol 
@@ -129,18 +108,6 @@ namespace
     bool isLeftHandSymbol (SymbolPtr left_symbol) const
     {
       return m_left_symbol_rules.find (unsigned (left_symbol)) != 0;
-    }
-
-    // true if node exists
-    bool hasNode (char const * name) const
-    {
-      return m_node_trie.find (unsigned (name)) != 0; 
-    }
-
-    // get node, must exist
-    NodePtr getNode (char const * name) const
-    {
-      return * m_node_trie.find (unsigned (name));
     }
 
     // freeze rules 
@@ -166,11 +133,11 @@ namespace
     enum { TABLE = TABLE_RULE }
   private:
     // true if can bypass rule on reduction
-    bool canBypass (RuleNamePtr rule_name, RuleSymbolPtrVector const & right_rule_symbols, bool no_bypass) const
+    bool canBypass (NodePtr node, RuleSymbolPtrVector const & right_rule_symbols, bool no_bypass) const
     {
       bool bypass = false;
       // if enabled, no semantic actions, and not explicitly ruled out
-      if (m_enable_bypass && ! rule_name && ! no_bypass)
+      if (m_enable_bypass && ! node && ! no_bypass)
       {
         // and only if one non terminal on right hand size 
         if (right_rule_symbols.size () == 1 && ! right_rule_symbols.front ()->getSymbol ()->isToken ())
@@ -181,51 +148,21 @@ namespace
       return bypass;
     }
   private:
+    BasilCC & m_cc;
     bool m_enable_bypass;
     RulePtrVectorTrie m_left_symbol_rules;
     RulePtrVector m_rules;
     NodePtrTrie m_node_trie;
     NodePtrVector m_nodes;
   }
-
-  // set right hand rule symbol cap strings
-  void setRightHandCapStrings (RuleSymbolPtrVector const & rule_symbols)
-  {
-    typedef pair <int, int> IntPair;
-    typedef map <string, IntPair> StringIntPairMap;
-    typedef vector <string> StringVector;
-    StringIntPairMap counts;
-    StringVector cap_strings;
-    for (RuleSymbolPtrVectorConstIter i = rule_symbols.begin (); i != rule_symbols.end (); ++ i)
-    {
-      string const & cap_string = * cap_strings.insert (cap_strings.end (), symbolToCapString ((* i)->getSymbol ()));
-      ++ counts.insert (counts.end (), StringIntPairMap::value_type (cap_string, IntPair (0, 0)))->second.first;
-    }
-    StringVector::iterator j = cap_strings.begin ();
-    for (RuleSymbolPtrVectorConstIter i = rule_symbols.begin (); i != rule_symbols.end (); ++ i, ++ j)
-    {
-      string & cap_string = * j;
-      IntPair & count = counts [cap_string];
-      int copy_num = 0;
-      if (count.first > 1)
-      {
-        copy_num = ++ count.second;
-      }
-      if (copy_num > 0)
-      {
-        cap_string += intToString (copy_num);
-      }
-      (* i)->setCapString (cap_string);
-    }
-  }
 }
 
 #hdr
 #include <basilcc/node_ptr_vector.h>
-#include <basilcc/rule_name_ptr.h>
 #include <basilcc/rule_ptr_vector.h>
 #include <basilcc/rule_symbol_ptr_vector.h>
 #include <basilcc/symbol_ptr.h>
+#include <string>
 #end
 
 #src
@@ -236,7 +173,6 @@ namespace
 #include <basilcc/node_ptr_trie.h>
 #include <basilcc/node_ptr_vector.h>
 #include <basilcc/rule.h>
-#include <basilcc/rule_name.h>
 #include <basilcc/rule_ptr_vector_trie.h>
 #include <basilcc/rule_symbol.h>
 #include <basilcc/symbol.h>

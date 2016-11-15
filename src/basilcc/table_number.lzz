@@ -21,7 +21,6 @@ namespace basilcc
     TABLE_MOVE_SEL,
     TABLE_NODE,
     TABLE_RULE,
-    TABLE_RULE_NAME,
     TABLE_RULE_NODE,
     TABLE_RULE_SYMBOL,
     TABLE_SHIFT,

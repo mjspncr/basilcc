@@ -220,11 +220,10 @@ namespace
     cout << " -s    show shift priority on rules in states file\n";
     cout << " -f    show shift priority and follow set on rules in states file\n";
     cout << '\n';
-    cout << "Generates an LR parser. If successful writes three files: the parser\n";
-    cout << "finite state machine (FSM), a Lua file with node definitions, and a human\n";
-    cout << "readable dump of all states; if any shift/reduce conflicts just the states\n";
-    cout << "file. Set environment variable BASILSCRIPTS to the basilscripts directory,\n";
-    cout << "and first bootstrap the grammar parser.\n";
+    cout << "Generates an LR parser. Writes three files: the finite state machine (FSM), a\n";
+    cout << "Lua file with node definitions, and a readable dump of all states. Set environment\n";
+    cout << "variable BASILSCRIPTS to the basilscripts directory and first bootstrap\n";
+    cout << "the grammar parser.\n";
     cout << '\n';
     cout << "Copyright (C) 2016 Michael Spencer; Lua Copyright (C) 1994-2016 Lua.org, PUC-Rio";
     cout << endl;

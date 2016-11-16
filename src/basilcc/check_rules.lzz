@@ -49,7 +49,6 @@ namespace
 #include <basilcc/basilcc.h>
 #include <basilcc/rule.h>
 #include <basilcc/rule_api.h>
-#include <basilcc/rule_name.h>
 #include <basilcc/rule_symbol.h>
 #include <basilcc/symbol.h>
 #include <basilcc/symbol_api.h>

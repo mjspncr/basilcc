@@ -93,18 +93,6 @@ namespace basilcc
       return str;
     }
 
-    // set cap string (used when serializing node), right hand rule symbols only
-    void setCapString (std::string const & cap_string)
-    {
-      m_cap_string = cap_string;
-    }
-
-    // get copy number
-    std::string const & getCapString () const
-    {
-      return m_cap_string;
-    }
-
   private:
     SymbolPtr m_symbol;
     // location of symbol in rules file
@@ -117,7 +105,6 @@ namespace basilcc
     LexState m_lex_state;
     bool m_accept;
     bool m_sticky;
-    std::string m_cap_string;
   }
 }
 

@@ -72,7 +72,7 @@ namespace
       SymbolPtr const & left_symbol = left_rule_symbol->getSymbol ();
       if (left_symbol->isToken ())
       {
-        throw BasilError (Message (left_rule_symbol->getLoc (), "left hand symbol is a token: %") << left_symbol->getName ());
+        throw runtime_error (Message (left_rule_symbol->getLoc (), "left hand symbol is a token: %") << left_symbol->getName ());
       }
       NodePtr node = 0;
       if (! rule_name.empty ())
@@ -166,7 +166,6 @@ namespace
 #end
 
 #src
-#include <basil/error.h>
 #include <basil/message.h>
 #include <basilcc/basilcc.h>
 #include <basilcc/node.h>
@@ -182,4 +181,5 @@ namespace
 #include <basilcc/util.h>
 #include <map>
 #include <sstream>
+#include <stdexcept>
 #end

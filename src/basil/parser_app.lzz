@@ -81,14 +81,14 @@ namespace
       {
         string errmsg = lua_tostring (L, -1);
         lua_pop (L, 1);
-        throw BasilError (errmsg);
+        throw runtime_error (errmsg);
       }
       // make sure all nodes defined
       for (IntVectorConstIter i = m_node_mts.begin (), endi = m_node_mts.end (); i != endi; ++ i)
       {
         if (* i == LUA_NOREF)
         {
-          throw BasilError (Message ("node % not defined") << m_nodes [i - m_node_mts.begin ()]);
+          throw runtime_error (Message ("node % not defined") << m_nodes [i - m_node_mts.begin ()]);
         }
       }
     }          
@@ -103,12 +103,12 @@ namespace
           StringVectorConstIter i = lower_bound (m_nodes.begin (), m_nodes.end (), name);
           if (i == m_nodes.end () || * i != name)
           {
-            throw BasilError (Message ("% is not a valid node name") << name);
+            throw runtime_error (Message ("% is not a valid node name") << name);
           }
           int & node_mt = m_node_mts [i - m_nodes.begin ()];
           if (node_mt != LUA_NOREF)
           {
-            throw BasilError (Message ("% is already defined") << name);
+            throw runtime_error (Message ("% is already defined") << name);
           }
           node_mt = pushMetatable ();
           return 1;
@@ -132,7 +132,7 @@ namespace
         {
           if (m_app_mt != LUA_NOREF)
           {
-            throw BasilError ("application already defined");
+            throw runtime_error ("application already defined");
           }
           m_app_mt = pushMetatable ();
           return 1;
@@ -217,7 +217,7 @@ namespace
           {
             string errmsg = lua_tostring (L, -1);
             lua_pop (L, 1);
-            throw BasilError (errmsg);
+            throw runtime_error (errmsg);
           }
         }
       }
@@ -252,7 +252,7 @@ namespace
         {
           string errmsg = lua_tostring (L, -1);
           lua_pop (L, 1);
-          throw BasilError (errmsg);
+          throw runtime_error (errmsg);
         }
       }
       m_app_ref = luaL_ref (L, LUA_REGISTRYINDEX);
@@ -273,11 +273,11 @@ namespace
 #end
 
 #src
-#include <basil/error.h>
 #include <basil/message.h>
 #include <basil/parser.h>
 #include <algorithm>
 #include <map>
+#include <stdexcept>
 
 #define ARRAY_SIZE(X) (sizeof (X) / sizeof (X [0]))
 #define ARRAY_END(X) (X + ARRAY_SIZE(X))

@@ -14,7 +14,7 @@ namespace basil
       ifstream is (filename.c_str (), ios_base::in | ios_base::binary);
       if (! is)
       {
-        throw BasilError (Message ("failed to open FSM: %") << filename);
+        throw runtime_error (Message ("failed to open FSM: %") << filename);
       }
       BinaryReader r (is);
       readKeywords (r);
@@ -169,7 +169,7 @@ namespace basil
         TokenNumberVector::iterator t = lower_bound (oper_numbers.begin (), oper_numbers.end (), name, tokenNumberNameLess2);
         if (t == oper_numbers.end () || t->name != name)
         {
-          throw BasilError (Message ("Token number not provided for %") << name);
+          throw runtime_error (Message ("Token number not provided for %") << name);
         }
         numbers.push_back (t->num);
       }
@@ -275,10 +275,10 @@ namespace
 #end
 
 #src
-#include <basil/error.h>
 #include <basil/message.h>
 #include <algorithm>
 #include <cstring>
 #include <fstream>
 #include <limits>
+#include <stdexcept>
 #end

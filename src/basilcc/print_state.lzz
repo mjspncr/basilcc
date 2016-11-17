@@ -83,7 +83,7 @@ namespace basilcc
     ofstream os (filename.c_str (), ios_base::out);
     if (! os)
     {
-      throw BasilError (Message ("unable to open file: %") << filename);
+      throw runtime_error (Message ("unable to open file: %") << filename);
     }
     printStates (cc, flags, os);
   }
@@ -121,7 +121,6 @@ namespace
 #end
 
 #src
-#include <basil/error.h>
 #include <basil/message.h>
 #include <basilcc/action.h>
 #include <basilcc/action_seq.h>
@@ -140,4 +139,5 @@ namespace
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+#include <stdexcept>
 #end

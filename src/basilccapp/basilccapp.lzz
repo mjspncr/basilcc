@@ -15,12 +15,12 @@ int main (int argc, char * argv [])
         ++ arg;
         if (arg [0] == '\0')
         {
-          throw BasilError ("stray '-'");
+          throw runtime_error ("stray '-'");
         }
         Option opt = OPT_NULL;
         if (! isOption (arg, opt))
         {
-          throw BasilError (Message ("not a valid option: %") << arg); 
+          throw runtime_error (Message ("not a valid option: %") << arg); 
         }
         if (opt == OPT_HELP)
         {
@@ -47,7 +47,7 @@ int main (int argc, char * argv [])
       {
         if (! rules_filename.empty ())
         {
-          throw BasilError (Message ("extra filename argument: %") << arg);
+          throw runtime_error (Message ("extra filename argument: %") << arg);
         }
         rules_filename = arg;
       }
@@ -61,7 +61,7 @@ int main (int argc, char * argv [])
     char const * scripts_dir = getenv ("BASILSCRIPTS");
     if (! scripts_dir)
     {
-      throw BasilError ("BASILSCRIPTS not set");
+      throw runtime_error ("BASILSCRIPTS not set");
     }
     Compiler compiler (scripts_dir, print_state_flags);
     if (bootstrap)
@@ -72,7 +72,7 @@ int main (int argc, char * argv [])
     {
       if (rules_filename.empty ())
       {
-        throw BasilError ("missing grammar filename");
+        throw runtime_error ("missing grammar filename");
       }
       compiler.compile (rules_filename, string ());
     }
@@ -148,7 +148,7 @@ namespace
       {
         string errmsg = lua_tostring (L, -1);
         lua_pop (L, 1);
-        throw BasilError (errmsg);
+        throw runtime_error (errmsg);
       }
       generate (path ("basil"));
     }
@@ -329,7 +329,6 @@ namespace
 }
 
 #src
-#include <basil/error.h>
 #include <basil/lua_env.h>
 #include <basil/message.h>
 #include <basil/parser_app.h>
@@ -344,5 +343,7 @@ namespace
 #include <algorithm>
 #include <iostream>
 #include <string>
+#include <stdexcept>
+
 #define ARRAY_END(X) (X + sizeof (X) / sizeof (X [0]))
 #end

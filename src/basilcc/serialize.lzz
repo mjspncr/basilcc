@@ -9,7 +9,7 @@ namespace basilcc
     ofstream os (filename.c_str (), ios_base::out | ios_base::binary);
     if (! os)
     {
-      throw BasilError (Message ("unable to open file: %") << filename);
+      throw runtime_error (Message ("unable to open file: %") << filename);
     }
     BinaryWriter w (os);
     writeKeywords (cc, w);
@@ -35,7 +35,7 @@ namespace
   // keyword lexemes
   void writeKeywords (BasilCC const & cc, BinaryWriter & w)
   {
-    SymbolPtrVector keywords;
+    SymbolPtrVector keywords = getKeywords (cc);
     w << keywords.size ();
     for_each (keywords.begin (), keywords.end (), WriteTokenLexeme (w));
     if (! keywords.empty ())
@@ -144,8 +144,7 @@ namespace
   // operator names
   void writeOperatorNames (BasilCC const & cc, BinaryWriter & w)
   {
-    SymbolPtrVector operators;
-    getOperators (cc, operators);
+    SymbolPtrVector operators = getOperators (cc);
     w << operators.size ();
     for_each (operators.begin (), operators.end (), WriteTokenName (w));
   }
@@ -259,7 +258,6 @@ namespace
 
 #src
 #include <basil/bstream.h>
-#include <basil/error.h>
 #include <basil/message.h>
 #include <basilcc/action.h>
 #include <basilcc/action_seq.h>
@@ -284,4 +282,5 @@ namespace
 #include <fstream>
 #include <limits>
 #include <numeric>
+#include <stdexcept>
 #end

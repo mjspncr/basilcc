@@ -1,0 +1,24 @@
+namespace basil
+{
+  class Loc;
+
+  // for errors specific to file being parsed  
+  class ParseError : public std::runtime_error
+  {
+  public:
+    inline ParseError (std::string const & msg)
+      : std::runtime_error (msg)
+    {}
+    ParseError (Loc const & loc, std::string const & msg)
+      : std::runtime_error (Message (loc) << msg)
+    {}
+  }
+}
+
+#hdr
+#include <stdexcept>
+#end
+
+#src
+#include <basil/message.h>
+#end

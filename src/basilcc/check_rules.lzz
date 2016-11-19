@@ -7,7 +7,7 @@ namespace basilcc
   {
     if (! isLeftHandSymbol (cc, getStartSymbol (cc)))
     {
-      throw BasilError ("missing start rule");
+      throw runtime_error ("missing start rule");
     }
     // can just check all non terminals directly ...
 
@@ -35,7 +35,7 @@ namespace
     SymbolPtr symbol = rule_symbol->getSymbol ();
     if (! (symbol->isToken () || isLeftHandSymbol (cc, symbol)))
     {
-      throw BasilError (Message (rule_symbol->getLoc (), "non-terminal % not defined") << symbol->getName ());
+      throw runtime_error (Message (rule_symbol->getLoc (), "non-terminal % not defined") << symbol->getName ());
     }
   }
 }
@@ -44,7 +44,6 @@ namespace
 #end
 
 #src
-#include <basil/error.h>
 #include <basil/message.h>
 #include <basilcc/basilcc.h>
 #include <basilcc/rule.h>
@@ -54,4 +53,5 @@ namespace
 #include <basilcc/symbol_api.h>
 #include <algorithm>
 #include <sstream>
+#include <stdexcept>
 #end

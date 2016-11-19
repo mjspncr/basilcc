@@ -16,6 +16,10 @@ namespace basil
     {
       error () << msg << '\n';
     }
+    void error (Loc const & loc, std::string const & msg)
+    {
+      error () << loc << ' ' << msg << '\n';
+    }
     // true if any errors
     bool hasError () const
     {
@@ -30,6 +34,10 @@ namespace basil
     void warning (std::string const & msg)
     {
       warning () << msg << '\n';
+    }
+    void warning (Loc const & loc, std::string const & msg)
+    {
+      warning () << loc << ' ' << msg << '\n';
     }
   private:
     std::ostream & m_os;

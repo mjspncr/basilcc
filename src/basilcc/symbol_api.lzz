@@ -49,15 +49,15 @@ namespace basilcc
   }
 
   // get operator tokens
-  void getOperators (BasilCC const & cc, SymbolPtrVector & operators)
+  SymbolPtrVector getOperators (BasilCC const & cc)
   {
-    cc.getTable <SymbolTable> ().getOperators (operators);
+    return cc.getTable <SymbolTable> ().getOperators ();
   }
 
   // get keyword tokens
-  void getKeywords (BasilCC const & cc, SymbolPtrVector & keywords)
+  SymbolPtrVector getKeywords (BasilCC const & cc)
   {
-    cc.getTable <SymbolTable> ().getKeywords (keywords);
+    return cc.getTable <SymbolTable> ().getKeywords ();
   }
 }
 
@@ -86,14 +86,14 @@ namespace
     {
       if (! isToken (name))
       {
-        throw BasilError (Message ("% is not valid name for a keyword, must be in upper case") << name);
+        throw runtime_error (Message ("% is not valid name for a keyword, must be in upper case") << name);
       }
       SymbolPtr & symbol = m_symbols.insert (unsigned (name), 0);
       if (symbol)
       {
         if (static_cast <Token const &> (* symbol).isKeyword ())
         {
-          throw BasilError (Message ("% is already a keyword") << name);
+          throw runtime_error (Message ("% is already a keyword") << name);
         }
       }
       else
@@ -132,10 +132,6 @@ namespace
         if (isToken (name))
         {
           symbol = * m_tokens.insert (m_tokens.end (), new Token (0, name));
-          /*
-          // tokens must be explicitly added with number, can't implicitly define
-          throw BasilError (Message ("getSymbol: not a token (add using keyword or token directive): %") << name);
-          */
         }
         else
         {
@@ -170,15 +166,15 @@ namespace
     }
 
     // get operators
-    inline void getOperators (SymbolPtrVector & operators) const
+    inline SymbolPtrVector getOperators () const
     {
-      operators.assign (m_tokens.begin (), m_keywords_beg);
+      return SymbolPtrVector (m_tokens.begin (), m_keywords_beg);
     }
 
     // get keywords
-    inline void getKeywords (SymbolPtrVector & keywords) const
+    inline SymbolPtrVector getKeywords () const
     {
-      keywords.assign (m_keywords_beg, m_tokens.end ());
+      return SymbolPtrVector (m_keywords_beg, m_tokens.end ());
     }
 
     enum { TABLE = TABLE_SYMBOL }
@@ -222,7 +218,6 @@ namespace
 #end
 
 #src
-#include <basil/error.h>
 #include <basil/message.h>
 #include <basilcc/basilcc.h>
 #include <basilcc/symbol.h>
@@ -232,4 +227,5 @@ namespace
 #include <algorithm>
 #include <functional>
 #include <limits>
+#include <stdexcept>
 #end

@@ -69,6 +69,7 @@ namespace basil
           copyStack (last_stack, stack);
           // ...
           break;
+          // throw ParserError if can't recover?
         }
         clearTokens (0, stack.token_pos);
         stack.token_pos = 0;
@@ -254,7 +255,7 @@ namespace basil
             {
               string errmsg = lua_tostring (L, -1);
               lua_pop (L, 1);
-              throw BasilError (errmsg);
+              throw runtime_error (errmsg);
             }
           }
           form = luaL_ref (L, LUA_REGISTRYINDEX);
@@ -492,11 +493,11 @@ namespace
 #end
 
 #src
-#include <basil/error.h>
 #include <basil/lexer.h>
 #include <basil/loc_lua.h>
 #include <basil/logger.h>
 #include <basil/message.h>
 #include <cassert>
 #include <cstring>
+#include <stdexcept>
 #end

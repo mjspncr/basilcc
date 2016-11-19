@@ -97,7 +97,7 @@ namespace basilcc
           m_fp = fopen (m_filename.c_str (), "r");
           if (! m_fp)
           {
-            throw BasilError (Message ("unable to open file: %") << m_filename);
+            throw runtime_error (Message ("unable to open file: %") << m_filename);
           }
         }
         // get character, eof is 0
@@ -169,7 +169,7 @@ namespace basilcc
         StringIntMap::const_iterator p = opers.find (name);
         if (p == opers.end ())
         {
-          throw BasilError (Message ("unexpected operator: %") << name);
+          throw runtime_error (Message ("unexpected operator: %") << name);
         }
         return p->second;
       }
@@ -259,7 +259,7 @@ namespace basilcc
                   case C_DQUOTE:
                   case C_NAC:
                   {
-                    throw BasilError (Message (loc, "invalid character"));
+                    throw runtime_error (Message (loc, "invalid character"));
                   }   
                 }
                 break;
@@ -367,12 +367,12 @@ namespace basilcc
               string name = nextIdent ();
               if (name.empty ())
               {
-                throw BasilError (Message (loc, "missing token name in keyword directive"));
+                throw runtime_error (Message (loc, "missing token name in keyword directive"));
               }
               string keyword = nextString ();
               if (keyword.empty ())
               {
-                throw BasilError (Message (loc, "missing string in keyword directive"));
+                throw runtime_error (Message (loc, "missing string in keyword directive"));
               }
               keyword = keyword.substr (1, keyword.size () - 2);
               addKeyword (m_cc, m_cc.intern (name), keyword);
@@ -436,7 +436,7 @@ namespace basilcc
             ch_kind = peekCharKind (m_reader);
             if (ch_kind == C_NEWLINE)
             {
-              throw BasilError (Message (loc, "missing string ending double quote"));
+              throw runtime_error (Message (loc, "missing string ending double quote"));
             }
             lexeme += m_reader.nextChar ();
             if (ch_kind == C_DQUOTE)
@@ -451,7 +451,7 @@ namespace basilcc
       BasilCC & m_cc;
       // reader 
       RuleReader m_reader;
-      // opererator table
+      // operator table
       RuleOperTable m_oper_table;
     }
   }
@@ -560,18 +560,17 @@ namespace
 
 #hdr
 #include <basil/lexer.h>
-#include <basil/fsm_impl.h>
-#include <basilcc/token_number.h>
+#include <basil/token_number.h>
 #include <map>
 #include <string>
 #end
 
 #src
-#include <basil/error.h>
 #include <basil/loc.h>
 #include <basil/message.h>
 #include <basilcc/basilcc.h>
 #include <basilcc/symbol_api.h>
 #include <basilcc/util.h>
 #include <cstdio>
+#include <stdexcept>
 #end

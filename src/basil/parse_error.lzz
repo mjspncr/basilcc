@@ -2,7 +2,7 @@ namespace basil
 {
   class Loc;
 
-  // for errors specific to file being parsed  
+  // for parse errors only
   class ParseError : public std::runtime_error
   {
   public:

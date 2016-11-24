@@ -1,16 +1,15 @@
 namespace basil
 {
   class Lexer;
-  class Logger;
-
+  class ErrorStream;
   typedef std::vector <int> IntVector;
   typedef IntVector::iterator IntVectorIter;
 
   class Parser
   {
   public:
-    Parser (lua_State * L, FSM & fsm, IntVector const & nodes, Lexer & lexer, int app, Logger & logger)
-      : L (L), fsm (fsm), nodes (nodes), lexer (lexer), app (app), logger (logger)
+    Parser (Engine & engine, int app, Lexer & lexer, ErrorStream & error_stream)
+      : engine (engine), app (app), lexer (lexer), error_stream (error_stream)
     {}
     ~ Parser ()
     {
@@ -35,7 +34,7 @@ namespace basil
             break;
           }
           bool guess = false;
-          FSM::ActionPtr action = nextAction (guess);
+          Engine::ActionPtr action = nextAction (guess);
           if (guess)
           {
             snap ();
@@ -65,11 +64,12 @@ namespace basil
         {
           // try recover strategies
           Token const  & unexpected_token = derefToken (stack.token_pos);
-          logger.error (Message (unexpected_token.loc, "unexpected %") << unexpected_token.lexeme);
+          error_stream.error (Message (unexpected_token.loc, "unexpected %") << unexpected_token.lexeme);
           copyStack (last_stack, stack);
           // ...
+
+          // todo - throw parser error, failed to recover on syntax error
           break;
-          // throw ParserError if can't recover?
         }
         clearTokens (0, stack.token_pos);
         stack.token_pos = 0;
@@ -127,7 +127,7 @@ namespace basil
     bool lookup ()
     {
       int state = stack.back ().state;
-      action_beg = fsm.getActionSeq (state, getTokenNumber (state, stack.token_pos), action_end);
+      action_beg = engine.getActionSeq (state, getTokenNumber (state, stack.token_pos), action_end);
       return action_beg != action_end;
     }
 
@@ -188,14 +188,15 @@ namespace basil
     // reduce and execute any semantic actions
     int reduce (FSM::ActionPtr action, bool guess, int & num_cancel)
     {
+      lua_State * L = engine.L;
       int kind = action->kind;
-      FSM::Rule const & rule = fsm.getRule (action->arg1);
+      int node_mt = LUA_NOREF;
+      FSM::Rule const & rule = engine.getRule (action->arg1, node_mt);
       int rule_size = rule.size;
-      int node = rule.node;
       int shortcut = action->arg2;
       int guess_cnt = guess ? 1 : 0;
       int form = LUA_NOREF;
-      if (node == FSM::NOINDEX && rule_size == 1)
+      if (node_mt == LUA_NOREF && rule_size == 1)
       {
         Frame const & frame = stack.back ();
         guess_cnt += frame.guess_cnt;
@@ -222,7 +223,7 @@ namespace basil
           lua_rawseti (L, -2, int (i - begi) + 1);
         }
         stack.erase (begi, endi);
-        if (node == FSM::NOINDEX)
+        if (node_mt == LUA_NOREF)
         {
           // discard node
           lua_pop (L, 1);
@@ -230,7 +231,7 @@ namespace basil
         else
         {
           // set node metatable
-          lua_rawgeti (L, LUA_REGISTRYINDEX, nodes [node]);
+          lua_rawgeti (L, LUA_REGISTRYINDEX, node_mt);
           lua_setmetatable (L, -2);
           // call semantic actions if defined
           lua_getfield (L, -1, "onNode");
@@ -273,7 +274,7 @@ namespace basil
       else
       {
         int s1 = stack.back ().state;
-        int s2 = fsm.getGotoState (s1, shortcut);
+        int s2 = engine.getGotoState (s1, shortcut);
         if (kind == FSM::ACCEPT)
         {
           num_cancel = guess_cnt;
@@ -315,7 +316,7 @@ namespace basil
       }
       Loc loc;
       string lexeme;
-      int token_number = lexer.getNextToken (fsm.getLexState (state), loc, lexeme);
+      int token_number = lexer.getNextToken (engine.getLexState (state), loc, lexeme);
       tokens.push_back (createToken (token_number, loc, lexeme));
       return token_number;
     }
@@ -323,6 +324,7 @@ namespace basil
     // create token, return Lua reference to token
     int createToken (int number, Loc const & loc, std::string const & lexeme)
     {
+      lua_State * L = engine.L;
       new (lua_newuserdata (L, sizeof (Token))) Token (number, loc, lexeme);
       luaL_setmetatable (L, MT_TOKEN);
       return luaL_ref (L, LUA_REGISTRYINDEX);
@@ -337,6 +339,7 @@ namespace basil
     // return token object from pos
     Parser::Token const & derefToken (int pos)
     {
+      lua_State * L = engine.L;
       lua_rawgeti (L, LUA_REGISTRYINDEX, tokens [pos]);
       Token const * token = static_cast <Token *> (luaL_testudata (L, -1, MT_TOKEN));
       lua_pop (L, 1);
@@ -389,6 +392,7 @@ namespace basil
     // release lua reference
     inline void unref (int & ref)
     {
+      lua_State * L = engine.L;
       luaL_unref (L, LUA_REGISTRYINDEX, ref);
       ref = LUA_NOREF;
     }
@@ -398,6 +402,7 @@ namespace basil
     {
       if (ref != LUA_NOREF)
       {
+        lua_State * L = engine.L;
         lua_rawgeti (L, LUA_REGISTRYINDEX, ref);
         ref = luaL_ref (L, LUA_REGISTRYINDEX);
       }
@@ -437,12 +442,11 @@ namespace basil
     }
 
   private:
-    lua_State * L;
-    FSM & fsm;
-    IntVector const & nodes;
-    Lexer & lexer;
+    //lua_State * L;
+    Engine & engine;
     int app;
-    Logger & logger;
+    Lexer & lexer;
+    ErrorStream & error_stream;
 
     // references to tokens from last accept
     IntVector tokens;
@@ -474,18 +478,20 @@ namespace
     PARSER_FAIL,
   }
 
+  /*
   int error_handler (lua_State * L)
   {
     char const * msg = luaL_checkstring (L, 1);
     luaL_traceback (L, L, msg, 1);
     return 1;
   }
+  */
 
   char const MT_TOKEN [] = "TOKEN";
 }
 
 #hdr
-#include <basil/fsm.h>
+#include <basil/engine.h>
 #include <basil/loc.h>
 #include <lua.hpp>
 #include <deque>
@@ -493,9 +499,9 @@ namespace
 #end
 
 #src
+#include <basil/error_stream.h>
 #include <basil/lexer.h>
 #include <basil/loc_lua.h>
-#include <basil/logger.h>
 #include <basil/message.h>
 #include <cassert>
 #include <cstring>

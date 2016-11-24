@@ -7,6 +7,7 @@ int main (int argc, char * argv [])
     bool print_help = false;
     bool bootstrap = false;
     int print_state_flags = 0;
+    string out_prefix;
     for (int i = 1; i < argc; ++ i)
     {
       char const * arg = argv [i];
@@ -20,7 +21,7 @@ int main (int argc, char * argv [])
         Option opt = OPT_NULL;
         if (! isOption (arg, opt))
         {
-          throw runtime_error (Message ("not a valid option: %") << arg); 
+          throw runtime_error (Message ("not a valid option: %") << arg);
         }
         if (opt == OPT_HELP)
         {
@@ -28,7 +29,7 @@ int main (int argc, char * argv [])
         }
         else if (opt == OPT_BOOTSTRAP)
         {
-          bootstrap = true; 
+          bootstrap = true;
         }
         else if (opt == OPT_PRINT_KERNEL_ONLY)
         {
@@ -41,6 +42,18 @@ int main (int argc, char * argv [])
         else if (opt == OPT_PRINT_FOLLOW)
         {
           print_state_flags |= PRINT_FOLLOW;
+        }
+        else
+        {
+          if (++ i == argc)
+          {
+            throw runtime_error (Message ("option % requires a value") << arg);
+          }
+          string opt_value = argv [i];
+          if (opt == OPT_OUT_PREFIX)
+          {
+            out_prefix = opt_value;
+          }
         }
       }
       else
@@ -63,10 +76,10 @@ int main (int argc, char * argv [])
     {
       throw runtime_error ("BASILSCRIPTS not set");
     }
-    Compiler compiler (scripts_dir, print_state_flags);
+    //Compiler compiler (scripts_dir, print_state_flags);
     if (bootstrap)
     {
-      compiler.bootstrap (); 
+      (Bootstrap (scripts_dir, print_state_flags) ());
     }
     else
     {
@@ -74,7 +87,11 @@ int main (int argc, char * argv [])
       {
         throw runtime_error ("missing grammar filename");
       }
-      compiler.compile (rules_filename, string ());
+      if (out_prefix.empty () && ! guessPrefix (rules_filename, out_prefix))
+      {
+        out_prefix = "parser";
+      }
+      (CompileGrammar (scripts_dir, print_state_flags) (rules_filename, out_prefix));
     }
   }
   catch (exception const & e)
@@ -98,6 +115,7 @@ namespace
     OPT_PRINT_KERNEL_ONLY,
     OPT_PRINT_SHIFT,
     OPT_PRINT_FOLLOW,
+    OPT_OUT_PREFIX,
     OPT_HELP,
   };
   struct OptionTag
@@ -111,11 +129,12 @@ namespace
   }
   OptionTag option_tags [] =
   {
-    { "b", OPT_BOOTSTRAP }, 
-    { "k", OPT_PRINT_KERNEL_ONLY }, 
-    { "s", OPT_PRINT_SHIFT }, 
-    { "f", OPT_PRINT_FOLLOW }, 
-    { "h", OPT_HELP }, 
+    { "b", OPT_BOOTSTRAP },
+    { "k", OPT_PRINT_KERNEL_ONLY },
+    { "s", OPT_PRINT_SHIFT },
+    { "f", OPT_PRINT_FOLLOW },
+    { "o", OPT_OUT_PREFIX },
+    { "h", OPT_HELP },
   };
   bool isOption (string const & str, Option & opt)
   {
@@ -133,42 +152,16 @@ namespace
   char const BASIL_FSM [] = "basil.fsm";
   char const BASIL_APP [] = "basil_app.lua";
 
-  class Compiler : public LuaEnv
+  class Compiler
   {
   public:
-    Compiler (string const & scripts_dir, int print_state_flags)
-      : LuaEnv (scripts_dir), print_state_flags (print_state_flags)
+    Compiler (lua_State * L, int print_state_flags)
+      : print_state_flags (print_state_flags)
     {
       registerCC (L, cc);
     }
-    void bootstrap ()
-    {
-      string boostrap_filename = path (BASIL_BOOTSTRAP);
-      if (luaL_dofile (L, boostrap_filename.c_str ()) != 0)
-      {
-        string errmsg = lua_tostring (L, -1);
-        lua_pop (L, 1);
-        throw runtime_error (errmsg);
-      }
-      generate (path ("basil"));
-    }
-    void compile (string const & rules_filename, string const & name)
-    {
-      Logger logger (cout);
-      {
-        FSM fsm (path (BASIL_FSM), rule_lexer::token_numbers, rule_lexer::token_numbers_end);
-        ParserApp parser_app (L, fsm);
-        parser_app.load (path (BASIL_APP));
-        rule_lexer::RuleLexer lexer (cc, rules_filename);
-        parser_app.run (lexer, logger);
-      }
-      if (! logger.hasError ())
-      {
-        generate (name.empty () ? guessName (rules_filename) : name);
-      }
-    }
-  private:
-    void generate (string const & name)
+    // compile grammar and generate output files, name is prefix in output filenames
+    void compile (string const & name)
     {
       int num_conflicts = closure (cc);
       cout << getNumStates (cc) << " states, " << num_conflicts << " conflicts" << endl;
@@ -182,31 +175,67 @@ namespace
       // and states
       printStates (cc, print_state_flags, name + "_states.txt");
     }
-    // from rules file guess parser name
-    static string guessName (string const & rules_filename)
-    {
-      string path, basename, root; 
-      getPathAndName (rules_filename, path, basename);
-      basename = remExt (basename);
-      size_t i = basename.find_last_of ('_');
-      if (i > 0 && i < basename.length () - 1)
-      {
-        string suffix = basename.substr (i + 1);
-        if (suffix == "rules" || suffix == "grammar")
-        {
-          root = basename.substr (0, i);
-        }
-      }
-      if (root.empty ())
-      {
-        root = "parser";
-      }
-      return join (path, root);
-    }
-  private:
     BasilCC cc;
     int print_state_flags;
   };
+
+  // bootstrap grammar file parser
+  void Bootstrap (string const & scripts_dir, int print_state_flags;)
+    : LuaEnv (scripts_dir), Compiler (L, print_state_flags)
+  {
+    string boostrap_filename = path (BASIL_BOOTSTRAP);
+    if (luaL_dofile (L, boostrap_filename.c_str ()) != 0)
+    {
+      string errmsg = lua_tostring (L, -1);
+      lua_pop (L, 1);
+      throw runtime_error (errmsg);
+    }
+    compile (path ("basil"));
+  }
+
+  // parse grammar and generate parser
+  void CompileGrammar (string const & scripts_dir, int print_state_flags; string const & rules_filename, string const & out_prefix)
+    : LuaEnv (scripts_dir), Compiler (L, print_state_flags)
+  {
+    Engine engine (L, path (BASIL_FSM), rule_lexer::token_numbers, rule_lexer::token_numbers_end, path (BASIL_APP));
+    App app (engine);
+    rule_lexer::RuleLexer lexer (cc, rules_filename);
+    // error messages to cout
+    ErrorSink error_sink (cout);
+    app.parse (lexer, error_sink);
+    // compile only if no errors
+    if (error_sink.has_error)
+    {
+      throw runtime_error ("aborted");
+    }
+    // expect no app created but doesn't hurt to call finalize
+    app.finalize ();
+    compile (out_prefix);
+  }
+
+  // guess prefix from rules filename
+  bool guessPrefix (string const & rules_filename, string & prefix)
+  {
+    // if basename ends with _grammar or _rules then prefix is part before it
+    string path, basename, root;
+    getPathAndName (rules_filename, path, basename);
+    basename = remExt (basename);
+    size_t i = basename.find_last_of ('_');
+    if (i > 0 && i < basename.length () - 1)
+    {
+      string suffix = basename.substr (i + 1);
+      if (suffix == "rules" || suffix == "grammar")
+      {
+        root = basename.substr (0, i);
+      }
+    }
+    if (! root.empty ())
+    {
+      prefix = join (path, root);
+      return true;
+    }
+    return false;
+  }
 
   // print usage
   void printUsage ()
@@ -219,9 +248,10 @@ namespace
     cout << " -k    print only kernel rules in states file\n";
     cout << " -s    show shift priority on rules in states file\n";
     cout << " -f    show shift priority and follow set on rules in states file\n";
+    cout << " -o    set output filename prefix, if not set guess prefix from grammar filename\n";
     cout << '\n';
     cout << "Generates an LR parser. Writes three files: the finite state machine (FSM), a\n";
-    cout << "Lua file with node definitions, and a readable dump of all states. Set environment\n";
+    cout << "Lua file with node definitions, and a text file a printout of all states. Set environment\n";
     cout << "variable BASILSCRIPTS to the basilscripts directory and first bootstrap\n";
     cout << "the grammar parser.\n";
     cout << '\n';
@@ -229,9 +259,20 @@ namespace
     cout << endl;
   }
 
-  //
+  // handle error messages
+  class ErrorSink (ostream & os) : public ErrorStream
+  {
+  public:
+    // send message to error stream
+    void error (std::string const & msg)
+    {
+      has_error = true;
+      os << msg << '\n';
+    }
+    bool has_error = false;
+  }
+
   // utility functions
-  //
 
   // join dirname and filename with slash
   std::string join (std::string const & dirname, std::string const & filename)
@@ -274,7 +315,7 @@ namespace
     else
     {
       path = filename.substr (0, p + 1);
-      name = filename.substr (p + 1, len - (p + 1)); 
+      name = filename.substr (p + 1, len - (p + 1));
     }
 #else
     size_t len = filename.length ();
@@ -296,20 +337,6 @@ namespace
 #endif
   }
 
-  // true if has extension, set extension if yes
-  bool hasExt (std::string const & filename, std::string & ext)
-  {
-    bool res (false);
-    size_t dot = filename.find_last_of ('.');
-    size_t slash = filename.find_last_of ("/\\");
-    if (dot != string::npos && (slash == string::npos || slash < dot))
-    {
-      ext = filename.substr (dot + 1);
-      res = true;
-    }
-    return res;
-  }
-
   // remove extension
   std::string remExt (std::string const & filename)
   {
@@ -323,15 +350,17 @@ namespace
     else
     {
       base = filename;
-    }      
+    }
     return base;
   }
 }
 
 #src
+#include <basil/app.h>
+#include <basil/engine.h>
+#include <basil/error_stream.h>
 #include <basil/lua_env.h>
 #include <basil/message.h>
-#include <basil/parser_app.h>
 #include <basilcc/basilcc.h>
 #include <basilcc/basilcc_lua.h>
 #include <basilcc/closure.h>
@@ -342,8 +371,8 @@ namespace
 #include <basilcc/state_api.h>
 #include <algorithm>
 #include <iostream>
-#include <string>
 #include <stdexcept>
+#include <string>
 
 #define ARRAY_END(X) (X + sizeof (X) / sizeof (X [0]))
 #end

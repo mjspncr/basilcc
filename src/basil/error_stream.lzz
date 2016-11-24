@@ -1,0 +1,15 @@
+namespace basil
+{
+  // error message stream abstract interface
+  class ErrorStream
+  {
+  public:
+    // log error message
+    virtual void error (std::string const & msg) = 0;
+  }
+}
+
+#hdr
+#include <string>
+#end
+

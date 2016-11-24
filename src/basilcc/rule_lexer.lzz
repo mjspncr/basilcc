@@ -451,7 +451,7 @@ namespace basilcc
       BasilCC & m_cc;
       // reader 
       RuleReader m_reader;
-      // opererator table
+      // operator table
       RuleOperTable m_oper_table;
     }
   }
@@ -560,8 +560,7 @@ namespace
 
 #hdr
 #include <basil/lexer.h>
-#include <basil/fsm_impl.h>
-#include <basilcc/token_number.h>
+#include <basil/token_number.h>
 #include <map>
 #include <string>
 #end

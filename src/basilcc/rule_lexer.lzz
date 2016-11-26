@@ -374,8 +374,44 @@ namespace basilcc
               {
                 throw runtime_error (Message (loc, "missing string in keyword directive"));
               }
-              keyword = keyword.substr (1, keyword.size () - 2);
+              keyword = stripQuotes (keyword);
               addKeyword (m_cc, m_cc.intern (name), keyword);
+            }
+            else if (lexeme == "%recover")
+            {
+              string strategy = nextIdent ();
+              if (strategy == "insert")
+              {
+                string name = nextIdent ();
+                if (name.empty ())
+                {
+                  throw runtime_error (Message (loc, "missing token after insert"));
+                }
+                if (! isToken (name.c_str ()))
+                {
+                  throw runtime_error (Message (loc, "% is not a token") << name);
+                }
+                string lexeme = nextString ();
+                if (! lexeme.empty ())
+                {
+                  lexeme = stripQuotes (lexeme);
+                }
+                addInsertStrategy (m_cc, getSymbol (m_cc, name), lexeme);
+              }
+              else if (strategy == "delete")
+              {
+                string numstr = nextInt ();
+                int num = numstr.empty () ? INT_MAX : atoi (numstr.c_str ());
+                addDeleteStrategy (m_cc, num);
+              }
+              else
+              {
+                throw runtime_error (Message (loc, "invalid recover strategy: %") << strategy);
+              }
+            }
+            else
+            {
+              throw runtime_error (Message (loc, "invalid directive"));
             }
           }
         }
@@ -444,6 +480,22 @@ namespace basilcc
               break;
             }
           }
+        }
+        return lexeme;
+      }
+      // next integer
+      std::string nextInt ()
+      {
+        skipWs ();
+        string lexeme;
+        for (;;)
+        {
+          CharKind ch_kind = peekCharKind (m_reader);
+          if (ch_kind != C_DIGIT)
+          {
+            break;
+          }
+          lexeme += m_reader.nextChar ();
         }
         return lexeme;
       }
@@ -556,6 +608,12 @@ namespace
     S_WS,
     S_COMMENT,
   }
+
+  // strip quotes from string
+  string stripQuotes (string const & str)
+  {
+    return str.substr (1, str.size () - 2);
+  }
 }
 
 #hdr
@@ -569,8 +627,10 @@ namespace
 #include <basil/loc.h>
 #include <basil/message.h>
 #include <basilcc/basilcc.h>
+#include <basilcc/strategy_api.h>
 #include <basilcc/symbol_api.h>
 #include <basilcc/util.h>
+#include <climits>
 #include <cstdio>
 #include <stdexcept>
 #end

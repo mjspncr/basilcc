@@ -1,0 +1,68 @@
+namespace basilcc
+{
+  // error recover stategy type
+  enum StrategyType
+  {
+    STRATEGY_INSERT,
+    STRATEGY_DELETE,
+  };
+
+  class Strategy
+  {
+  public:
+    Strategy ()
+    {}
+    virtual ~ Strategy ()
+    {}
+    virtual StrategyType getType () const = 0;
+  };
+
+  class InsertStrategy : public Strategy
+  {
+  public:
+    InsertStrategy (SymbolPtr token, std::string const & lexeme)
+      : token (token), lexeme (lexeme)
+    {}
+    ~ InsertStrategy ()
+    {}
+    StrategyType getType () const
+    {
+      return STRATEGY_INSERT;
+    }
+    inline SymbolPtr getToken () const
+    {
+      return token;
+    }
+  private:
+    // insert this token
+    SymbolPtr token;
+    // with this lexeme (optional)
+    std::string lexeme;
+  };
+
+  class DeleteStrategy : public Strategy
+  {
+  public:
+    DeleteStrategy (int num)
+      : num (num)
+    {}
+    ~ DeleteStrategy ()
+    {}
+    StrategyType getType () const
+    {
+      return STRATEGY_DELETE;
+    }
+    inline int getNumber () const
+    {
+      return num;
+    }
+  private:
+    // delete up to this number of tokens
+    int num;
+  };
+}
+
+#hdr
+#include <basilcc/symbol_ptr.h>
+#include <string>
+#end

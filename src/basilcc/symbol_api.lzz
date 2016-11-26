@@ -59,6 +59,19 @@ namespace basilcc
   {
     return cc.getTable <SymbolTable> ().getKeywords ();
   }
+
+  // true if name is a token, if all upper caqse
+  bool isToken (char const * name)
+  {
+    for (char const * p = name; * p != '\0'; ++ p)
+    {
+      if (islower (* p))
+      {
+        return false;
+      }
+    }
+    return true;
+  }
 }
 
 using namespace basilcc;
@@ -195,19 +208,6 @@ namespace
   inline bool IsKeyword (; SymbolPtr token) const : unary_function <SymbolPtr, bool> 
   {
     return static_cast <Token const &> (* token).isKeyword ();
-  }
-
-  // true if name is a token, all upper caqse
-  bool isToken (char const * name)
-  {
-    for (char const * p = name; * p != '\0'; ++ p)
-    {
-      if (islower (* p))
-      {
-        return false;
-      }
-    }
-    return true;
   }
 }
 

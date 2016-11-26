@@ -30,6 +30,7 @@ namespace basilcc
     TABLE_SHIFT_STATE_SEL,
     TABLE_STATE,
     TABLE_STATE_MOVE,
+    TABLE_STRATEGY,
     TABLE_SYMBOL,
     NUM_TABLES
   }

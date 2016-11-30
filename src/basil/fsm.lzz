@@ -9,7 +9,8 @@ namespace basil
   class FSM
   {
   public:
-    FSM (std::string const & fsm_filename, TokenNumberPtr oper_numbers_beg, TokenNumberPtr oper_numbers_end)
+    // token_numbers_beg and token_numbers_beg iterators to real token name, number pairs
+    FSM (std::string const & fsm_filename, TokenNumberPtr token_numbers_beg, TokenNumberPtr token_numbers_end)
     {
       ifstream is (fsm_filename.c_str (), ios_base::in | ios_base::binary);
       if (! is)
@@ -21,11 +22,16 @@ namespace basil
       readNodes (r);
       readRules (r);
       readActionSeqs (r);
-      readMoveSels (r, oper_numbers_beg, oper_numbers_end);
+      IntVector tokens;
+      getTokens (r, token_numbers_beg, token_numbers_end, tokens);
+      readMoveSels (r, tokens);
       readStates (r);
       readShiftStateSels (r);
       readGotos (r);
+      readStrategies (r, tokens);
     }
+    ~ FSM ()
+    {}
     // types
     struct Rule (int size, int node) {}
     struct Move (int token, int action_seq) {}
@@ -46,10 +52,36 @@ namespace basil
     typedef std::vector <ShiftState> ShiftStateVector;
     typedef std::vector <ShiftStatePtr> ShiftStatePtrVector;
     typedef std::vector <Goto> GotoVector;
+    typedef std::pair <ActionPtr, ActionPtr> ActionPtrPair;
 
     // constants
     enum { REDUCE = 1, ACCEPT, SHIFT, DONE }
     enum { NOINDEX = -1 }
+
+    // recover strategy
+    enum StrategyType { STRATEGY_INSERT, STRATEGY_DELETE }
+    struct Strategy
+    {
+      virtual ~ Strategy () {}
+      virtual StrategyType getType () const = 0;
+    };
+    struct InsertStrategy : Strategy
+    {
+      InsertStrategy (int token, std::string const & lexeme) : token (token), lexeme (lexeme) {}
+      ~ InsertStrategy () {}
+      FSM::StrategyType getType () const { return STRATEGY_INSERT; }
+      int token;
+      std::string lexeme;
+    }
+    struct DeleteStrategy : Strategy
+    {
+      DeleteStrategy (int number) : number (number) {}
+      ~ DeleteStrategy () {}
+      FSM::StrategyType getType () const { return STRATEGY_DELETE; }
+      int number;
+    }
+    typedef Strategy const * StrategyPtr;
+    typedef std::vector <StrategyPtr> StrategyPtrVector;
 
   protected:
     int m_num_start_rules;
@@ -64,6 +96,7 @@ namespace basil
     ShiftStateVector m_shift_state_sels;
     ShiftStatePtrVector m_shift_state_sels_beg;
     GotoVector m_gotos;
+    StrategyPtrVector m_strategies;
 
   private:
     // keywords
@@ -127,16 +160,34 @@ namespace basil
       return & actions [num];
     }
 
-    // moves
-    void readMoveSels (BinaryReader & r, TokenNumberPtr oper_numbers_beg, TokenNumberPtr oper_numbers_end)
+    // read token names and set real token numbers
+    void getTokens (BinaryReader & r, TokenNumberPtr token_numbers_beg, TokenNumberPtr token_numbers_end, IntVector & tokens)
     {
-      // read operator names and get real operator numbers
-      IntVector oper_numbers;
-      readOperatorNames (r, oper_numbers_beg, oper_numbers_end, oper_numbers);
+      StringVector names;
+      readStringVector (r, names);
+      typedef vector <TokenNumber> TokenNumberVector;
+      TokenNumberVector token_numbers_sorted (token_numbers_beg, token_numbers_end);
+      sort (token_numbers_sorted.begin (), token_numbers_sorted.end (), tokenNumberNameLess1);
+      tokens.reserve (names.size ());
+      for (StringVector::const_iterator i = names.begin (), endi = names.end (); i != endi; ++ i)
+      {
+        string const & name = * i;
+        TokenNumberVector::iterator t = lower_bound (token_numbers_sorted.begin (), token_numbers_sorted.end (), name, tokenNumberNameLess2);
+        if (t == token_numbers_sorted.end () || t->name != name)
+        {
+          throw runtime_error (Message ("Missing token number for %") << name);
+        }
+        tokens.push_back (t->num);
+      }
+    }
+
+    // moves, tokens is real token numbers
+    void readMoveSels (BinaryReader & r, IntVector const & tokens)
+    {
       // read all moves, filling in with real operator numbers
       int size = r.readInt ();
       m_move_sels.reserve (size);
-      generate_n (back_inserter (m_move_sels), size, ReadMove (r, oper_numbers));
+      generate_n (back_inserter (m_move_sels), size, ReadMove (r, tokens));
       // now move selections, just ptrs into moves
       IntVector nums;
       readVector (r, nums);
@@ -149,40 +200,19 @@ namespace basil
         Move * p = const_cast <Move *> (* i);
         Move * q = const_cast <Move *> (* j);
         sort (p, q, MoveTokenLess ());
-        i = j; 
-      }
-    }
-    // read operator names and using token numbers from lexer get real operator numbers
-    void readOperatorNames (BinaryReader & r, TokenNumberPtr oper_numbers_beg, TokenNumberPtr oper_numbers_end, IntVector & numbers)
-    {
-      StringVector names;
-      readStringVector (r, names);
-      // create copy of operator names and acutal number pairs, and sort by name for easy lookup
-      typedef vector <TokenNumber> TokenNumberVector;
-      TokenNumberVector oper_numbers (oper_numbers_beg, oper_numbers_end);
-      sort (oper_numbers.begin (), oper_numbers.end (), tokenNumberNameLess1);
-      numbers.reserve (names.size ());
-      // for each operator in grammar lookup real number
-      for (StringVector::const_iterator i = names.begin (), endi = names.end (); i != endi; ++ i)
-      {
-        string const & name = * i;
-        TokenNumberVector::iterator t = lower_bound (oper_numbers.begin (), oper_numbers.end (), name, tokenNumberNameLess2);
-        if (t == oper_numbers.end () || t->name != name)
-        {
-          throw runtime_error (Message ("Token number not provided for %") << name);
-        }
-        numbers.push_back (t->num);
+        i = j;
       }
     }
     // read move
-    inline FSM::Move ReadMove (BinaryReader & r, IntVector const & numbers;) const
+    inline FSM::Move ReadMove (BinaryReader & r, IntVector const & tokens;) const
     {
       int token = r.readInt ();
-      if (token < int (numbers.size ()))
+      // keyword if token >= size, don't need to translate
+      if (size_t (token) < tokens.size ())
       {
-        token = numbers [token];
+        token = tokens [token];
       }
-      int action_seq_num = r.readInt (); 
+      int action_seq_num = r.readInt ();
       return Move (token, action_seq_num);
     }
     inline FSM::MovePtr GetMovePtr (MoveVector const & moves; int num) const
@@ -239,8 +269,51 @@ namespace basil
     inline FSM::Goto ReadGoto (BinaryReader & r;) const
     {
       int shift_state_sel = r.readInt ();
-      int def_state = r.readInt (); 
+      int def_state = r.readInt ();
       return Goto (shift_state_sel, def_state);
+    }
+
+    // read recover strategies, tokens is real token numbers
+    void readStrategies (BinaryReader & r, IntVector const & tokens)
+    {
+      int size = r.readInt ();
+      generate_n (back_inserter (m_strategies), size, ReadStrategy (r, tokens));
+    }
+    FSM::StrategyPtr ReadStrategy (BinaryReader & r, IntVector const & tokens;) const
+    {
+      int type = r.readInt ();
+      StrategyPtr strategy = 0;
+      switch (type)
+      {
+        case STRATEGY_INSERT:
+        {
+          strategy = readInsertStrategy (r, tokens);
+          break;
+        }
+        case STRATEGY_DELETE:
+        {
+          strategy = readDeleteStrategy (r);
+          break;
+        }
+      }
+      return strategy;
+    }
+    static FSM::StrategyPtr readInsertStrategy (BinaryReader & r, IntVector const & tokens)
+    {
+      int token = r.readInt ();
+      // keyword if token >= size, don't need to translate
+      if (size_t (token) < tokens.size ())
+      {
+        token = tokens [token];
+      }
+      string lexeme = r.readString ();
+      // todo: translate token number (if not keyword)
+      return new InsertStrategy (token, lexeme);
+    }
+    static FSM::StrategyPtr readDeleteStrategy (BinaryReader & r)
+    {
+      int number = r.readInt ();
+      return new DeleteStrategy (number);
     }
   }
 }
@@ -281,4 +354,5 @@ namespace
 #include <fstream>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 #end

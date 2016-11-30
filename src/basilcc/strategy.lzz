@@ -5,7 +5,7 @@ namespace basilcc
   {
     STRATEGY_INSERT,
     STRATEGY_DELETE,
-  };
+  }
 
   class Strategy
   {
@@ -15,7 +15,7 @@ namespace basilcc
     virtual ~ Strategy ()
     {}
     virtual StrategyType getType () const = 0;
-  };
+  }
 
   class InsertStrategy : public Strategy
   {
@@ -33,12 +33,16 @@ namespace basilcc
     {
       return token;
     }
+    inline std::string const & getLexeme () const
+    {
+      return lexeme;
+    }
   private:
     // insert this token
     SymbolPtr token;
     // with this lexeme (optional)
     std::string lexeme;
-  };
+  }
 
   class DeleteStrategy : public Strategy
   {
@@ -59,7 +63,7 @@ namespace basilcc
   private:
     // delete up to this number of tokens
     int num;
-  };
+  }
 }
 
 #hdr

@@ -72,14 +72,6 @@ namespace basil
       return m_keywords;
     }
 
-    /*
-    // get node names
-    StringVector const & getNodes () const
-    {
-      return m_nodes;
-    }
-    */
-
     // get lexical state at parser state
     inline int getLexState (int state_num) const
     {
@@ -110,6 +102,17 @@ namespace basil
       action_seq_end = m_action_seqs_beg [action_seq_num + 1];
       return m_action_seqs_beg [action_seq_num];
     }
+    FSM::ActionPtrPair getActionSeq (int state_num, int token) const
+    {
+      State const & state = m_states [state_num];
+      MovePtr move_sel_beg = m_move_sels_beg [state.move_sel];
+      MovePtr move_sel_end = m_move_sels_beg [state.move_sel + 1];
+      Move const * t = lower_bound (move_sel_beg, move_sel_end, token, moveTokenLess);
+      int action_seq_num = (t == move_sel_end || t->token != token) ? state.def_action_seq : t->action_seq;
+      ActionPtr action_seq_end = m_action_seqs_beg [action_seq_num + 1];
+      ActionPtr action_seq_beg = m_action_seqs_beg [action_seq_num];
+      return ActionPtrPair (action_seq_beg, action_seq_end);
+    }
 
     // get goto state, npos if done
     int getGotoState (int state_num, int shortcut) const
@@ -124,6 +127,12 @@ namespace basil
       int num = m_states [state_num].num;
       ShiftStatePtr t = lower_bound (shift_state_sel_beg, shift_state_sel_end, num, shiftStateNumLess);
       return (t == shift_state_sel_end || t->num != num) ? go2.def_state : t->state;
+    }
+
+    // get recover strategies
+    FSM::StrategyPtrVector const & getRecoverStrategies () const
+    {
+      return m_strategies;
     }
 
     lua_State * const L;

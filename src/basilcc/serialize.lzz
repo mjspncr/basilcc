@@ -21,6 +21,7 @@ namespace basilcc
     writeStates (cc, w);
     writeShiftStateSels (cc, w);
     writeGotos (cc, w);
+    writeStrategies (cc, w);
   }
 }
 
@@ -250,6 +251,57 @@ namespace
       w << npos << npos;
     }
   }
+
+  // write recover strategies
+  void writeStrategies (BasilCC const & cc, BinaryWriter & w)
+  {
+    StrategyPtrVector const & strategies = getStrategies (cc);
+    w << strategies.size ();
+    for_each (strategies.begin (), strategies.end (), WriteStrategy (w)); 
+  }
+  void WriteStrategy (BinaryWriter & w; StrategyPtr strategy) const
+  {
+    StrategyType type = strategy->getType ();
+    w << int (type);
+    switch (type)
+    {
+      case STRATEGY_INSERT:
+      {
+        writeInsertStrategy (static_cast <InsertStrategy const &> (* strategy), w);
+        break;
+      }
+      case STRATEGY_DELETE:
+      {
+        writeDeleteStrategy (static_cast <DeleteStrategy const &> (* strategy), w);
+        break;
+      }
+    }
+  }
+  void writeInsertStrategy (InsertStrategy const & strategy, BinaryWriter & w)
+  {
+    Token const & token = static_cast <Token &> (* strategy.getToken ());
+    w << token.getNumber ();
+    string const & lexeme = strategy.getLexeme ();
+    if (lexeme.empty ())
+    {
+      if (token.isKeyword ())
+      {
+        w << token.getLexeme ();
+      }
+      else
+      {
+        w << token.getName ();
+      }
+    }
+    else
+    {
+      w << lexeme;
+    }
+  }
+  void writeDeleteStrategy (DeleteStrategy const & strategy, BinaryWriter & w)
+  {
+    w << strategy.getNumber ();
+  }
 }
 
 #hdr
@@ -275,6 +327,8 @@ namespace
 #include <basilcc/state.h>
 #include <basilcc/state_api.h>
 #include <basilcc/state_move.h>
+#include <basilcc/strategy.h>
+#include <basilcc/strategy_api.h>
 #include <basilcc/symbol.h>
 #include <basilcc/symbol.h>
 #include <basilcc/symbol_api.h>

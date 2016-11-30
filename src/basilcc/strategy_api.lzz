@@ -16,7 +16,7 @@ namespace basilcc
   }
 
   // get error recover strategies
-  StrategyPtrVector const & getStrategies (BasilCC & cc)
+  StrategyPtrVector const & getStrategies (BasilCC const & cc)
   {
     return cc.getTable <StrategyTable> ().getStrategies ();
   }
@@ -57,8 +57,8 @@ namespace
 
 #hdr
 #include <basilcc/symbol_ptr.h>
-#include <vector>
 #include <string>
+#include <vector>
 #end
 
 #src

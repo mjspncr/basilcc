@@ -8,24 +8,24 @@ namespace basil
   class Parser
   {
   public:
-    Parser (Engine & engine, int app, Lexer & lexer, ErrorStream & error_stream)
-      : engine (engine), app (app), lexer (lexer), error_stream (error_stream)
+    Parser (lua_State * L, Engine & engine, int app, Lexer & lexer, ErrorStream & error_stream)
+      : L (L), engine (engine), app (app), lexer (lexer), error_stream (error_stream)
     {}
     ~ Parser ()
     {}
 
     void parse (int start_state)
     {
-      Stack stack (engine.L);
+      Stack stack (L);
       stack.push_back (Frame (start_state));
       for (;;)
       {
-        Stack good_stack (engine.L, stack);
+        Stack good_stack (L, stack);
         int r = parseSome (stack);
         if (r == PARSER_FAIL)
         {
           Token const & error_token = getToken (tokens [stack.token_pos]);
-          error_stream.error (Message (error_token.loc, "syntax error before %") << error_token.lexeme);
+          error_stream.error (Message (error_token.loc, "syntax error before '%'") << error_token.lexeme);
           stack.move (good_stack);
           // recover ..
           r = recoverDiscard (stack, 1);
@@ -34,12 +34,12 @@ namespace basil
             throw ParseError ("failed to recover");
           }
         }
+        clearTokens (0, stack.token_pos);
+        stack.token_pos = 0;
         if (r == PARSER_DONE)
         {
           break;
         }
-        clearTokens (0, stack.token_pos);
-        stack.token_pos = 0;
       }
     }
 
@@ -148,7 +148,6 @@ namespace basil
     // get token from Lua reference
     Parser::Token const & getToken (int ref)
     {
-      lua_State * L = engine.L;
       lua_rawgeti (L, LUA_REGISTRYINDEX, ref);
       Token const * token_ptr = static_cast <Token *> (luaL_testudata (L, -1, MT_TOKEN));
       lua_pop (L, 1);
@@ -157,7 +156,6 @@ namespace basil
     // create token, return Lua reference
     int createToken (int number, Loc const & loc, std::string const & lexeme)
     {
-      lua_State * L = engine.L;
       new (lua_newuserdata (L, sizeof (Token))) Token (number, loc, lexeme);
       luaL_setmetatable (L, MT_TOKEN);
       return luaL_ref (L, LUA_REGISTRYINDEX);
@@ -173,7 +171,7 @@ namespace basil
       IntVectorIter end = beg + num;
       for (IntVectorIter i = beg; i != end; ++ i)
       {
-        luaL_unref (engine.L, LUA_REGISTRYINDEX, * i);
+        luaL_unref (L, LUA_REGISTRYINDEX, * i);
       }
       tokens.erase (beg, end);
     }
@@ -203,7 +201,7 @@ namespace basil
     // shift current token and advance token, guess true if this is a guess
     void shift (Stack & stack, FSM::ActionPtr action, bool guess)
     {
-      stack.push_back (Frame (action->arg1, guess ? 1 : 0, copy_ref (engine.L, tokens [stack.token_pos])));
+      stack.push_back (Frame (action->arg1, guess ? 1 : 0, copy_ref (L, tokens [stack.token_pos])));
       ++ stack.token_pos;
     }
 
@@ -219,15 +217,12 @@ namespace basil
     // reduce and run semantic actions
     int reduce (Stack & stack, FSM::ActionPtr action, bool guess, int & num_cancel)
     {
-      lua_State * L = engine.L;
       int kind = action->kind;
-      int node_mt = LUA_NOREF;
-      FSM::Rule const & rule = engine.getRule (action->arg1, node_mt);
-      int rule_size = rule.size;
+      FSM::Rule const & rule = engine.getRule (action->arg1);
       int shortcut = action->arg2;
       int guess_cnt = guess ? 1 : 0;
       int form = LUA_NOREF;
-      if (node_mt == LUA_NOREF && rule_size == 1)
+      if (rule.node == FSM::NOINDEX && rule.size == 1)
       {
         Frame const & frame = stack.back ();
         guess_cnt += frame.guess_cnt;
@@ -237,8 +232,8 @@ namespace basil
       else
       {
         // create table with children in array
-        lua_createtable (L, rule_size, 0);
-        FrameVectorIter begi = stack.end () - rule_size, endi = stack.end ();
+        lua_createtable (L, rule.size, 0);
+        FrameVectorIter begi = stack.end () - rule.size, endi = stack.end ();
         for (FrameVectorIter i = begi; i != endi ; ++ i)
         {
           Frame const & frame = * i;
@@ -255,44 +250,14 @@ namespace basil
           lua_rawseti (L, -2, int (i - begi) + 1);
         }
         stack.erase (begi, endi);
-        if (node_mt == LUA_NOREF)
+        if (rule.node == FSM::NOINDEX)
         {
           // discard all children
           lua_pop (L, 1);
         }
         else
         {
-          // turn table into a node with metatable
-          lua_rawgeti (L, LUA_REGISTRYINDEX, node_mt);
-          lua_setmetatable (L, -2);
-          // call semantic actions if defined
-          lua_getfield (L, -1, "onNode");
-          if (lua_isnil (L, -1))
-          {
-            lua_pop (L, 1);
-          }
-          else
-          {
-            // first function then node
-            lua_rotate (L, -2, 1);
-            // then app
-            if (app == LUA_NOREF)
-            {
-              lua_pushnil (L);
-            }
-            else
-            {
-              lua_rawgeti (L, LUA_REGISTRYINDEX, app);
-            }
-            if (lua_pcall (L, 2, 1, 1) != LUA_OK)
-            {
-              string errmsg = lua_tostring (L, -1);
-              lua_pop (L, 1);
-              throw runtime_error (errmsg);
-            }
-          }
-          // new form on top of stack, node or result of semantic actions 
-          form = luaL_ref (L, LUA_REGISTRYINDEX);
+          form = engine.onNode (app, rule.node);
         }
       }
       int r = PARSER_OK;
@@ -347,7 +312,7 @@ namespace basil
         bool guess = ++ actions.first != actions.second;
         if (guess)
         {
-          Snapshot & snapshot = * snapshots.insert (snapshots.end (), Snapshot (engine.L));
+          Snapshot & snapshot = * snapshots.insert (snapshots.end (), Snapshot (L));
           snapshot.snap (stack, actions);
           ++ stack.guess_cnt;
         }
@@ -375,7 +340,7 @@ namespace basil
 
     int recoverDiscard (Stack & stack, int max_discard)
     {
-      Stack init_stack (engine.L, stack);
+      Stack init_stack (L, stack);
       for (int num_discard = 1; num_discard <= max_discard; ++ num_discard)
       {
         for (;;)
@@ -393,7 +358,7 @@ namespace basil
           {
             break;
           }
-          Stack save_stack (engine.L, stack);
+          Stack save_stack (L, stack);
           stack.token_pos += num_discard;
           int r = parseSome (stack);
           if (r == PARSER_ACCEPT || r == PARSER_DONE)
@@ -471,6 +436,7 @@ namespace basil
     }
 
   private:
+    lua_State * L;
     Engine & engine;
     int app;
     Lexer & lexer;

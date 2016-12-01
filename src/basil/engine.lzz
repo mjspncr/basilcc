@@ -1,13 +1,15 @@
 namespace basil
 {
-  // engine is a finite state machine with loaded app (with node and app metatables)
+  class ErrorStream;
+  class Lexer;
+
+  // engine is an FSM with loaded app (node and app metatables)
   class Engine : public FSM
   {
   public:
     Engine (lua_State * L, std::string const & fsm_filename, TokenNumberPtr token_numbers_beg, TokenNumberPtr token_numbers_end)
       : FSM (fsm_filename, token_numbers_beg, token_numbers_end), L (L), m_app_mt (LUA_NOREF)
     {}
-    
     Engine (lua_State * L, std::string const & fsm_filename, TokenNumberPtr token_numbers_beg, TokenNumberPtr token_numbers_end,
         std::string const & app_filename)
       : FSM (fsm_filename, token_numbers_beg, token_numbers_end), L (L), m_app_mt (LUA_NOREF)
@@ -66,11 +68,85 @@ namespace basil
       return luaL_ref (L, LUA_REGISTRYINDEX);
     }
 
+    // delete app instance
+    void deleteApp (int app_ref)
+    {
+      luaL_unref (L, LUA_REGISTRYINDEX, app_ref);
+    }
+
+    // parse tokens
+    void parse (int app_ref, Lexer & lexer, ErrorStream & error_stream, int start_state = 0)
+    {
+      Parser (L, * this, app_ref, lexer, error_stream).parse (start_state);
+    }
+
+    // call app finalize method (if defined)
+    void finalize (int app)
+    {
+      if (app != LUA_NOREF)
+      {
+        lua_rawgeti (L, LUA_REGISTRYINDEX, app);
+        lua_getfield (L, -1, "finalize");
+        if (lua_isnil (L, -1))
+        {
+          lua_pop (L, 2);
+        }
+        else
+        {
+          lua_rotate (L, -2, 1);
+          if (lua_pcall (L, 1, 0, 1) != LUA_OK)
+          {
+            string errmsg = lua_tostring (L, -1);
+            lua_pop (L, 1);
+            throw runtime_error (errmsg);
+          }
+        }
+      }
+    }
+
     // get vector of keyword name and token number pairs
     StringIntVector const & getKeywords () const
     {
       return m_keywords;
     }
+
+    // call semantic actions on rule node, children in table on top of stack
+    int onNode (int app, int node)
+    {
+      // turn table into a node
+      lua_rawgeti (L, LUA_REGISTRYINDEX, m_node_mts [node]);
+      lua_setmetatable (L, -2);
+      // call user onNode method if defined
+      lua_getfield (L, -1, "onNode");
+      if (lua_isnil (L, -1))
+      {
+        lua_pop (L, 1);
+      }
+      else
+      {
+        // first function then node
+        lua_rotate (L, -2, 1);
+        // then app
+        if (app == LUA_NOREF)
+        {
+          lua_pushnil (L);
+        }
+        else
+        {
+          lua_rawgeti (L, LUA_REGISTRYINDEX, app);
+        }
+        if (lua_pcall (L, 2, 1, 1) != LUA_OK)
+        {
+          string errmsg = lua_tostring (L, -1);
+          lua_pop (L, 1);
+          throw runtime_error (errmsg);
+        }
+      }
+      // return ref to object on top of stack
+      return luaL_ref (L, LUA_REGISTRYINDEX);
+    }
+
+    // move below methods to FSM
 
     // get lexical state at parser state
     inline int getLexState (int state_num) const
@@ -84,14 +160,8 @@ namespace basil
       return m_rules [rule];
     }
 
-    FSM::Rule const & getRule (int rule, int & node_mt) const
-    {
-      FSM::Rule const & fsm_rule = m_rules [rule];
-      node_mt = fsm_rule.node == FSM::NOINDEX ? LUA_NOREF : m_node_mts [fsm_rule.node];
-      return fsm_rule;
-    }
-
     // get action seq at state on token
+    /*
     FSM::ActionPtr getActionSeq (int state_num, int token, ActionPtr & action_seq_end) const
     {
       State const & state = m_states [state_num];
@@ -102,6 +172,7 @@ namespace basil
       action_seq_end = m_action_seqs_beg [action_seq_num + 1];
       return m_action_seqs_beg [action_seq_num];
     }
+    */
     FSM::ActionPtrPair getActionSeq (int state_num, int token) const
     {
       State const & state = m_states [state_num];
@@ -312,6 +383,7 @@ namespace
 
 #src
 #include <basil/message.h>
+#include <basil/parser.h>
 #include <algorithm>
 #include <map>
 #include <stdexcept>

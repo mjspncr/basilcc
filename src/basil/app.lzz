@@ -1,68 +1,35 @@
 namespace basil
 {
-  class Engine;
-  class ErrorStream;
-  class Lexer;
-
+  // simply maintains an app instance
   class App
   {
   public:
     App (Engine & engine)
-      : m_engine (engine), m_app_ref (m_engine.newApp ())
+      : engine (engine), app (engine.newApp ())
     {}
     ~ App ()
     {
-      lua_State * L = m_engine.L;
-      luaL_unref (L, LUA_REGISTRYINDEX, m_app_ref);
+      engine.deleteApp (app);
     }
 
     // parse tokens
-    void parse (Lexer & lexer, ErrorStream & error_stream, int start_state = 0)
+    inline void parse (Lexer & lexer, ErrorStream & error_stream, int start_state = 0)
     {
-      Parser (m_engine, m_app_ref, lexer, error_stream).parse (start_state);
+      engine.parse (app, lexer, error_stream, start_state);
     }
 
-    // if app created call finalize method if defined
-    void finalize ()
+    // call app finalize method (if defined)
+    inline void finalize ()
     {
-      if (m_app_ref != LUA_NOREF)
-      {
-        lua_State * L = m_engine.L;
-        lua_rawgeti (L, LUA_REGISTRYINDEX, m_app_ref);
-        lua_getfield (L, -1, "finalize");
-        if (lua_isnil (L, -1))
-        {
-          lua_pop (L, 2);
-        }
-        else
-        {
-          lua_rotate (L, -2, 1);
-          if (lua_pcall (L, 1, 0, 1) != LUA_OK)
-          {
-            string errmsg = lua_tostring (L, -1);
-            lua_pop (L, 1);
-            throw runtime_error (errmsg);
-          }
-        }
-      }
+      engine.finalize (app);
     }
 
   private:
-    Engine & m_engine;
-    int m_app_ref;
+    Engine & engine;
+    int app;
   };
 }
 
-using namespace basil;
-using namespace std;
-
 #hdr
-#include <string>
-#end
-
-#src
 #include <basil/engine.h>
-#include <basil/parser.h>
-#include <stdexcept>
-#include <lua.hpp>
 #end

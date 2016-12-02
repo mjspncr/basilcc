@@ -30,7 +30,7 @@ namespace basil
     // load app
     void load (std::string const & app_filename)
     {
-      Loader (L, m_nodes, m_app_mt, m_node_mts).load (app_filename);
+      Loader (L, getNodes (), m_app_mt, m_node_mts).load (app_filename);
     }
 
     // create new app instance
@@ -104,12 +104,6 @@ namespace basil
       }
     }
 
-    // get vector of keyword name and token number pairs
-    StringIntVector const & getKeywords () const
-    {
-      return m_keywords;
-    }
-
     // call semantic actions on rule node, children in table on top of stack
     int onNode (int app, int node)
     {
@@ -146,81 +140,9 @@ namespace basil
       return luaL_ref (L, LUA_REGISTRYINDEX);
     }
 
-    // move below methods to FSM
-
-    // get lexical state at parser state
-    inline int getLexState (int state_num) const
-    {
-      return m_states [state_num].lex_state;
-    }
-
-    // get rule
-    inline FSM::Rule const & getRule (int rule) const
-    {
-      return m_rules [rule];
-    }
-
-    // get action seq at state on token
-    /*
-    FSM::ActionPtr getActionSeq (int state_num, int token, ActionPtr & action_seq_end) const
-    {
-      State const & state = m_states [state_num];
-      MovePtr move_sel_beg = m_move_sels_beg [state.move_sel];
-      MovePtr move_sel_end = m_move_sels_beg [state.move_sel + 1];
-      Move const * t = lower_bound (move_sel_beg, move_sel_end, token, moveTokenLess);
-      int action_seq_num = (t == move_sel_end || t->token != token) ? state.def_action_seq : t->action_seq;
-      action_seq_end = m_action_seqs_beg [action_seq_num + 1];
-      return m_action_seqs_beg [action_seq_num];
-    }
-    */
-    FSM::ActionPtrPair getActionSeq (int state_num, int token) const
-    {
-      State const & state = m_states [state_num];
-      MovePtr move_sel_beg = m_move_sels_beg [state.move_sel];
-      MovePtr move_sel_end = m_move_sels_beg [state.move_sel + 1];
-      Move const * t = lower_bound (move_sel_beg, move_sel_end, token, moveTokenLess);
-      int action_seq_num = (t == move_sel_end || t->token != token) ? state.def_action_seq : t->action_seq;
-      ActionPtr action_seq_end = m_action_seqs_beg [action_seq_num + 1];
-      ActionPtr action_seq_beg = m_action_seqs_beg [action_seq_num];
-      return ActionPtrPair (action_seq_beg, action_seq_end);
-    }
-
-    // get goto state, npos if done
-    int getGotoState (int state_num, int shortcut) const
-    {
-      Goto const & go2 = m_gotos [shortcut];
-      if (go2.shift_state_sel == NOINDEX)
-      {
-        return NOINDEX;
-      }
-      ShiftStatePtr shift_state_sel_beg = m_shift_state_sels_beg [go2.shift_state_sel];
-      ShiftStatePtr shift_state_sel_end = m_shift_state_sels_beg [go2.shift_state_sel + 1];
-      int num = m_states [state_num].num;
-      ShiftStatePtr t = lower_bound (shift_state_sel_beg, shift_state_sel_end, num, shiftStateNumLess);
-      return (t == shift_state_sel_end || t->num != num) ? go2.def_state : t->state;
-    }
-
-    // get recover strategies
-    FSM::StrategyPtrVector const & getRecoverStrategies () const
-    {
-      return m_strategies;
-    }
-
+  private:
     lua_State * const L;
 
-  private:
-    // true if token < move.token
-    static inline bool moveTokenLess (Move const & move, int token)
-    {
-      return move.token < token;
-    }
-    // true if num < shift_sate.num
-    static inline bool shiftStateNumLess (ShiftState const & shift_state, int num)
-    {
-      return shift_state.num < num;
-    }
-
-  private:
     // app metatable
     int m_app_mt;
     // node metatables
@@ -385,7 +307,6 @@ namespace
 #include <basil/message.h>
 #include <basil/parser.h>
 #include <algorithm>
-#include <map>
 #include <stdexcept>
 
 #define ARRAY_SIZE(X) (sizeof (X) / sizeof (X [0]))

@@ -4,7 +4,7 @@ namespace basilcc
   enum StrategyType
   {
     STRATEGY_INSERT,
-    STRATEGY_DELETE,
+    STRATEGY_DISCARD,
   }
 
   class Strategy
@@ -44,24 +44,24 @@ namespace basilcc
     std::string lexeme;
   }
 
-  class DeleteStrategy : public Strategy
+  class DiscardStrategy : public Strategy
   {
   public:
-    DeleteStrategy (int num)
+    DiscardStrategy (int num)
       : num (num)
     {}
-    ~ DeleteStrategy ()
+    ~ DiscardStrategy ()
     {}
     StrategyType getType () const
     {
-      return STRATEGY_DELETE;
+      return STRATEGY_DISCARD;
     }
     inline int getNumber () const
     {
       return num;
     }
   private:
-    // delete up to this number of tokens
+    // discard up to this number of tokens
     int num;
   }
 }

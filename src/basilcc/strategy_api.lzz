@@ -10,9 +10,9 @@ namespace basilcc
   {
     cc.getTable <StrategyTable> ().addInsertStrategy (token, lexeme);
   }
-  void addDeleteStrategy (BasilCC & cc, int num)
+  void addDiscardStrategy (BasilCC & cc, int num)
   {
-    cc.getTable <StrategyTable> ().addDeleteStrategy (num);
+    cc.getTable <StrategyTable> ().addDiscardStrategy (num);
   }
 
   // get error recover strategies
@@ -41,9 +41,9 @@ namespace
     {
       m_strategies.push_back (new InsertStrategy (token, lexeme));
     }
-    void addDeleteStrategy (int num)
+    void addDiscardStrategy (int num)
     {
-      m_strategies.push_back (new DeleteStrategy (num));
+      m_strategies.push_back (new DiscardStrategy (num));
     }
     StrategyPtrVector const & getStrategies () const
     {

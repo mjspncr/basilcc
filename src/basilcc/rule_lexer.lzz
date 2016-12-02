@@ -398,11 +398,11 @@ namespace basilcc
                 }
                 addInsertStrategy (m_cc, getSymbol (m_cc, name), lexeme);
               }
-              else if (strategy == "delete")
+              else if (strategy == "discard")
               {
                 string numstr = nextInt ();
                 int num = numstr.empty () ? INT_MAX : atoi (numstr.c_str ());
-                addDeleteStrategy (m_cc, num);
+                addDiscardStrategy (m_cc, num);
               }
               else
               {

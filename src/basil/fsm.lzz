@@ -15,7 +15,7 @@ namespace basil
       ifstream is (fsm_filename.c_str (), ios_base::in | ios_base::binary);
       if (! is)
       {
-        throw runtime_error (Message ("failed to open parser FSM: %") << fsm_filename);
+        throw runtime_error (Message ("failed to open parser FSM file: %") << fsm_filename);
       }
       BinaryReader r (is);
       readKeywords (r);
@@ -32,34 +32,69 @@ namespace basil
     }
     ~ FSM ()
     {}
-    // types
-    struct Rule (int size, int node) {}
-    struct Move (int token, int action_seq) {}
-    struct Action (int kind, int arg1, int arg2) {}
-    struct State (int move_sel, int def_action_seq, int lex_state, int num) {}
-    struct ShiftState (int num, int state) {}
-    struct Goto (int shift_state_sel, int def_state) {}
-
-    typedef std::vector <Rule> RuleVector;
-    typedef Move const * MovePtr;
-    typedef std::vector <Move> MoveVector;
-    typedef std::vector <MovePtr> MovePtrVector;
-    typedef Action const * ActionPtr;
-    typedef std::vector <Action> ActionVector;
-    typedef std::vector <ActionPtr> ActionPtrVector;
-    typedef std::vector <State> StateVector;
-    typedef ShiftState const * ShiftStatePtr;
-    typedef std::vector <ShiftState> ShiftStateVector;
-    typedef std::vector <ShiftStatePtr> ShiftStatePtrVector;
-    typedef std::vector <Goto> GotoVector;
-    typedef std::pair <ActionPtr, ActionPtr> ActionPtrPair;
 
     // constants
-    enum { REDUCE = 1, ACCEPT, SHIFT, DONE }
+    enum { REDUCE = 1, ACCEPT = 2, SHIFT = 3, DONE = 4 }
     enum { NOINDEX = -1 }
 
-    // recover strategy
-    enum StrategyType { STRATEGY_INSERT, STRATEGY_DELETE }
+    // get vector of keyword name and token number pairs
+    inline StringIntVector const & getKeywords () const
+    {
+      return m_keywords;
+    }
+
+    // get node names
+    inline StringVector const & getNodes () const
+    {
+      return m_nodes;
+    }
+
+    // get lexical state at state
+    inline int getLexState (int state) const
+    {
+      return m_states [state].lex_state;
+    }
+
+    // get rule
+    struct Rule (int size, int node) {}
+    inline FSM::Rule const & getRule (int rule_num) const
+    {
+      return m_rules [rule_num];
+    }
+
+    // get action sequence at state with next token 
+    struct Action (int kind, int arg1, int arg2) {}
+    typedef Action const * ActionPtr;
+    typedef std::pair <ActionPtr, ActionPtr> ActionPtrPair;
+    FSM::ActionPtrPair getActionSeq (int state_num, int token) const
+    {
+      State const & state = m_states [state_num];
+      MovePtr move_sel_beg = m_move_sels_beg [state.move_sel];
+      MovePtr move_sel_end = m_move_sels_beg [state.move_sel + 1];
+      Move const * t = lower_bound (move_sel_beg, move_sel_end, token, moveTokenLess);
+      int action_seq_num = (t == move_sel_end || t->token != token) ? state.def_action_seq : t->action_seq;
+      ActionPtr action_seq_end = m_action_seqs_beg [action_seq_num + 1];
+      ActionPtr action_seq_beg = m_action_seqs_beg [action_seq_num];
+      return ActionPtrPair (action_seq_beg, action_seq_end);
+    }
+
+    // get goto state at state and shortcut
+    int getGotoState (int state_num, int shortcut) const
+    {
+      Goto const & go2 = m_gotos [shortcut];
+      if (go2.shift_state_sel == NOINDEX)
+      {
+        return NOINDEX;
+      }
+      ShiftStatePtr shift_state_sel_beg = m_shift_state_sels_beg [go2.shift_state_sel];
+      ShiftStatePtr shift_state_sel_end = m_shift_state_sels_beg [go2.shift_state_sel + 1];
+      int num = m_states [state_num].num;
+      ShiftStatePtr t = lower_bound (shift_state_sel_beg, shift_state_sel_end, num, shiftStateNumLess);
+      return (t == shift_state_sel_end || t->num != num) ? go2.def_state : t->state;
+    }
+
+    // syntax error recover strategies
+    enum StrategyType { STRATEGY_INSERT, STRATEGY_DISCARD }
     struct Strategy
     {
       virtual ~ Strategy () {}
@@ -73,32 +108,47 @@ namespace basil
       int token;
       std::string lexeme;
     }
-    struct DeleteStrategy : Strategy
+    struct DiscardStrategy : Strategy
     {
-      DeleteStrategy (int number) : number (number) {}
-      ~ DeleteStrategy () {}
-      FSM::StrategyType getType () const { return STRATEGY_DELETE; }
+      DiscardStrategy (int number) : number (number) {}
+      ~ DiscardStrategy () {}
+      FSM::StrategyType getType () const { return STRATEGY_DISCARD; }
       int number;
     }
     typedef Strategy const * StrategyPtr;
     typedef std::vector <StrategyPtr> StrategyPtrVector;
+    typedef StrategyPtrVector::const_iterator StrategyPtrVectorConstIter;
 
-  protected:
-    int m_num_start_rules;
-    StringIntVector m_keywords;
-    StringVector m_nodes;
-    RuleVector m_rules;
-    ActionVector m_action_seqs;
-    ActionPtrVector m_action_seqs_beg;
-    MoveVector m_move_sels;
-    MovePtrVector m_move_sels_beg;
-    StateVector m_states;
-    ShiftStateVector m_shift_state_sels;
-    ShiftStatePtrVector m_shift_state_sels_beg;
-    GotoVector m_gotos;
-    StrategyPtrVector m_strategies;
+    // get strategies
+    FSM::StrategyPtrVector const & getStrategies () const
+    {
+      return m_strategies;
+    }
 
   private:
+    // other types
+    struct Move (int token, int action_seq) {}
+    struct State (int move_sel, int def_action_seq, int lex_state, int num) {}
+    struct ShiftState (int num, int state) {}
+    struct Goto (int shift_state_sel, int def_state) {}
+
+    typedef std::vector <Rule> RuleVector;
+    typedef Move const * MovePtr;
+    typedef std::vector <Move> MoveVector;
+    typedef std::vector <MovePtr> MovePtrVector;
+    typedef std::vector <Action> ActionVector;
+    typedef std::vector <ActionPtr> ActionPtrVector;
+    typedef std::vector <State> StateVector;
+    typedef ShiftState const * ShiftStatePtr;
+    typedef std::vector <ShiftState> ShiftStateVector;
+    typedef std::vector <ShiftStatePtr> ShiftStatePtrVector;
+    typedef std::vector <Goto> GotoVector;
+
+  private:
+    //
+    // read methods
+    //
+
     // keywords
     void readKeywords (BinaryReader & r)
     {
@@ -167,12 +217,12 @@ namespace basil
       readStringVector (r, names);
       typedef vector <TokenNumber> TokenNumberVector;
       TokenNumberVector token_numbers_sorted (token_numbers_beg, token_numbers_end);
-      sort (token_numbers_sorted.begin (), token_numbers_sorted.end (), tokenNumberNameLess1);
+      sort (token_numbers_sorted.begin (), token_numbers_sorted.end (), tokenNumberLess);
       tokens.reserve (names.size ());
       for (StringVector::const_iterator i = names.begin (), endi = names.end (); i != endi; ++ i)
       {
         string const & name = * i;
-        TokenNumberVector::iterator t = lower_bound (token_numbers_sorted.begin (), token_numbers_sorted.end (), name, tokenNumberNameLess2);
+        TokenNumberVector::iterator t = lower_bound (token_numbers_sorted.begin (), token_numbers_sorted.end (), name, tokenNumberNameLess);
         if (t == token_numbers_sorted.end () || t->name != name)
         {
           throw runtime_error (Message ("Missing token number for %") << name);
@@ -199,7 +249,7 @@ namespace basil
       {
         Move * p = const_cast <Move *> (* i);
         Move * q = const_cast <Move *> (* j);
-        sort (p, q, MoveTokenLess ());
+        sort (p, q, moveLess);
         i = j;
       }
     }
@@ -290,9 +340,9 @@ namespace basil
           strategy = readInsertStrategy (r, tokens);
           break;
         }
-        case STRATEGY_DELETE:
+        case STRATEGY_DISCARD:
         {
-          strategy = readDeleteStrategy (r);
+          strategy = readDiscardStrategy (r);
           break;
         }
       }
@@ -310,35 +360,56 @@ namespace basil
       // todo: translate token number (if not keyword)
       return new InsertStrategy (token, lexeme);
     }
-    static FSM::StrategyPtr readDeleteStrategy (BinaryReader & r)
+    static FSM::StrategyPtr readDiscardStrategy (BinaryReader & r)
     {
       int number = r.readInt ();
-      return new DeleteStrategy (number);
+      return new DiscardStrategy (number);
     }
+
+    // for sorting and searching
+
+    // true if move.token < token
+    static bool moveTokenLess (Move const & move, int token)
+    {
+      return move.token < token;
+    }
+    static bool moveLess (Move const & move1, Move const & move2)
+    {
+      return move1.token < move2.token;
+    }
+    // true if num < shift_sate.num
+    static bool shiftStateNumLess (ShiftState const & shift_state, int num)
+    {
+      return shift_state.num < num;
+    }
+    // true if token number name less
+    static bool tokenNumberLess (TokenNumber const & a, TokenNumber const & b)
+    {
+      return strcmp (a.name, b.name) < 0;
+    }
+    static bool tokenNumberNameLess (TokenNumber const & a, std::string const & name)
+    {
+      return a.name < name;
+    }
+
+  private:
+    int m_num_start_rules;
+    StringIntVector m_keywords;
+    StringVector m_nodes;
+    RuleVector m_rules;
+    ActionVector m_action_seqs;
+    ActionPtrVector m_action_seqs_beg;
+    MoveVector m_move_sels;
+    MovePtrVector m_move_sels_beg;
+    StateVector m_states;
+    ShiftStateVector m_shift_state_sels;
+    ShiftStatePtrVector m_shift_state_sels_beg;
+    GotoVector m_gotos;
+    StrategyPtrVector m_strategies;
   }
 }
 
 using namespace std;
-using namespace basil;
-
-namespace
-{
-  // true if token number name less
-  bool tokenNumberNameLess1 (TokenNumber const & a, TokenNumber const & b)
-  {
-    return strcmp (a.name, b.name) < 0;
-  }
-  bool tokenNumberNameLess2 (TokenNumber const & a, string const & name)
-  {
-    return a.name < name;
-  }
-
-  // true if move token less
-  inline bool MoveTokenLess (; FSM::Move const & a, FSM::Move const & b) const
-  {
-    return a.token < b.token;
-  }
-}
 
 #hdr
 #include <basil/bstream.h>

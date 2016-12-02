@@ -27,11 +27,10 @@ namespace basil
           Token const & error_token = getToken (tokens [stack.token_pos]);
           error_stream.error (Message (error_token.loc, "syntax error before '%'") << error_token.lexeme);
           stack.move (good_stack);
-          // recover ..
-          r = recoverDiscard (stack, 1);
+          r = recover (stack);
           if (r == PARSER_FAIL)
           {
-            throw ParseError ("failed to recover");
+            throw ParseError ("aborted");
           }
         }
         clearTokens (0, stack.token_pos);
@@ -338,8 +337,39 @@ namespace basil
       }
     }
 
-    int recoverDiscard (Stack & stack, int max_discard)
+    // try to recover from syntax error, stack is last good stack
+    int recover (Stack & stack)
     {
+      Stack save_stack (L, stack);
+      int r = PARSER_FAIL;
+      FSM::StrategyPtrVector const & strategies = engine.getStrategies ();
+      for (FSM::StrategyPtrVectorConstIter i = strategies.begin (), endi = strategies.end (); i != endi; ++ i)
+      {
+        FSM::StrategyPtr strategy = * i;
+        switch (strategy->getType ())
+        {
+          case FSM::STRATEGY_INSERT:
+          {
+            // todo
+            break;
+          }
+          case FSM::STRATEGY_DISCARD:
+          {
+            r = recoverDiscard (stack, static_cast <FSM::DiscardStrategy const &> (* strategy));
+            break;
+          }
+        }
+        if (r == PARSER_ACCEPT || r == PARSER_DONE)
+        {
+          break;
+        }
+        stack.copy (save_stack);
+      }
+      return r;
+    }
+    int recoverDiscard (Stack & stack, FSM::DiscardStrategy const & strategy)
+    {
+      int max_discard = strategy.number;
       Stack init_stack (L, stack);
       for (int num_discard = 1; num_discard <= max_discard; ++ num_discard)
       {

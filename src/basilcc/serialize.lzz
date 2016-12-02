@@ -270,9 +270,9 @@ namespace
         writeInsertStrategy (static_cast <InsertStrategy const &> (* strategy), w);
         break;
       }
-      case STRATEGY_DELETE:
+      case STRATEGY_DISCARD:
       {
-        writeDeleteStrategy (static_cast <DeleteStrategy const &> (* strategy), w);
+        writeDiscardStrategy (static_cast <DiscardStrategy const &> (* strategy), w);
         break;
       }
     }
@@ -298,7 +298,7 @@ namespace
       w << lexeme;
     }
   }
-  void writeDeleteStrategy (DeleteStrategy const & strategy, BinaryWriter & w)
+  void writeDiscardStrategy (DiscardStrategy const & strategy, BinaryWriter & w)
   {
     w << strategy.getNumber ();
   }

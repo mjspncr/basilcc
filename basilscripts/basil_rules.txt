@@ -38,6 +38,5 @@ bang-seq-opt -> bang-seq
 bang_seq_1: bang-seq -> BANG
 bang_seq_2: bang-seq -> bang-seq BANG
 
-# recover strategies
-# discard upto 2 tokens
-%recover discard 2
+# try discarding max of 1 token on syntax error
+%recover discard 1

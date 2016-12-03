@@ -21,7 +21,7 @@ namespace basilcc
     writeStates (cc, w);
     writeShiftStateSels (cc, w);
     writeGotos (cc, w);
-    writeStrategies (cc, w);
+    writeRecoverStrategies (cc, w);
   }
 }
 
@@ -253,54 +253,30 @@ namespace
   }
 
   // write recover strategies
-  void writeStrategies (BasilCC const & cc, BinaryWriter & w)
+  void writeRecoverStrategies (BasilCC const & cc, BinaryWriter & w)
   {
-    StrategyPtrVector const & strategies = getStrategies (cc);
+    RecoverStrategyPtrVector const & strategies = getRecoverStrategies (cc);
     w << strategies.size ();
-    for_each (strategies.begin (), strategies.end (), WriteStrategy (w)); 
+    for_each (strategies.begin (), strategies.end (), WriteRecoverStrategy (w)); 
   }
-  void WriteStrategy (BinaryWriter & w; StrategyPtr strategy) const
+  void WriteRecoverStrategy (BinaryWriter & w; RecoverStrategyPtr strategy) const
   {
-    StrategyType type = strategy->getType ();
+    RecoverStrategyType type = strategy->getType ();
     w << int (type);
     switch (type)
     {
+      // keep simple for now, one integer arg
       case STRATEGY_INSERT:
       {
-        writeInsertStrategy (static_cast <InsertStrategy const &> (* strategy), w);
+        w << static_cast <InsertStrategy const &> (* strategy).getToken ()->getNumber ();
         break;
       }
       case STRATEGY_DISCARD:
       {
-        writeDiscardStrategy (static_cast <DiscardStrategy const &> (* strategy), w);
+        w << static_cast <DiscardStrategy const &> (* strategy).getMaxNumber ();
         break;
       }
     }
-  }
-  void writeInsertStrategy (InsertStrategy const & strategy, BinaryWriter & w)
-  {
-    Token const & token = static_cast <Token &> (* strategy.getToken ());
-    w << token.getNumber ();
-    string const & lexeme = strategy.getLexeme ();
-    if (lexeme.empty ())
-    {
-      if (token.isKeyword ())
-      {
-        w << token.getLexeme ();
-      }
-      else
-      {
-        w << token.getName ();
-      }
-    }
-    else
-    {
-      w << lexeme;
-    }
-  }
-  void writeDiscardStrategy (DiscardStrategy const & strategy, BinaryWriter & w)
-  {
-    w << strategy.getNumber ();
   }
 }
 
@@ -319,6 +295,8 @@ namespace
 #include <basilcc/move_sel.h>
 #include <basilcc/move_sel_api.h>
 #include <basilcc/node.h>
+#include <basilcc/recover_strategy.h>
+#include <basilcc/recover_strategy_api.h>
 #include <basilcc/rule.h>
 #include <basilcc/rule_api.h>
 #include <basilcc/shift_sel.h>
@@ -327,8 +305,6 @@ namespace
 #include <basilcc/state.h>
 #include <basilcc/state_api.h>
 #include <basilcc/state_move.h>
-#include <basilcc/strategy.h>
-#include <basilcc/strategy_api.h>
 #include <basilcc/symbol.h>
 #include <basilcc/symbol.h>
 #include <basilcc/symbol_api.h>

@@ -94,35 +94,15 @@ namespace basil
     }
 
     // syntax error recover strategies
-    enum StrategyType { STRATEGY_INSERT, STRATEGY_DISCARD }
-    struct Strategy
-    {
-      virtual ~ Strategy () {}
-      virtual StrategyType getType () const = 0;
-    };
-    struct InsertStrategy : Strategy
-    {
-      InsertStrategy (int token, std::string const & lexeme) : token (token), lexeme (lexeme) {}
-      ~ InsertStrategy () {}
-      FSM::StrategyType getType () const { return STRATEGY_INSERT; }
-      int token;
-      std::string lexeme;
-    }
-    struct DiscardStrategy : Strategy
-    {
-      DiscardStrategy (int number) : number (number) {}
-      ~ DiscardStrategy () {}
-      FSM::StrategyType getType () const { return STRATEGY_DISCARD; }
-      int number;
-    }
-    typedef Strategy const * StrategyPtr;
-    typedef std::vector <StrategyPtr> StrategyPtrVector;
-    typedef StrategyPtrVector::const_iterator StrategyPtrVectorConstIter;
+    enum RecoverStrategyType { STRATEGY_INSERT, STRATEGY_DISCARD }
+    struct RecoverStrategy (int type, int arg) {}
+    typedef std::vector <RecoverStrategy> RecoverStrategyVector;
+    typedef RecoverStrategyVector::const_iterator RecoverStrategyVectorConstIter;
 
     // get strategies
-    FSM::StrategyPtrVector const & getStrategies () const
+    inline FSM::RecoverStrategyVector const & getRecoverStrategies () const
     {
-      return m_strategies;
+      return m_recover_strategies;
     }
 
   private:
@@ -327,43 +307,20 @@ namespace basil
     void readStrategies (BinaryReader & r, IntVector const & tokens)
     {
       int size = r.readInt ();
-      generate_n (back_inserter (m_strategies), size, ReadStrategy (r, tokens));
+      generate_n (back_inserter (m_recover_strategies), size, ReadRecoverStrategy (r, tokens));
     }
-    FSM::StrategyPtr ReadStrategy (BinaryReader & r, IntVector const & tokens;) const
+    FSM::RecoverStrategy ReadRecoverStrategy (BinaryReader & r, IntVector const & tokens;) const
     {
       int type = r.readInt ();
-      StrategyPtr strategy = 0;
-      switch (type)
+      int arg  = r.readInt ();
+      if (type == STRATEGY_INSERT)
       {
-        case STRATEGY_INSERT:
+        if (size_t (arg) < tokens.size ())
         {
-          strategy = readInsertStrategy (r, tokens);
-          break;
-        }
-        case STRATEGY_DISCARD:
-        {
-          strategy = readDiscardStrategy (r);
-          break;
+          arg = tokens [arg];
         }
       }
-      return strategy;
-    }
-    static FSM::StrategyPtr readInsertStrategy (BinaryReader & r, IntVector const & tokens)
-    {
-      int token = r.readInt ();
-      // keyword if token >= size, don't need to translate
-      if (size_t (token) < tokens.size ())
-      {
-        token = tokens [token];
-      }
-      string lexeme = r.readString ();
-      // todo: translate token number (if not keyword)
-      return new InsertStrategy (token, lexeme);
-    }
-    static FSM::StrategyPtr readDiscardStrategy (BinaryReader & r)
-    {
-      int number = r.readInt ();
-      return new DiscardStrategy (number);
+      return RecoverStrategy (type, arg);
     }
 
     // for sorting and searching
@@ -405,7 +362,7 @@ namespace basil
     ShiftStateVector m_shift_state_sels;
     ShiftStatePtrVector m_shift_state_sels_beg;
     GotoVector m_gotos;
-    StrategyPtrVector m_strategies;
+    RecoverStrategyVector m_recover_strategies;
   }
 }
 

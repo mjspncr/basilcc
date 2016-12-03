@@ -20,6 +20,7 @@ namespace basilcc
     TABLE_MOVE,
     TABLE_MOVE_SEL,
     TABLE_NODE,
+    TABLE_RECOVER_STRATEGY,
     TABLE_RULE,
     TABLE_RULE_NODE,
     TABLE_RULE_SYMBOL,
@@ -30,7 +31,6 @@ namespace basilcc
     TABLE_SHIFT_STATE_SEL,
     TABLE_STATE,
     TABLE_STATE_MOVE,
-    TABLE_STRATEGY,
     TABLE_SYMBOL,
     NUM_TABLES
   }

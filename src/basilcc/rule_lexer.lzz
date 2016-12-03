@@ -385,24 +385,23 @@ namespace basilcc
                 string name = nextIdent ();
                 if (name.empty ())
                 {
-                  throw runtime_error (Message (loc, "missing token after insert"));
+                  throw runtime_error (Message (loc, "missing token to insert"));
                 }
                 if (! isToken (name.c_str ()))
                 {
                   throw runtime_error (Message (loc, "% is not a token") << name);
                 }
-                string lexeme = nextString ();
-                if (! lexeme.empty ())
-                {
-                  lexeme = stripQuotes (lexeme);
-                }
-                addInsertStrategy (m_cc, getSymbol (m_cc, name), lexeme);
+                addInsertStrategy (m_cc, getSymbol (m_cc, name));
               }
               else if (strategy == "discard")
               {
                 string numstr = nextInt ();
-                int num = numstr.empty () ? INT_MAX : atoi (numstr.c_str ());
-                addDiscardStrategy (m_cc, num);
+                if (numstr.empty ())
+                {
+                  throw runtime_error (Message (loc, "missing maximum number of tokens to discard"));
+                }
+                int max_num = atoi (numstr.c_str ());
+                addDiscardStrategy (m_cc, max_num);
               }
               else
               {
@@ -627,7 +626,7 @@ namespace
 #include <basil/loc.h>
 #include <basil/message.h>
 #include <basilcc/basilcc.h>
-#include <basilcc/strategy_api.h>
+#include <basilcc/recover_strategy_api.h>
 #include <basilcc/symbol_api.h>
 #include <basilcc/util.h>
 #include <climits>

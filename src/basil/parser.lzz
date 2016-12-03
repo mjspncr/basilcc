@@ -342,22 +342,17 @@ namespace basil
     {
       Stack save_stack (L, stack);
       int r = PARSER_FAIL;
-      FSM::StrategyPtrVector const & strategies = engine.getStrategies ();
-      for (FSM::StrategyPtrVectorConstIter i = strategies.begin (), endi = strategies.end (); i != endi; ++ i)
+      FSM::RecoverStrategyVector const & strategies = engine.getRecoverStrategies ();
+      for (FSM::RecoverStrategyVectorConstIter i = strategies.begin (), endi = strategies.end (); i != endi; ++ i)
       {
-        FSM::StrategyPtr strategy = * i;
-        switch (strategy->getType ())
+        FSM::RecoverStrategy const & strategy = * i;
+        if (strategy.type == FSM::STRATEGY_INSERT)
         {
-          case FSM::STRATEGY_INSERT:
-          {
-            // todo
-            break;
-          }
-          case FSM::STRATEGY_DISCARD:
-          {
-            r = recoverDiscard (stack, static_cast <FSM::DiscardStrategy const &> (* strategy));
-            break;
-          }
+          r = recoverInsert (stack, strategy.arg);
+        }
+        else if (strategy.type == FSM::STRATEGY_DISCARD)
+        {
+          r = recoverDiscard (stack, strategy.arg);
         }
         if (r == PARSER_ACCEPT || r == PARSER_DONE)
         {
@@ -367,29 +362,27 @@ namespace basil
       }
       return r;
     }
-    int recoverDiscard (Stack & stack, FSM::DiscardStrategy const & strategy)
+
+    // recover using discard strategy
+    int recoverDiscard (Stack & stack, int max_num)
     {
-      int max_discard = strategy.number;
       Stack init_stack (L, stack);
-      for (int num_discard = 1; num_discard <= max_discard; ++ num_discard)
+      for (int num = 1; num <= max_num; ++ num)
       {
         for (;;)
         {
           int i = 0;
-          for (; i < num_discard; ++ i)
+          // assumes TOKEN_EOT is 0
+          while (i < num && getTokenNumber (stack.back ().state, stack.token_pos + i) != 0)
           {
-            // assumes TOKEN_EOT == 0
-            if (getTokenNumber (stack.back ().state, stack.token_pos + i) == 0)
-            {
-              break;
-            }
+            ++ i;
           }
-          if (i != num_discard)
+          if (i != num)
           {
             break;
           }
           Stack save_stack (L, stack);
-          stack.token_pos += num_discard;
+          stack.token_pos += num;
           int r = parseSome (stack);
           if (r == PARSER_ACCEPT || r == PARSER_DONE)
           {
@@ -402,6 +395,29 @@ namespace basil
           }
         }
         stack.copy (init_stack);
+      }
+      return PARSER_FAIL;
+    }
+
+    // recover using insert strategy
+    int recoverInsert (Stack & stack, int token_num)
+    {
+      for (int p = int (tokens.size ()) - 1; p >= 0; -- p)
+      {
+        Token const & token = getToken (tokens [p]);
+        if (token.number == token_num)
+        {
+          continue;
+        }
+        tokens.insert (tokens.begin () + p, createToken (token_num, token.loc, string ()));
+        Stack save_stack (L, stack);
+        int r = parseSome (stack);
+        if (r == PARSER_ACCEPT || r == PARSER_DONE)
+        {
+          return r;
+        }
+        stack.move (save_stack);
+        clearTokens (p, 1);
       }
       return PARSER_FAIL;
     }

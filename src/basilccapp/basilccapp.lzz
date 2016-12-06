@@ -85,7 +85,7 @@ int main (int argc, char * argv [])
     {
       if (rules_filename.empty ())
       {
-        throw runtime_error ("missing grammar filename");
+        throw runtime_error ("missing grammar filename, use -h for help");
       }
       if (out_prefix.empty () && ! guessPrefix (rules_filename, out_prefix))
       {
@@ -244,16 +244,15 @@ namespace
     cout << "Basil Compiler Compiler\n";
     cout << "Options:\n";
     cout << " -h    display this help text\n";
-    cout << " -b    bootstrap grammar parser\n";
+    cout << " -b    bootstrap grammar parser (do this first)\n";
     cout << " -k    print only kernel rules in states file\n";
     cout << " -s    show shift priority on rules in states file\n";
     cout << " -f    show shift priority and follow set on rules in states file\n";
     cout << " -o    set output filename prefix, if not set guess prefix from grammar filename\n";
     cout << '\n';
-    cout << "Generates an LR parser. Writes three files: the finite state machine (FSM), a\n";
-    cout << "Lua file with node definitions, and a text file a printout of all states. Set environment\n";
-    cout << "variable BASILSCRIPTS to the basilscripts directory and first bootstrap\n";
-    cout << "the grammar parser.\n";
+    cout << "Generate an LR parser. If successful produces three files: the finite state\n";
+    cout << "machine (FSM), Lua node definitions, and dump of all states. Must set environment\n";
+    cout << "variable BASILSCRIPTS to your basilscripts directory before running.\n";
     cout << '\n';
     cout << "Copyright (C) 2016 Michael Spencer; Lua Copyright (C) 1994-2016 Lua.org, PUC-Rio";
     cout << endl;

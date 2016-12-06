@@ -1,6 +1,6 @@
 namespace basil
 {
-  // error message stream abstract interface
+  // abstract interface for error messages
   class ErrorStream
   {
   public:
@@ -12,4 +12,3 @@ namespace basil
 #hdr
 #include <string>
 #end
-

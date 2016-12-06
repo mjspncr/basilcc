@@ -1,4 +1,7 @@
-# basil grammar
+# basil rule grammar
+#
+# After bootstraping grammar parser suggest generating the parser again using this file to pick up the
+# syntax error recover strategies
 
 start -> rule-seq-opt
 

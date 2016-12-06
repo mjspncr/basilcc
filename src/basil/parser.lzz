@@ -25,12 +25,12 @@ namespace basil
         if (r == PARSER_FAIL)
         {
           Token const & error_token = getToken (tokens [stack.token_pos]);
-          error_stream.error (Message (error_token.loc, "syntax error before '%'") << error_token.lexeme);
+          error_stream.error (Message (error_token.loc, "Unexpected '%'") << error_token.lexeme);
           stack.move (good_stack);
           r = recover (stack);
           if (r == PARSER_FAIL)
           {
-            throw ParseError ("aborted");
+            throw ParseError ("Failed to recover after syntax error");
           }
         }
         clearTokens (0, stack.token_pos);
@@ -159,9 +159,6 @@ namespace basil
       luaL_setmetatable (L, MT_TOKEN);
       return luaL_ref (L, LUA_REGISTRYINDEX);
     }
-
-    // Lua references to tokens from last accept
-    IntVector tokens;
 
     // release token references, num tokens from pos
     void clearTokens (int pos, int num)
@@ -337,7 +334,7 @@ namespace basil
       }
     }
 
-    // try to recover from syntax error, stack is last good stack
+    // try to recover from a syntax error, stack is last accepted stack
     int recover (Stack & stack)
     {
       Stack save_stack (L, stack);
@@ -363,7 +360,7 @@ namespace basil
       return r;
     }
 
-    // recover using discard strategy
+    // recover by discarding up to max_num tokens 
     int recoverDiscard (Stack & stack, int max_num)
     {
       Stack init_stack (L, stack);
@@ -389,7 +386,7 @@ namespace basil
             return r;
           }
           stack.move (save_stack);
-          if (! parseStep (stack))
+          if (! parseShift (stack))
           {
             break;
           }
@@ -399,9 +396,10 @@ namespace basil
       return PARSER_FAIL;
     }
 
-    // recover using insert strategy
+    // recover by inserting token
     int recoverInsert (Stack & stack, int token_num)
     {
+      // work backwards from last token lexed 
       for (int p = int (tokens.size ()) - 1; p >= 0; -- p)
       {
         Token const & token = getToken (tokens [p]);
@@ -417,13 +415,14 @@ namespace basil
           return r;
         }
         stack.move (save_stack);
+        // remove inserted token
         clearTokens (p, 1);
       }
       return PARSER_FAIL;
     }
 
     // parse until shift one token, true if shift, false if error
-    bool parseStep (Stack & stack)
+    bool parseShift (Stack & stack)
     {
       for (;;)
       {
@@ -447,6 +446,8 @@ namespace basil
         {
           int num_cancel = 0;
           int r = reduce (stack, action, guess, num_cancel);
+          // because shifting one token (from last accept) after syntax error shouln't get
+          // ACCEPT or DONE
           assert (r == PARSER_OK);
         }
       }
@@ -487,6 +488,8 @@ namespace basil
     int app;
     Lexer & lexer;
     ErrorStream & error_stream;
+    // tokens (references) from last accept
+    IntVector tokens;
   }
 }
 
@@ -494,6 +497,7 @@ using namespace std;
 
 namespace
 {
+  // create new reference to object
   int copy_ref (lua_State * L, int ref)
   {
     if (ref != LUA_NOREF)
@@ -523,5 +527,4 @@ namespace
 #include <basil/parse_error.h>
 #include <cassert>
 #include <cstring>
-#include <stdexcept>
 #end

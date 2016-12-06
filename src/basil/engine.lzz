@@ -3,7 +3,7 @@ namespace basil
   class ErrorStream;
   class Lexer;
 
-  // engine is an FSM with loaded app (node and app metatables)
+  // engine is an FSM with app metatables
   class Engine : public FSM
   {
   public:
@@ -30,7 +30,7 @@ namespace basil
     // load app
     void load (std::string const & app_filename)
     {
-      Loader (L, getNodes (), m_app_mt, m_node_mts).load (app_filename);
+      AppLoader (L, getNodes (), m_app_mt, m_node_mts).load (app_filename);
     }
 
     // create new app instance
@@ -38,7 +38,7 @@ namespace basil
     {
       if (m_app_mt == LUA_NOREF)
       {
-        // no app created
+        // OK, no app created
         return LUA_NOREF;
       }
       // create app instance, set app_mt as metatable
@@ -80,7 +80,7 @@ namespace basil
       Parser (L, * this, app_ref, lexer, error_stream).parse (start_state);
     }
 
-    // call app finalize method (if defined)
+    // call app finalize method if defined
     void finalize (int app)
     {
       if (app != LUA_NOREF)
@@ -142,7 +142,6 @@ namespace basil
 
   private:
     lua_State * const L;
-
     // app metatable
     int m_app_mt;
     // node metatables
@@ -159,15 +158,14 @@ namespace
   typedef StringVector::const_iterator StringVectorConstIter;
   typedef IntVector::const_iterator IntVectorConstIter;
 
-  class Loader
+  class AppLoader
   {
   public:
-    Loader (lua_State * L, StringVector const & nodes, int & app_mt, IntVector & node_mts)
+    AppLoader (lua_State * L, StringVector const & nodes, int & app_mt, IntVector & node_mts)
       : L (L), m_nodes (nodes), m_app_mt (app_mt), m_node_mts (node_mts)
     {
-      m_node_mts.resize (m_nodes.size (), LUA_NOREF);
     }
-    ~ Loader ()
+    ~ AppLoader ()
     {
       // unregister funcs
       for (luaL_Reg const * i = loader_funcs, * endi = ARRAY_END (loader_funcs); i != endi; ++ i)
@@ -186,14 +184,16 @@ namespace
         lua_pushcclosure (L, i->func, 1);
         lua_setglobal (L, i->name);
       }
-      // parse lua app
+      // initialize node metatables
+      m_node_mts.resize (m_nodes.size (), LUA_NOREF);
+      // parse lua app file 
       if (luaL_dofile (L, filename.c_str ()))
       {
         string errmsg = lua_tostring (L, -1);
         lua_pop (L, 1);
         throw runtime_error (errmsg);
       }
-      // make sure all nodes defined
+      // make sure all nodes defined (shouldn't happen as node file is generated, all need to do is require the file)
       for (IntVectorConstIter i = m_node_mts.begin (), endi = m_node_mts.end (); i != endi; ++ i)
       {
         if (* i == LUA_NOREF)
@@ -277,17 +277,17 @@ namespace
     int & m_app_mt;
     // node metatables indexed by node
     IntVector & m_node_mts;
-    // buffer for lua error message
+    // buffer for lua error message (can get rid of this?)
     string m_errmsg;
   }
   // loader functions
   int on_node (lua_State * L)
   {
-    return ((Loader *) lua_touserdata (L, lua_upvalueindex (1)))->onNode ();
+    return ((AppLoader *) lua_touserdata (L, lua_upvalueindex (1)))->onNode ();
   }    
   int on_application (lua_State * L)
   {
-    return ((Loader *) lua_touserdata (L, lua_upvalueindex (1)))->onApplication ();
+    return ((AppLoader *) lua_touserdata (L, lua_upvalueindex (1)))->onApplication ();
   }
   luaL_Reg loader_funcs [] =
   {
@@ -298,9 +298,9 @@ namespace
 
 #hdr
 #include <basil/fsm.h>
+#include <lua.hpp>
 #include <string>
 #include <vector>
-#include <lua.hpp>
 #end
 
 #src

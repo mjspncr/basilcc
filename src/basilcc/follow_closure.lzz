@@ -46,9 +46,8 @@ namespace
           SymbolPtr symbol = base_rule->getNextSymbol ();
           if (! symbol->isToken ())
           {
-            // todo: use auto_ptr
-            FollowPtr follow = follow_rule->getNextFollow ();
-            update (symbol, follow);
+            auto_ptr <Follow> follow (follow_rule->getNextFollow());
+            update (symbol, follow.get());
           }
         }
       }

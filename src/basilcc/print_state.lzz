@@ -18,10 +18,14 @@ namespace basilcc
   {
     // state number followed by lex state if non-zero
     os << state->getNumber ();
-    int lex_state = state->getLexState ().getState ();
-    if (lex_state > 0)
+    LexState lex_state = state->getLexState ();
+    if (lex_state.isConflict ())
     {
-      os << " (" << lex_state << ')';
+      os << " (LEXICAL STATE CONFLICT)";
+    }
+    else if (lex_state.isSet ())
+    {
+      os << " (" << lex_state.getState () << ')';
     }
     os << "\n-----\n";
     // conflicts

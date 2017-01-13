@@ -163,10 +163,19 @@ namespace
     // compile grammar and generate output files, name is prefix in output filenames
     void compile (string const & name)
     {
-      int num_conflicts = closure (cc);
-      cout << getNumStates (cc) << " states, " << num_conflicts << " conflicts" << endl;
-      if (num_conflicts == 0)
+      int num_lex_state_conflicts = 0;
+      int num_conflicts = closure (cc, num_lex_state_conflicts);
+      if (num_conflicts > 0)
       {
+        cout << num_conflicts << " parse conflicts" << endl;
+      }
+      if (num_lex_state_conflicts > 0)
+      {
+        cout << num_lex_state_conflicts << " lexical state conflicts" << endl;
+      }
+      if (num_conflicts == 0 && num_lex_state_conflicts == 0)
+      {
+        cout << getNumStates (cc) << " states" << endl;
         // finite state machine
         serialize (cc, name + ".fsm");
         // lua nodes

@@ -72,14 +72,13 @@ namespace basilcc
           m_le = (m_le + 1) % MAX_LOOKAHEAD;
           ch = '\n';
         }
+        m_newline = (ch == '\n');
         if (m_newline)
         {
-          m_newline = false;
           ++ m_line;
           m_col = 0;
         }
         ++ m_col;
-        m_newline = (ch == '\n');
         return ch;
       }
       // get location of last char returned
@@ -190,18 +189,18 @@ namespace basilcc
       // get next token 
       virtual int getNextToken (int lex_state, basil::Loc & loc, std::string & lexeme)
       {
-        CharKind ch_kind = peekCharKind (m_reader);
         for (;;)
         {
           int token_number = RULE_TOKEN_NULL;
           loc = m_reader.getLocation ();
           lexeme.clear ();
-          bool found_ws  = false;
+          bool found_ws = false;
           bool found_dir = false;
           int state = S_START;
           // lex next token
           for (;;)
           {
+            CharKind ch_kind = peekCharKind (m_reader);
             switch (state)
             {
               // start
@@ -358,7 +357,6 @@ namespace basilcc
               // push ident char
               lexeme += ch;
             }
-            ch_kind = peekCharKind (m_reader);
           }
           if (found_dir)
           {

@@ -3,7 +3,7 @@ namespace basilcc
   class BasilCC;
 
   // find all states, return number of conflicts
-  int closure (BasilCC & cc)
+  int closure (BasilCC & cc, int & num_lex_state_conflicts)
   {
     freezeKeywords (cc);
     freezeRules (cc);
@@ -12,10 +12,16 @@ namespace basilcc
     setFirst (cc);
     createStartStates (cc);
     StatePtrVector const & states = getStates (cc);
+    num_lex_state_conflicts = 0;
     int num_conflicts = 0;
     for (unsigned i = 0; i < states.size (); ++ i)
     {
-      num_conflicts += states [i]->closure (cc);
+      StatePtr state = states [i];
+      num_conflicts += state->closure (cc);
+      if (state->getLexState ().isConflict ())
+      {
+        ++ num_lex_state_conflicts;
+      }
     }
     if (num_conflicts == 0)
     {

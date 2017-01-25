@@ -5,7 +5,6 @@ int main (int argc, char * argv [])
     // parse cmd line
     string rules_filename;
     bool print_help = false;
-    bool bootstrap = false;
     int print_state_flags = 0;
     string out_prefix;
     for (int i = 1; i < argc; ++ i)
@@ -26,10 +25,6 @@ int main (int argc, char * argv [])
         if (opt == OPT_HELP)
         {
           print_help = true;
-        }
-        else if (opt == OPT_BOOTSTRAP)
-        {
-          bootstrap = true;
         }
         else if (opt == OPT_PRINT_KERNEL_ONLY)
         {
@@ -76,23 +71,20 @@ int main (int argc, char * argv [])
     {
       throw runtime_error ("BASILSCRIPTS not set");
     }
-    //Compiler compiler (scripts_dir, print_state_flags);
-    if (bootstrap)
+    // bootstrap rule parser FSM if not exist
+    if (! hasFSM (scripts_dir))
     {
-      (Bootstrap (scripts_dir, print_state_flags) ());
+      bootstrap (scripts_dir);
     }
-    else
+    if (rules_filename.empty ())
     {
-      if (rules_filename.empty ())
-      {
-        throw runtime_error ("missing grammar filename, use -h for help");
-      }
-      if (out_prefix.empty () && ! guessPrefix (rules_filename, out_prefix))
-      {
-        out_prefix = "parser";
-      }
-      (CompileGrammar (scripts_dir, print_state_flags) (rules_filename, out_prefix));
+      throw runtime_error ("missing grammar filename, use -h for help");
     }
+    if (out_prefix.empty () && ! guessPrefix (rules_filename, out_prefix))
+    {
+      out_prefix = "parser";
+    }
+    (CompileGrammar (scripts_dir, print_state_flags) (rules_filename, out_prefix));
   }
   catch (exception const & e)
   {
@@ -111,7 +103,6 @@ namespace
   enum Option
   {
     OPT_NULL,
-    OPT_BOOTSTRAP,
     OPT_PRINT_KERNEL_ONLY,
     OPT_PRINT_SHIFT,
     OPT_PRINT_FOLLOW,
@@ -129,7 +120,6 @@ namespace
   }
   OptionTag option_tags [] =
   {
-    { "b", OPT_BOOTSTRAP },
     { "k", OPT_PRINT_KERNEL_ONLY },
     { "s", OPT_PRINT_SHIFT },
     { "f", OPT_PRINT_FOLLOW },
@@ -149,6 +139,7 @@ namespace
 
   // basil parser filenames
   char const BASIL_BOOTSTRAP [] = "basil_bootstrap.lua";
+  char const BASIL_RULES [] = "basil_rules.txt";
   char const BASIL_FSM [] = "basil.fsm";
   char const BASIL_APP [] = "basil_app.lua";
 
@@ -188,8 +179,14 @@ namespace
     int print_state_flags;
   };
 
+  // true if has FSM for rule parser
+  bool hasFSM (string const & scripts_dir)
+  {
+    return exists (join (scripts_dir, BASIL_FSM));
+  }
+
   // bootstrap grammar file parser
-  void Bootstrap (string const & scripts_dir, int print_state_flags;)
+  void Bootstrap (string const & scripts_dir, int print_state_flags = 0;)
     : LuaEnv (scripts_dir), Compiler (L, print_state_flags)
   {
     string boostrap_filename = path (BASIL_BOOTSTRAP);
@@ -222,6 +219,16 @@ namespace
     compile (out_prefix);
   }
 
+  // bootstrap rule FSM
+  void bootstrap (string const & scripts_dir)
+  {
+    cout << "boostrapping rule FSM ..." << endl;
+    int print_state_flags = 0;
+    (Bootstrap (scripts_dir, print_state_flags) ());
+    (CompileGrammar (scripts_dir, print_state_flags) (join (scripts_dir, BASIL_RULES), "basil"));
+    cout << "done" << endl;
+  }
+
   // guess prefix from rules filename
   bool guessPrefix (string const & rules_filename, string & prefix)
   {
@@ -249,18 +256,17 @@ namespace
   // print usage
   void printUsage ()
   {
-    cout << "Usage: basilcc [options] [grammar_filename]\n";
+    cout << "Usage: basilcc [options] grammar_filename\n";
     cout << "Basil Compiler Compiler\n";
     cout << "Options:\n";
     cout << " -h    display this help text\n";
-    cout << " -b    bootstrap grammar parser (do this first)\n";
     cout << " -k    print only kernel rules in states file\n";
     cout << " -s    show shift priority on rules in states file\n";
     cout << " -f    show shift priority and follow set on rules in states file\n";
     cout << " -o    set output filename prefix, if not set guess prefix from grammar filename\n";
     cout << '\n';
     cout << "Generate an LR parser. If successful produces three files: the finite state\n";
-    cout << "machine (FSM), Lua node definitions, and dump of all states. Must set environment\n";
+    cout << "machine (FSM), Lua node definitions, and printout of states. Must set environment\n";
     cout << "variable BASILSCRIPTS to your basilscripts directory before running.\n";
     cout << '\n';
     cout << "Copyright (C) 2016 Michael Spencer; Lua Copyright (C) 1994-2016 Lua.org, PUC-Rio";
@@ -281,6 +287,17 @@ namespace
   }
 
   // utility functions
+
+  // true if file exists
+  bool exists (std::string const & filename)
+  {
+    bool result = false;
+    if (ACCESS (filename.c_str (), F_OK) == 0)
+    {
+      result = true;
+    }
+    return result;
+  }
 
   // join dirname and filename with slash
   std::string join (std::string const & dirname, std::string const & filename)
@@ -381,6 +398,21 @@ namespace
 #include <iostream>
 #include <stdexcept>
 #include <string>
+
+#ifdef WINDOWS
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
+
+#ifdef WINDOWS
+#define ACCESS _access
+#ifndef F_OK
+#define F_OK 0
+#endif
+#else
+#define ACCESS access
+#endif
 
 #define ARRAY_END(X) (X + sizeof (X) / sizeof (X [0]))
 #end

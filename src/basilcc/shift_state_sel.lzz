@@ -27,4 +27,5 @@ namespace basilcc
 
 #hdr
 #include <basilcc/shift_state_vector.h>
+#include <stddef.h>
 #end

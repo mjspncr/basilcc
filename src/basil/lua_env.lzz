@@ -88,6 +88,7 @@ namespace
 #src
 #include <assert.h>
 #include <basil/loc_lua.h>
+#include <stddef.h>
 
 // todo: move registerToken out of parser
 #include <basil/parser.h>

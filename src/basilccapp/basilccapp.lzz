@@ -396,6 +396,7 @@ namespace
 #include <basilcc/state_api.h>
 #include <algorithm>
 #include <iostream>
+#include <stddef.h>
 #include <stdexcept>
 #include <string>
 

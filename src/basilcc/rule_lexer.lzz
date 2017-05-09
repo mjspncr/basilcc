@@ -629,5 +629,6 @@ namespace
 #include <basilcc/util.h>
 #include <climits>
 #include <cstdio>
+#include <stddef.h>
 #include <stdexcept>
 #end

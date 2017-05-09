@@ -56,6 +56,7 @@ namespace basilcc
 #include <basilcc/shift_sel_ptr.h>
 #include <basilcc/state_ptr.h>
 #include <basilcc/symbol_ptr.h>
+#include <stddef.h>
 #end
 
 #src

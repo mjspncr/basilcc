@@ -376,11 +376,12 @@ using namespace std;
 #end
 
 #src
-#include <basil/message.h>
 #include <algorithm>
+#include <basil/message.h>
 #include <cstring>
 #include <fstream>
 #include <limits>
+#include <stddef.h>
 #include <stdexcept>
 #include <utility>
 #end

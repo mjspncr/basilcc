@@ -527,4 +527,5 @@ namespace
 #include <basil/parse_error.h>
 #include <cassert>
 #include <cstring>
+#include <stddef.h>
 #end

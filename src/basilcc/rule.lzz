@@ -134,11 +134,12 @@ namespace basilcc
 using namespace std;
 
 #hdr
+#include <basilcc/node_ptr.h>
 #include <basilcc/priority.h>
+#include <basilcc/rule_ptr.h>
 #include <basilcc/rule_symbol_ptr_vector.h>
 #include <basilcc/symbol_ptr.h>
-#include <basilcc/node_ptr.h>
-#include <basilcc/rule_ptr.h>
+#include <stddef.h>
 #include <string>
 #end
 

@@ -32,4 +32,5 @@ namespace basilcc
 
 #hdr
 #include <basilcc/move_ptr_vector.h>
+#include <stddef.h>
 #end

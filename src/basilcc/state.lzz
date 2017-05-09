@@ -62,6 +62,7 @@ namespace basilcc
 #include <basilcc/lex_state.h>
 #include <basilcc/shift_sel_ptr.h>
 #include <basilcc/state_move_ptr.h>
+#include <stddef.h>
 #end
 
 #src

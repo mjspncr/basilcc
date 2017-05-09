@@ -125,6 +125,7 @@ using namespace std;
 
 #hdr
 #include <iostream>
+#include <stddef.h>
 #include <string>
 #include <vector>
 #end

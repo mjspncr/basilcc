@@ -224,8 +224,10 @@ namespace
   {
     cout << "boostrapping rule FSM ..." << endl;
     int print_state_flags = 0;
+    // create initial FSM from bootstrap lua file  
     (Bootstrap (scripts_dir, print_state_flags) ());
-    (CompileGrammar (scripts_dir, print_state_flags) (join (scripts_dir, BASIL_RULES), "basil"));
+    // then use FSM to regenerate it from basil rules
+    (CompileGrammar (scripts_dir, print_state_flags)(join(scripts_dir, BASIL_RULES), join(scripts_dir, "basil")));
     cout << "done" << endl;
   }
 

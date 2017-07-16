@@ -1,7 +1,7 @@
-# basil rule grammar
+# basil grammar
 #
-# After bootstraping grammar parser suggest generating the parser again using this file to pick up the
-# syntax error recover strategies
+# BasilCC after initial bootstrap will regenerate its FSM from this CFG
+#
 
 start -> rule-seq-opt
 
@@ -11,35 +11,39 @@ rule-seq-opt -> rule-seq
 rule-seq -> rule
 rule-seq -> rule-seq rule
 
-rule: rule -> rule-name-opt > symbol ARROW symbol-seq-opt >
+rule [rule] -> symbol node-type-opt ARROW symbol-seq-opt >
 
-rule-name-opt ->
-rule-name-opt -> rule-name *
+# this was old format, node type preceding rule, still used by lzz3
+# find CFG easier to read if left-hand side symbol always first
+rule [rule_deprecated] -> IDENT COLON symbol ARROW symbol-seq-opt >
 
-rule_name: rule-name -> IDENT COLON
+node-type-opt ->
+node-type-opt -> node-type
+
+node-type [node_type] -> LBRACK IDENT RBRACK
 
 symbol-seq-opt ->
 symbol-seq-opt -> symbol-seq
 
-symbol_seq_1: symbol-seq -> symbol
-symbol_seq_2: symbol-seq -> symbol-seq symbol
+symbol-seq [symbol_seq_1] -> symbol
+symbol-seq [symbol_seq_2] -> symbol-seq symbol
 
 # will add symbol on reduction so keep follow symbols sticky, only reduce if valid tokens follow
-symbol: symbol <* -> IDENT attrib-seq
+symbol <* [symbol] -> IDENT attrib-seq
 
-attrib_seq_1: attrib-seq -> 
-attrib_seq_2: attrib-seq -> attrib-seq NUMBER
-attrib_seq_3: attrib-seq -> attrib-seq LT
-attrib_seq_4: attrib-seq -> attrib-seq STAR
-attrib_seq_5: attrib-seq -> attrib-seq PLUS  bang-seq-opt
-attrib_seq_6: attrib-seq -> attrib-seq CARET bang-seq-opt
-attrib_seq_7: attrib-seq -> attrib-seq GT    bang-seq-opt
+attrib-seq [attrib_seq_1] -> 
+attrib-seq [attrib_seq_2] -> attrib-seq NUMBER
+attrib-seq [attrib_seq_3] -> attrib-seq LT
+attrib-seq [attrib_seq_4] -> attrib-seq STAR
+attrib-seq [attrib_seq_5] -> attrib-seq PLUS  bang-seq-opt
+attrib-seq [attrib_seq_6] -> attrib-seq CARET bang-seq-opt
+attrib-seq [attrib_seq_7] -> attrib-seq GT    bang-seq-opt
 
 bang-seq-opt -> 
 bang-seq-opt -> bang-seq
 
-bang_seq_1: bang-seq -> BANG
-bang_seq_2: bang-seq -> bang-seq BANG
+bang-seq [bang_seq_1] -> BANG
+bang-seq [bang_seq_2] -> bang-seq BANG
 
-# try discarding max of 1 token on syntax error
-%recover discard 1
+# try discarding up to 3 tokens on syntax error
+%recover discard 3

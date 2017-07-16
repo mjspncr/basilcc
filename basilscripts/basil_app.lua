@@ -2,9 +2,9 @@
 
 local nodes = require 'basil_nodes'
 
--- rule-name -> IDENT EQUALS
-function nodes.RuleName:onNode()
-   return self[1].lexeme
+-- node-type -> LBRACK IDENT RBRACK
+function nodes.NodeType:onNode()
+   return self[2].lexeme
 end
 
 -- attrib-seq < ->
@@ -67,9 +67,9 @@ function nodes.SymbolSeq2:onNode()
    return self[1]
 end
 
--- rule <* -> rule-name-opt symbol ARROW symbol-seq-opt >
+-- rule <* -> symbol node-type-opt ARROW symbol-seq-opt >
 function nodes.Rule:onNode()
-   basil.rule{self[1], left_symbol=self[2], right_symbols=self[4]}
+   basil.rule{self[2], left_symbol=self[1], right_symbols=self[4]}
 end
 
 -- bang-seq -> BANG
@@ -80,4 +80,13 @@ end
 -- bang-seq -> bang-seq BANG
 function nodes.BangSeq2:onNode()
    return self[1] + 1
+end
+
+-- deprecated rule syntax
+-- rule -> IDENT COLON symbol ARROW symbol-seq-opt >
+-- RuleDeprecated a node only after 2nd bootstrap
+if nodes.RuleDeprecated then
+  function nodes.RuleDeprecated:onNode()
+     basil.rule{self[1].lexeme, left_symbol=self[3], right_symbols=self[5]}
+  end
 end

@@ -101,7 +101,7 @@ namespace
       {
         throw runtime_error (Message ("% is not valid name for a keyword, must be in upper case") << name);
       }
-      SymbolPtr & symbol = m_symbols.insert (unsigned (name), 0);
+      SymbolPtr & symbol = m_symbols.insert (ptrdiff_t (name), 0);
       if (symbol)
       {
         if (static_cast <Token const &> (* symbol).isKeyword ())
@@ -139,7 +139,7 @@ namespace
     // get symbol from name, returns existing symbol if already exists, otherwise, if non-terminal, will create a new one
     SymbolPtr getSymbol (char const * name)
     {
-      SymbolPtr & symbol = m_symbols.insert (unsigned (name), 0);
+      SymbolPtr & symbol = m_symbols.insert (ptrdiff_t (name), 0);
       if (! symbol)
       {
         if (isToken (name))

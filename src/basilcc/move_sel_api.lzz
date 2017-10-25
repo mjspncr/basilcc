@@ -57,7 +57,7 @@ namespace
 
   inline void PushMove (MoveSelPtrTrie & trie; MovePtr move) const
   {
-    trie.push (unsigned (move));
+    trie.push (ptrdiff_t (move));
   }
 }
 

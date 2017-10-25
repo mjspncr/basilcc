@@ -26,8 +26,8 @@ namespace
     // get lazy follow move from components
     LazyFollowMovePtr getLazyFollowMove (LazyMoveSelPtr lazy_move_sel, LazyActionSeqPtr def_lazy_action_seq)
     {
-      m_lazy_follow_move_trie.push (unsigned (lazy_move_sel));
-      m_lazy_follow_move_trie.push (unsigned (def_lazy_action_seq));
+      m_lazy_follow_move_trie.push (ptrdiff_t (lazy_move_sel));
+      m_lazy_follow_move_trie.push (ptrdiff_t (def_lazy_action_seq));
       LazyFollowMovePtr & lazy_follow_move = m_lazy_follow_move_trie.commit (0);
       if (! lazy_follow_move)
       {

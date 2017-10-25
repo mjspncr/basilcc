@@ -32,8 +32,8 @@ namespace
     // get move from token and action seq
     MovePtr getMove (SymbolPtr token, ActionSeqPtr action_seq)
     {
-      m_move_trie.push (unsigned (token));
-      m_move_trie.push (unsigned (action_seq));
+      m_move_trie.push (ptrdiff_t (token));
+      m_move_trie.push (ptrdiff_t (action_seq));
       MovePtr & move = m_move_trie.commit (0);
       if (! move)
       {

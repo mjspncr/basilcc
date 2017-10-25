@@ -47,7 +47,7 @@ namespace
 
   inline void PushShiftRule (ShiftKernelPtrTrie & trie; ShiftRulePtr shift_rule)
   {
-    trie.push (unsigned (shift_rule));
+    trie.push (ptrdiff_t (shift_rule));
   }
 }
 

@@ -46,7 +46,7 @@ namespace
   // append lazy action to trie key
   inline void PushLazyAction (LazyActionSeqPtrTrie & trie; LazyActionPtr lazy_action) const
   {
-    trie.push (unsigned (lazy_action));
+    trie.push (ptrdiff_t (lazy_action));
   }
 }
 

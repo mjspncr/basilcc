@@ -36,7 +36,7 @@ namespace
     // get shift action from state
     ActionPtr getShiftAction (StatePtr state)
     {
-      m_action_trie.push (unsigned (state));
+      m_action_trie.push (ptrdiff_t (state));
       ActionPtr & action = m_action_trie.commit (0);
       if (! action)
       {
@@ -49,8 +49,8 @@ namespace
     // get reduce action from components
     ActionPtr getReduceAction (RulePtr rule, SymbolPtr shortcut, bool accept)
     {
-      m_action_trie.push (unsigned (rule));
-      m_action_trie.push (unsigned (shortcut));
+      m_action_trie.push (ptrdiff_t (rule));
+      m_action_trie.push (ptrdiff_t (shortcut));
       m_action_trie.push (accept ? 1 : 0);
       ActionPtr & action = m_action_trie.commit (0);
       if (! action)

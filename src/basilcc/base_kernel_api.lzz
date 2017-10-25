@@ -48,7 +48,7 @@ namespace
   // append base rule to trie key
   inline void PushBaseRule (BaseKernelPtrTrie & trie; BaseRulePtr base_rule) const
   {
-    trie.push (unsigned (base_rule));
+    trie.push (ptrdiff_t (base_rule));
   }
 }
 

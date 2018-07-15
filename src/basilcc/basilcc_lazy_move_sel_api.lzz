@@ -1,0 +1,65 @@
+namespace basilcc
+{
+  class BasilCC;
+
+  // get lazy move selection from moves
+  LazyMoveSelPtr getLazyMoveSel (BasilCC & cc, LazyMovePtrVector const & lazy_moves)
+  {
+    return cc.getTable <LazyMoveSelTable> ().getLazyMoveSel (lazy_moves);
+  }
+}
+
+using namespace basilcc;
+using namespace std;
+
+namespace
+{
+  class LazyMoveSelTable : public Table
+  {
+  public:
+    LazyMoveSelTable (BasilCC & cc)
+    {}
+    ~ LazyMoveSelTable ()
+    {
+      deleteObjects (m_lazy_move_sels.begin (), m_lazy_move_sels.end ());
+    }
+
+    // get shared lazy move sel from moves
+    LazyMoveSelPtr getLazyMoveSel (LazyMovePtrVector const & lazy_moves)
+    {
+      for_each (lazy_moves.begin (), lazy_moves.end (), PushLazyMove (m_lazy_move_sel_trie));
+      LazyMoveSelPtr & lazy_move_sel = m_lazy_move_sel_trie.commit (0);
+      if (! lazy_move_sel)
+      {
+        lazy_move_sel = * m_lazy_move_sels.insert (m_lazy_move_sels.end (), new LazyMoveSel (m_lazy_move_sels.size (), lazy_moves));
+      }
+      return lazy_move_sel;
+    }
+
+    enum { TABLE = TABLE_LAZY_MOVE_SEL }
+  private:
+    LazyMoveSelPtrTrie m_lazy_move_sel_trie;
+    LazyMoveSelPtrVector m_lazy_move_sels;
+  }
+
+  inline void PushLazyMove (LazyMoveSelPtrTrie & trie; LazyMovePtr lazy_move) const
+  {
+    trie.push (unsigned (lazy_move));
+  }
+}
+
+#hdr
+#include <basilcc_lazy_move_sel_ptr.h>
+#include <basilcc_lazy_move_ptr_vector.h>
+#end
+
+#src
+#include <algorithm>
+#include <basilcc_basilcc.h>
+#include <basilcc_lazy_move_ptr_vector.h>
+#include <basilcc_lazy_move_sel.h>
+#include <basilcc_lazy_move_sel_ptr_trie.h>
+#include <basilcc_lazy_move_sel_ptr_vector.h>
+#include <basilcc_table.h>
+#include <basilcc_util.h>
+#end

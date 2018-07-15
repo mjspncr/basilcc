@@ -1,0 +1,55 @@
+namespace basilcc
+{
+   class BasilCC;
+
+   // make sure we have at least one start rule and all nonterminals are defined
+   void checkRules(BasilCC &cc)
+   {
+      if (!isLeftHandSymbol(cc, getStartSymbol(cc)))
+      {
+         throw std::runtime_error("missing start rule");
+      }
+      // can just check all non terminals directly ...
+      RulePtrVector const &rules = getRules(cc);
+      std::for_each(rules.begin(), rules.end(), CheckRule(cc));
+   }
+}
+
+using namespace basilcc;
+
+namespace
+{
+   // check rule
+   void CheckRule(BasilCC &cc; RulePtr const &rule) const
+   {
+      // make sure all right hand symbols are defined
+      RuleSymbolPtrVector const & right_rule_symbols = rule->getRightRuleSymbols();
+      std::for_each(right_rule_symbols.begin(), right_rule_symbols.end(), CheckNonTerm(cc));
+   }
+   // make sure right rule symbol, if nonterminal, is defined (is a left hand symbol on some rule)   
+   void CheckNonTerm(BasilCC &cc; RuleSymbolPtr rule_symbol) const
+   {
+      SymbolPtr symbol = rule_symbol->getSymbol();
+      if (!(symbol->isToken() || isLeftHandSymbol(cc, symbol)))
+      {
+         std::ostringstream ss;
+         ss << rule_symbol->getLoc() << "Nonterminal not defined: " << symbol->getName();
+         throw std::runtime_error(ss.str());
+      }
+   }
+}
+
+#hdr
+#end
+
+#src
+#include <basilcc_basilcc.h>
+#include <basilcc_rule.h>
+#include <basilcc_rule_api.h>
+#include <basilcc_rule_symbol.h>
+#include <basilcc_symbol.h>
+#include <basilcc_symbol_api.h>
+#include <algorithm>
+#include <sstream>
+#include <stdexcept>
+#end

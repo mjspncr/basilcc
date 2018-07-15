@@ -1,0 +1,204 @@
+// parser engine, extends finite state machine, readonly once initialized
+namespace basil
+{
+   class Lexer;
+   class Loc;
+
+   // can insert or discard tokens during syntax error recovery (over tokens from last accept)
+   enum
+   {
+      RECOVER_INSERT,  // insert a specific token
+      RECOVER_DISCARD, // discard up to some number of tokens
+   };
+   struct RecoverPolicy(int type, int arg) {} // arg is token number for insert, number of tokens for discard
+   // parser takes a sequence of recover policies, keeps trying until one succeeds 
+   typedef std::vector<RecoverPolicy> RecoverPolicyVector;
+
+   // engine is a finite state machine
+   class Engine : public FSM
+   {
+   public:
+      Engine()
+         : L(luaL_newstate()), m_state_mt(LUA_NOREF)
+      {
+         luaL_openlibs(L);
+         register_loc(L);
+         register_parser(L);
+         lua_pushcfunction(L, error_handler); // leave error handler at stack pos 1
+      }
+      ~Engine()
+      {
+         luaL_unref(L, LUA_REGISTRYINDEX, m_state_mt); // release state metatable
+         lua_close(L);
+      }
+
+      // run lua module and initialize engine
+      void load(TokenNumberPtr token_numbers_beg, TokenNumberPtr token_numbers_end, std::string const &module)
+      {
+         Loader(*this, token_numbers_beg, token_numbers_end).load(module);
+      }
+
+      // parse lexer tokens, error messages to out_stream
+      bool parse(int start_state, Lexer &lexer, std::ostream &out_stream) const
+      {
+         return Parser(*this, lexer, out_stream).parse(start_state);
+      }
+
+      // create new parser state instance and return reference
+      int new_state() const
+      {
+         if (m_state_mt == LUA_NOREF)
+         {
+            return LUA_NOREF; // not using state
+         }
+         // create state instance with state_mt as metatable
+         lua_newtable(L);
+         lua_rawgeti(L, LUA_REGISTRYINDEX, m_state_mt);
+         lua_setmetatable(L, -2);
+         return luaL_ref(L, LUA_REGISTRYINDEX);
+      }
+
+      // initialize state
+      void state_init(int state) const
+      {
+         state_method(state, "init");
+      }
+      
+      // call state close method (after successful parse)
+      void state_close(int state) const
+      {
+         state_method(state, "close");
+      }
+
+      // call semantic actions on node, children in table on top of stack, return reference to result
+      int on_node(lua_State *L, int node_num, int state) const
+      {
+         int node_mt = m_node_mts[node_num];
+         // turn table into a node
+         lua_rawgeti(L, LUA_REGISTRYINDEX, node_mt);
+         lua_setmetatable(L, -2);
+         // call user onNode method if defined
+         if (lua_getfield(L, -1, "onNode") == LUA_TNIL)
+         {
+            lua_pop(L, 1); // pop nil, return reference to node
+         }
+         else
+         {
+            // first function then node
+            lua_rotate(L, -2, 1);
+            // then state
+            if (state == LUA_NOREF)
+            {
+               lua_pushnil(L);
+            }
+            else
+            {
+               lua_rawgeti(L, LUA_REGISTRYINDEX, state);
+            }
+            if (lua_pcall(L, 2, 1, 1) != LUA_OK)
+            {
+               std::string errmsg = lua_tostring(L, -1);
+               lua_pop(L, 1);
+               throw std::runtime_error(errmsg);
+            }
+            // return reference to return value
+         }
+         return luaL_ref(L, LUA_REGISTRYINDEX);
+      }
+
+      // get syntax error recover policies
+      RecoverPolicyVector const &get_recover_policies() const
+      {
+         return m_recover_policies;
+      }
+
+      inline lua_State *get_lua_state() const 
+      { 
+         return L;
+      }
+      lua_State *const L;
+
+   private:
+      // call state method with no args
+      void state_method(int state, char const *method) const
+      {
+         if (state != LUA_NOREF)
+         {
+            lua_rawgeti(L, LUA_REGISTRYINDEX, state);
+            if (lua_getfield(L, -1, method) == LUA_TNIL)
+            {
+               lua_pop (L, 2);
+            }
+            else
+            {
+               lua_rotate(L, -2, 1);
+               if (lua_pcall(L, 1, 0, 1) != LUA_OK)
+               {
+                  std::string errmsg = lua_tostring(L, -1);
+                  lua_pop(L, 1);
+                  throw std::runtime_error(errmsg);
+               }
+            }
+         }
+      }
+
+   private:
+      // node metatable references
+      IntVector m_node_mts;
+      // finite state machine
+      FSM m_fsm;
+      // state metatable reference
+      int m_state_mt;
+      // syntax error recover policies
+      RecoverPolicyVector m_recover_policies;
+      // Loader initializes engine on loading lua module
+      friend class Loader;
+   };
+
+   // push loc on stack
+   void push_loc(lua_State *L, Loc const &loc)
+   {
+      new(lua_newuserdata(L, sizeof(Loc))) Loc(loc);
+      luaL_setmetatable(L, MT_LOC);
+   }
+
+   char const MT_LOC[] = "basil.Loc"; // metatable name for arg parsing
+}
+
+using namespace basil;
+
+namespace
+{
+   // register loc
+   void register_loc(lua_State *L)
+   {
+      luaL_newmetatable(L, MT_LOC);
+      lua_pop(L, 1);
+   }
+
+   // lua error handler
+   int error_handler(lua_State *L)
+   {
+      char const *msg = luaL_checkstring(L, 1);
+      luaL_traceback(L, L, msg, 1);
+      return 1;
+   }
+}
+
+#hdr
+#include <basil_fsm.h>
+#include <basil_token_number.h>
+#include <lua.h>
+#include <string>
+#include <vector>
+#end
+
+#src
+#include <basil_loc.h>
+#include <basil_parser.h>
+#include <basil_loader.h>
+#include <lualib.h>
+#include <algorithm>
+#include <stdexcept>
+#include <lauxlib.h>
+#end

@@ -1,0 +1,14 @@
+namespace basilcc
+{
+  typedef Trie <unsigned int, 0xFFFFFFFF, 512, BaseKernelPtr> BaseKernelPtrTrie;
+  template class Trie <unsigned int, 0xFFFFFFFF, 512, BaseKernelPtr>;
+}
+
+#hdr
+#include <basilcc_base_kernel_ptr.h>
+#include <basilcc_trie.h>
+#end
+
+#src
+#include <basilcc_trie.tpl>
+#end

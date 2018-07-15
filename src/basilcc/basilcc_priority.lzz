@@ -1,0 +1,131 @@
+// shift, reduce, first priority
+
+namespace basilcc
+{
+  class Priority
+  {
+  public:
+    inline Priority(int count = 0, int bang = 0)
+      : m_count(count), m_bang(bang)
+    {}
+
+    // true if set, or greater than zero
+    inline bool is_set() const
+    {
+      return m_count > 0;
+    }
+
+    inline int get_count() const
+    {
+      return m_count;
+    }
+
+    inline int get_bang() const
+    {
+      return m_bang;
+    }
+
+    Priority &operator +=(Priority const &p)
+    {
+      m_count += p.get_count();
+      m_bang += p.get_bang();
+      return *this;
+    }
+
+    // to string with cnt_ch as count character
+    std::string to_string(char cnt_ch) const
+    {
+      std::string str;
+      int count = m_count;
+      int bang = m_bang;
+      int n = std::min(count, bang);
+      if (n > 2)
+      {
+        str += '(';
+        str += cnt_ch;
+        str += "!)";
+        str += intToString(n);
+        count -= n;
+        bang -= n;
+      }
+      if (count > 2)
+      {
+        str += '(';
+        str += cnt_ch;
+        str += ')';
+        str += intToString(count);
+        count = 0;
+      }
+      if (bang > 2)
+      {
+        str += "(!)";
+        str += intToString(bang);
+        bang = 0;
+      }
+      for (; count > 0; --count)
+      {
+        str += cnt_ch;
+      }
+      for (; bang > 0; --bang)
+      {
+        str += '!';
+      }
+      return str;
+    }
+
+  private:
+    int m_count;
+    int m_bang;
+  }
+
+  // a == b
+  inline bool operator == (Priority const &a, Priority const &b)
+  {
+    return a.get_count() == b.get_count() &&a.get_bang() == b.get_bang();
+  }
+  // a != b
+  inline bool operator != (Priority const &a, Priority const &b)
+  {
+    return !(a == b);
+  }
+  // a < b
+  inline bool operator < (Priority const &a, Priority const &b)
+  {
+    return a.get_count() < b.get_count() || a.get_bang() < b.get_bang();
+  }
+  // a + b
+  inline Priority operator + (Priority const &a, Priority const &b)
+  {
+    return Priority(a.get_count() + b.get_count(), a.get_bang() + b.get_bang());
+  }
+  // max(a, b)
+  Priority max_priority(Priority const &a, Priority const & b)
+  {
+    return Priority(std::max(a.get_count(), b.get_count()), std::max(a.get_bang(), b.get_bang()));
+  }
+
+  // shift, first and reduce priority to string
+  std::string shift_priority_to_string(Priority const &p)
+  {
+    return p.to_string('>');
+  }
+
+  std::string first_priority_to_string(Priority const &p)
+  {
+    return p.to_string('^');
+  }
+
+  std::string reduce_priority_to_string(Priority const &p)
+  {
+    return p.to_string('+');
+  }
+}
+
+#hdr
+#include <string>
+#end
+
+#src
+#include <basilcc_util.h> 
+#include <algorithm>
+#end

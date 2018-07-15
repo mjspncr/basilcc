@@ -1,0 +1,126 @@
+namespace basilcc
+{
+  // utility functions
+
+  // delete object and set pointer to 0
+  template <class PTR>
+  inline void deleteObject (PTR & p)
+  {
+    delete p;
+    p = 0;
+  }
+  // functor
+  template <class PTR>
+  inline void DeleteObject (; PTR & p)
+  {
+    deleteObject (p);
+  }
+
+  // delete container of objects
+  template <class ITER>
+  inline void deleteObjects (ITER beg, ITER end)
+  {
+    std::for_each (beg, end, DeleteObject <typename ITER::value_type> ());
+  }
+  // delete container of objects
+  template <class PTR>
+  inline void deleteObjects (PTR * beg, PTR * end)
+  {
+    std::for_each (beg, end, DeleteObject <PTR> ());
+  }
+
+  // return name as cap string
+  std::string toCapString (char const * name)
+  {
+    string str;
+    // remove '-' and '_' and capitalize words
+    char ch;
+    bool cap = true;
+    for (size_t i = 0; (ch = name [i]) != 0; ++ i)
+    {
+      if (ch == '-' || ch == '_')
+      {
+        cap = true;
+      }
+      else 
+      {
+        if (cap)
+        {
+          ch = toupper (name [i]);
+          cap = false;
+        }
+        str += ch; 
+      }
+    }
+    return str;
+  }
+
+  // append str2 to str1 with space if str1 non-empty
+  void appendWithSpace (std::string & str1, std::string const & str2)
+  {
+    if (! str2.empty ())
+    {
+      if (! str1.empty ())
+      {
+        str1 += ' ';
+      }
+      str1 += str2;
+    }
+  }
+
+  // return int as string
+  std::string intToString (int v)
+  {
+    ostringstream ss;
+    ss << v;
+    return ss.str ();
+  }
+
+  // find element that occurs most
+  template <class In, class Cmp>
+  std::pair <In, In> most (In first, In last, Cmp cmp)
+  {
+    In most_p = first, most_q = most_p, p = most_p, q = most_q;
+    unsigned int most_c = 0, c = most_c;
+    for (;; ++ first)
+    {
+      if (first == last || ! cmp (* first, * p))
+      {
+        if (c > most_c)
+        {
+          most_p = p;
+          most_q = q;
+          most_c = c;
+        }
+        if (first == last)
+        {
+          break;
+        }
+        p = first;
+        q = p;
+        c = 0;
+      }
+      else
+      {
+        ++ q;
+        ++ c;
+      }
+    }
+    return std::make_pair (most_p, most_q);
+  }
+}
+
+using namespace std;
+
+#hdr
+#include <algorithm>
+#include <sstream>
+#include <string>
+
+#define ARRAY_SIZE(X) (sizeof (X) / sizeof (X [0]))
+#define ARRAY_END(X) (X + sizeof (X) / sizeof (X [0]))
+#end
+
+#src
+#include <stddef.h>
+#end

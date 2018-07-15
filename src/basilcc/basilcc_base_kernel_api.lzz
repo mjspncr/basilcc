@@ -1,0 +1,70 @@
+namespace basilcc
+{
+  class BasilCC;
+
+  // get base kernel from shift rules
+  BaseKernelPtr getBaseKernel (BasilCC & cc, ShiftRulePtrVector const & shift_rules)
+  {
+    BaseRulePtrVector base_rules;
+    base_rules.reserve (shift_rules.size ());
+    transform (shift_rules.begin (), shift_rules.end (), back_inserter (base_rules), getShiftBaseRule);
+    return cc.getTable <BaseKernelTable> ().getBaseKernel (base_rules); 
+  }
+}
+
+using namespace basilcc;
+using namespace std;
+
+namespace
+{
+  class BaseKernelTable : public Table
+  {
+  public:
+    BaseKernelTable (BasilCC & cc)
+    {}
+    ~ BaseKernelTable ()
+    {
+      deleteObjects (m_base_kernels.begin (), m_base_kernels.end ());
+    }
+
+    // get base kernel from rules
+    BaseKernelPtr getBaseKernel (BaseRulePtrVector & base_rules)
+    {
+      for_each (base_rules.begin (), base_rules.end (), PushBaseRule (m_base_kernel_trie));
+      BaseKernelPtr & base_kernel = m_base_kernel_trie.commit (0);
+      if (! base_kernel)
+      {
+        base_kernel = * m_base_kernels.insert (m_base_kernels.end (), new BaseKernel (base_rules));
+      }
+      return base_kernel;
+    }
+
+    enum { TABLE = TABLE_BASE_KERNEL }
+  private:
+    BaseKernelPtrTrie m_base_kernel_trie;
+    BaseKernelPtrVector m_base_kernels;
+  }
+
+  // append base rule to trie key
+  inline void PushBaseRule (BaseKernelPtrTrie & trie; BaseRulePtr base_rule) const
+  {
+    trie.push (unsigned (base_rule));
+  }
+}
+
+#hdr
+#include <basilcc_base_kernel_ptr.h>
+#include <basilcc_shift_rule_ptr_vector.h>
+#end
+
+#src
+#include <algorithm>
+#include <basilcc_base_kernel.h>
+#include <basilcc_base_kernel_ptr_trie.h>
+#include <basilcc_base_kernel_ptr_vector.h>
+#include <basilcc_base_rule_ptr_vector.h>
+#include <basilcc_basilcc.h>
+#include <basilcc_shift_rule.h>
+#include <basilcc_table.h>
+#include <basilcc_util.h>
+#end

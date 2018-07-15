@@ -1,0 +1,11 @@
+namespace basilcc
+{
+  typedef std::vector <TempActionPtr> TempActionPtrVector;
+  typedef std::vector <TempActionPtr>::iterator TempActionPtrVectorIter;
+  typedef std::vector <TempActionPtr>::const_iterator TempActionPtrVectorConstIter;
+}
+
+#hdr
+#include <basilcc_temp_action_ptr.h>
+#include <vector>
+#end

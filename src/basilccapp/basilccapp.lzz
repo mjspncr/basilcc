@@ -1,421 +1,209 @@
-int main (int argc, char * argv [])
+// baislcc main
+int main(int argc, char *argv[])
 {
-  try
-  {
-    // parse cmd line
-    string rules_filename;
-    bool print_help = false;
-    int print_state_flags = 0;
-    string out_prefix;
-    for (int i = 1; i < argc; ++ i)
-    {
-      char const * arg = argv [i];
-      if (arg [0] == '-')
+   try
+   {
+      // very simple command line parser
+      std::string rules_filename, out_prefix;
+      for (int i = 1; i < argc; ++i)
       {
-        ++ arg;
-        if (arg [0] == '\0')
-        {
-          throw runtime_error ("stray '-'");
-        }
-        Option opt = OPT_NULL;
-        if (! isOption (arg, opt))
-        {
-          throw runtime_error (Message ("not a valid option: %") << arg);
-        }
-        if (opt == OPT_HELP)
-        {
-          print_help = true;
-        }
-        else if (opt == OPT_PRINT_KERNEL_ONLY)
-        {
-          print_state_flags |= PRINT_KERNEL_ONLY;
-        }
-        else if (opt == OPT_PRINT_SHIFT)
-        {
-          print_state_flags |= PRINT_SHIFT;
-        }
-        else if (opt == OPT_PRINT_FOLLOW)
-        {
-          print_state_flags |= PRINT_FOLLOW;
-        }
-        else
-        {
-          if (++ i == argc)
-          {
-            throw runtime_error (Message ("option % requires a value") << arg);
-          }
-          string opt_value = argv [i];
-          if (opt == OPT_OUT_PREFIX)
-          {
-            out_prefix = opt_value;
-          }
-        }
+         char const *arg = argv[i];
+         if (arg[0] == '-')
+         {
+            // option
+            ++arg;
+            if (arg[0] == '\0')
+            {
+               throw std::runtime_error("stray '-'");
+            }
+            Option opt = OPT_NULL;
+            if (!is_option(arg, opt))
+            {
+               std::ostringstream ss;
+               ss << "not a valid option: " << arg;
+               throw std::runtime_error(ss.str());
+            }
+            if (opt == OPT_HELP)
+            {
+               print_usage();
+               return 0;
+            }
+            else
+            {
+               if (++i == argc)
+               {
+                  std::ostringstream ss;
+                  ss << "option " << arg << " requires a value";
+                  throw std::runtime_error(ss.str());
+               }
+               char const *value = argv[i];
+               if (opt == OPT_OUT_PREFIX)
+               {
+                  out_prefix = value;
+               }
+            }
+         }
+         else
+         {
+            // otherwise rules filename
+            if (!rules_filename.empty())
+            {
+               std::ostringstream ss;
+               ss << "extra argument: " << arg;
+               throw std::runtime_error(ss.str());
+            }
+            rules_filename = arg;
+         }
+      }
+      if (rules_filename.empty())
+      {
+         throw std::runtime_error("missing rules filename");
+      }
+
+      std::string fsm_filename = "fsm.lua", states_filename = "states.txt";
+      if (!out_prefix.empty())
+      {
+         if (is_directory(out_prefix))
+         {
+            fsm_filename = join(out_prefix, fsm_filename);
+            states_filename = join(out_prefix, states_filename);
+         }
+         else
+         {
+            fsm_filename = out_prefix + fsm_filename;
+            states_filename = out_prefix + states_filename;
+         }
+      }
+
+      basilcc::BasilCC cc;
+      if (!load_grammar(rules_filename, cc))
+      {
+         return 1;
+      }
+      int num_lex_state_conflicts = 0;
+      int num_conflicts = basilcc::closure(cc, num_lex_state_conflicts);
+      if (num_conflicts > 0 || num_lex_state_conflicts > 0)
+      {
+         std::cout << "Failed to generate parser" << std::endl;
+         std::cout << num_conflicts << " parser and " << num_lex_state_conflicts << " lexical state conflicts" << std::endl;
+         basilcc::printStates(cc, 0, states_filename);
+         std::cout << "Wrote " << states_filename << std::endl;
       }
       else
       {
-        if (! rules_filename.empty ())
-        {
-          throw runtime_error (Message ("extra filename argument: %") << arg);
-        }
-        rules_filename = arg;
+         std::cout << "Generated parser with " << getNumStates(cc) << " states" << std::endl;
+         basilcc::serialize(cc, fsm_filename);
+         basilcc::printStates(cc, 0, states_filename);
+         std::cout << "Wrote " << fsm_filename << " and " << states_filename << std::endl;
       }
-    }
-    if (print_help)
-    {
-      printUsage ();
-      return 0;
-    }
-    // get directory to basil parser and lua scripts
-    char const * scripts_dir = getenv ("BASILSCRIPTS");
-    if (! scripts_dir)
-    {
-      throw runtime_error ("BASILSCRIPTS not set");
-    }
-    // bootstrap rule parser FSM if not exist
-    if (! hasFSM (scripts_dir))
-    {
-      bootstrap (scripts_dir);
-    }
-    if (rules_filename.empty ())
-    {
-      throw runtime_error ("missing grammar filename, use -h for help");
-    }
-    if (out_prefix.empty () && ! guessPrefix (rules_filename, out_prefix))
-    {
-      out_prefix = "parser";
-    }
-    (CompileGrammar (scripts_dir, print_state_flags) (rules_filename, out_prefix));
-  }
-  catch (exception const & e)
-  {
-    cout << e.what () << '\n';
-    return 1;
-  }
-  return 0;
+   }
+   catch (std::exception const &e)
+   {
+      std::cout << e.what () << std::endl;
+      return 1;
+   }
+   return 0;
 }
 
-using namespace std;
 using namespace basil;
 using namespace basilcc;
 
 namespace
 {
-  enum Option
-  {
-    OPT_NULL,
-    OPT_PRINT_KERNEL_ONLY,
-    OPT_PRINT_SHIFT,
-    OPT_PRINT_FOLLOW,
-    OPT_OUT_PREFIX,
-    OPT_HELP,
-  };
-  struct OptionTag
-  {
-    char const * tag;
-    Option opt;
-  };
-  inline bool IsTag (string const & str; OptionTag const & option_tag) const
-  {
-    return option_tag.tag == str;
-  }
-  OptionTag option_tags [] =
-  {
-    { "k", OPT_PRINT_KERNEL_ONLY },
-    { "s", OPT_PRINT_SHIFT },
-    { "f", OPT_PRINT_FOLLOW },
-    { "o", OPT_OUT_PREFIX },
-    { "h", OPT_HELP },
-  };
-  bool isOption (string const & str, Option & opt)
-  {
-    OptionTag const * i = option_tags, * endi = ARRAY_END (option_tags);
-    if ((i = find_if (i, endi, IsTag (str))) != endi)
-    {
-      opt = i->opt;
-      return true;
-    }
-    return false;
-  }
+   // parse grammar, load rules, return false if any errors   
+   bool load_grammar(std::string const &rules_filename, basilcc::BasilCC &cc)
+   {
+      basil::Engine engine;
+      engine.load(rule_lexer::token_numbers, rule_lexer::token_numbers_end, "basilcc");
+      BasilCCLua cc_lua(engine.get_lua_state(), cc, std::cout); // registers basilcc api
+      rule_lexer::RuleLexer lexer(cc, rules_filename);
+      return engine.parse(0, lexer, std::cout) && !cc_lua.has_errors;
+   }
 
-  // basil parser filenames
-  char const BASIL_BOOTSTRAP [] = "basil_bootstrap.lua";
-  char const BASIL_RULES [] = "basil_rules.txt";
-  char const BASIL_FSM [] = "basil.fsm";
-  char const BASIL_APP [] = "basil_app.lua";
+   // print usage
+   void print_usage()
+   {
+      std::cout << "Usage: basilcc [options] rules_filename\n"
+                << "Basil Compiler Compiler\n"
+                << "Options:\n"
+                << " -h         display this help text\n"
+                << " -p PREFIX  set output filename prefix\n"
+                << "\n"
+                << "Copyright(C) 2018 Michael Spencer; Lua Copyright(C) 1994-2016 Lua.org, PUC-Rio"
+                << std::endl;
+   }
 
-  class Compiler
-  {
-  public:
-    Compiler (lua_State * L, int print_state_flags)
-      : print_state_flags (print_state_flags)
-    {
-      registerCC (L, cc);
-    }
-    // compile grammar and generate output files, name is prefix in output filenames
-    void compile (string const & name)
-    {
-      int num_lex_state_conflicts = 0;
-      int num_conflicts = closure (cc, num_lex_state_conflicts);
-      if (num_conflicts > 0)
+   // command line options
+   enum Option
+   {
+      OPT_NULL,
+      OPT_OUT_PREFIX,
+      OPT_HELP,
+   };
+   struct OptionTag
+   {
+      char const *tag;
+      Option opt;
+   };
+   inline bool IsTag(std::string const &str; OptionTag const &option_tag) const
+   {
+      return option_tag.tag == str;
+   }
+   OptionTag option_tags[] =
+   {
+      { "p", OPT_OUT_PREFIX },
+      { "h", OPT_HELP },
+   };
+   bool is_option(std::string const &str, Option &opt)
+   {
+      OptionTag const *i = option_tags, *endi = ARRAY_END(option_tags);
+      if ((i = std::find_if(i, endi, IsTag(str))) != endi)
       {
-        cout << num_conflicts << " parse conflicts" << endl;
+         opt = i->opt;
+         return true;
       }
-      if (num_lex_state_conflicts > 0)
+      return false;
+   }
+
+   // true if filename is a directory
+   bool is_directory(std::string const &filename)
+   {
+      struct stat fs;
+      return stat(filename.c_str(), &fs) == 0 && S_ISDIR(fs.st_mode);
+   }
+
+   // join directory with filename
+   std::string join(std::string const &dirname, std::string const &filename)
+   {
+      std::string result = dirname;
+      size_t len = result.length();
+      if (len > 0)
       {
-        cout << num_lex_state_conflicts << " lexical state conflicts" << endl;
+         if (result[len-1] != '/')
+         {
+            result += '/';
+         }
       }
-      if (num_conflicts == 0 && num_lex_state_conflicts == 0)
-      {
-        cout << getNumStates (cc) << " states" << endl;
-        // finite state machine
-        serialize (cc, name + ".fsm");
-        // lua nodes
-        printNodes (cc, name + "_nodes.lua");
-      }
-      // and states
-      printStates (cc, print_state_flags, name + "_states.txt");
-    }
-    BasilCC cc;
-    int print_state_flags;
-  };
-
-  // true if has FSM for rule parser
-  bool hasFSM (string const & scripts_dir)
-  {
-    return exists (join (scripts_dir, BASIL_FSM));
-  }
-
-  // bootstrap grammar file parser
-  void Bootstrap (string const & scripts_dir, int print_state_flags = 0;)
-    : LuaEnv (scripts_dir), Compiler (L, print_state_flags)
-  {
-    string boostrap_filename = path (BASIL_BOOTSTRAP);
-    if (luaL_dofile (L, boostrap_filename.c_str ()) != 0)
-    {
-      string errmsg = lua_tostring (L, -1);
-      lua_pop (L, 1);
-      throw runtime_error (errmsg);
-    }
-    compile (path ("basil"));
-  }
-
-  // parse grammar and generate parser
-  void CompileGrammar (string const & scripts_dir, int print_state_flags; string const & rules_filename, string const & out_prefix)
-    : LuaEnv (scripts_dir), Compiler (L, print_state_flags)
-  {
-    Engine engine (L, path (BASIL_FSM), rule_lexer::token_numbers, rule_lexer::token_numbers_end, path (BASIL_APP));
-    App app (engine);
-    rule_lexer::RuleLexer lexer (cc, rules_filename);
-    // error messages to cout
-    ErrorSink error_sink (cout);
-    app.parse (lexer, error_sink);
-    // compile only if no errors
-    if (error_sink.has_error)
-    {
-      throw runtime_error ("aborted");
-    }
-    // expect no app created but doesn't hurt to call finalize
-    app.finalize ();
-    compile (out_prefix);
-  }
-
-  // bootstrap rule FSM
-  void bootstrap (string const & scripts_dir)
-  {
-    cout << "boostrapping rule FSM ..." << endl;
-    int print_state_flags = 0;
-    // create initial FSM from bootstrap lua file  
-    (Bootstrap (scripts_dir, print_state_flags) ());
-    // then use FSM to regenerate it from basil rules
-    (CompileGrammar (scripts_dir, print_state_flags)(join(scripts_dir, BASIL_RULES), join(scripts_dir, "basil")));
-    cout << "done" << endl;
-  }
-
-  // guess prefix from rules filename
-  bool guessPrefix (string const & rules_filename, string & prefix)
-  {
-    // if basename ends with _grammar or _rules then prefix is part before it
-    string path, basename, root;
-    getPathAndName (rules_filename, path, basename);
-    basename = remExt (basename);
-    size_t i = basename.find_last_of ('_');
-    if (i > 0 && i < basename.length () - 1)
-    {
-      string suffix = basename.substr (i + 1);
-      if (suffix == "rules" || suffix == "grammar")
-      {
-        root = basename.substr (0, i);
-      }
-    }
-    if (! root.empty ())
-    {
-      prefix = join (path, root);
-      return true;
-    }
-    return false;
-  }
-
-  // print usage
-  void printUsage ()
-  {
-    cout << "Usage: basilcc [options] grammar_filename\n";
-    cout << "Basil Compiler Compiler\n";
-    cout << "Options:\n";
-    cout << " -h    display this help text\n";
-    cout << " -k    print only kernel rules in states file\n";
-    cout << " -s    show shift priority on rules in states file\n";
-    cout << " -f    show shift priority and follow set on rules in states file\n";
-    cout << " -o    set output filename prefix, if not set guess prefix from grammar filename\n";
-    cout << '\n';
-    cout << "Generate an LR parser. If successful produces three files: the finite state\n";
-    cout << "machine (FSM), Lua node definitions, and printout of states. Must set environment\n";
-    cout << "variable BASILSCRIPTS to your basilscripts directory before running.\n";
-    cout << '\n';
-    cout << "Copyright (C) 2016 Michael Spencer; Lua Copyright (C) 1994-2016 Lua.org, PUC-Rio";
-    cout << endl;
-  }
-
-  // handle error messages
-  class ErrorSink (ostream & os) : public ErrorStream
-  {
-  public:
-    // send message to error stream
-    void error (std::string const & msg)
-    {
-      has_error = true;
-      os << msg << '\n';
-    }
-    bool has_error = false;
-  }
-
-  // utility functions
-
-  // true if file exists
-  bool exists (std::string const & filename)
-  {
-    bool result = false;
-    if (ACCESS (filename.c_str (), F_OK) == 0)
-    {
-      result = true;
-    }
-    return result;
-  }
-
-  // join dirname and filename with slash
-  std::string join (std::string const & dirname, std::string const & filename)
-  {
-    string result = dirname;
-    size_t len = result.length ();
-    if (len > 0)
-    {
-#ifdef WINDOWS
-      if (! (result [len - 1] == '/' || result [len - 1] == '\\'))
-      {
-        result += '\\';
-      }
-#else
-      if (! (result [len - 1] == '/'))
-      {
-        result += '/';
-      }
-#endif
-    }
-    result += filename;
-    return result;
-  }
-
-  // get path and name
-  void getPathAndName (std::string const & filename, std::string & path, std::string & name)
-  {
-#ifdef WINDOWS
-    size_t len = filename.length ();
-    while (len > 0 && (filename [len - 1] == '\\' || filename [len - 1] == '/'))
-    {
-      -- len;
-    }
-    size_t p = filename.find_last_of ("/\\", len);
-    if (p == string::npos)
-    {
-      name = filename.substr (0, len);
-      path = ".\\";
-    }
-    else
-    {
-      path = filename.substr (0, p + 1);
-      name = filename.substr (p + 1, len - (p + 1));
-    }
-#else
-    size_t len = filename.length ();
-    while (len > 0 && filename [len - 1] == '/')
-    {
-      -- len;
-    }
-    size_t p = filename.rfind ('/', len);
-    if (p == string::npos)
-    {
-      name = filename.substr (0, len);
-      path = "./";
-    }
-    else
-    {
-      path = filename.substr (0, p + 1);
-      name = filename.substr (p + 1, len - (p + 1));
-    }
-#endif
-  }
-
-  // remove extension
-  std::string remExt (std::string const & filename)
-  {
-    string base;
-    size_t dot   = filename.find_last_of ('.');
-    size_t slash = filename.find_last_of ("/\\");
-    if (dot != string::npos && (slash == string::npos || slash < dot))
-    {
-      base = filename.substr (0, dot);
-    }
-    else
-    {
-      base = filename;
-    }
-    return base;
-  }
+      result += filename;
+      return result;
+   }
 }
 
 #src
-#include <basil/app.h>
-#include <basil/engine.h>
-#include <basil/error_stream.h>
-#include <basil/lua_env.h>
-#include <basil/message.h>
-#include <basilcc/basilcc.h>
-#include <basilcc/basilcc_lua.h>
-#include <basilcc/closure.h>
-#include <basilcc/print_nodes.h>
-#include <basilcc/print_state.h>
-#include <basilcc/rule_lexer.h>
-#include <basilcc/serialize.h>
-#include <basilcc/state_api.h>
+#include <basilccapp_lexer.h>
+#include <basilccapp_lua.h>
+#include <basilcc_state_api.h>
+#include <basilcc_basilcc.h>
+#include <basilcc_closure.h>
+#include <basilcc_print_state.h>
+#include <basilcc_serialize.h>
+#include <basil_engine.h>
+#include <lauxlib.h>
 #include <algorithm>
 #include <iostream>
-#include <stddef.h>
+#include <sstream>
 #include <stdexcept>
-#include <string>
+#include <sys/stat.h>
 
-#ifdef WINDOWS
-#include <io.h>
-#else
-#include <unistd.h>
-#endif
-
-#ifdef WINDOWS
-#define ACCESS _access
-#ifndef F_OK
-#define F_OK 0
-#endif
-#else
-#define ACCESS access
-#endif
-
-#define ARRAY_END(X) (X + sizeof (X) / sizeof (X [0]))
+#define ARRAY_END(X) (X + sizeof(X)/sizeof(X[0]))
 #end

@@ -1,0 +1,74 @@
+namespace basilcc
+{
+  class BasilCC;
+
+  // get move from token and action seq 
+  MovePtr getMove (BasilCC & cc, SymbolPtr token, ActionSeqPtr action_seq)
+  {
+    return cc.getTable <MoveTable> ().getMove (token, action_seq);
+  }
+
+  // get all moves
+  MovePtrVector const & getMoves (BasilCC & cc)
+  {
+    return cc.getTable <MoveTable> ().getMoves ();
+  }
+}
+
+using namespace basilcc;
+
+namespace
+{
+  class MoveTable : public Table
+  {
+  public:
+    MoveTable (BasilCC & cc)
+    {}
+    ~ MoveTable ()
+    {
+      deleteObjects (m_moves.begin (), m_moves.end ());
+    }
+
+    // get move from token and action seq
+    MovePtr getMove (SymbolPtr token, ActionSeqPtr action_seq)
+    {
+      m_move_trie.push (unsigned (token));
+      m_move_trie.push (unsigned (action_seq));
+      MovePtr & move = m_move_trie.commit (0);
+      if (! move)
+      {
+        move = new Move (m_moves.size (), token, action_seq);
+        m_moves.push_back (move);
+      }
+      return move;
+    }
+
+    // get all moves
+    inline MovePtrVector const & getMoves () const
+    {
+      return m_moves;
+    }
+
+    enum { TABLE = TABLE_MOVE }
+  private:
+    MovePtrTrie m_move_trie;
+    MovePtrVector m_moves;
+  }
+}
+
+#hdr
+#include <basilcc_action_seq_ptr.h>
+#include <basilcc_move_ptr_vector.h>
+#include <basilcc_symbol_ptr.h>
+#end
+
+#src
+#include <basilcc_action_seq_ptr.h>
+#include <basilcc_basilcc.h>
+#include <basilcc_move.h>
+#include <basilcc_move_ptr_trie.h>
+#include <basilcc_move_ptr_vector.h>
+#include <basilcc_symbol_ptr.h>
+#include <basilcc_table.h>
+#include <basilcc_util.h>
+#end

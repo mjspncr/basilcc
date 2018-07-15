@@ -1,0 +1,614 @@
+namespace basil
+{
+   class Engine;
+   class Lexer;
+   class ErrorStream;
+
+   class Parser
+   {
+   public:
+      Parser(Engine const &engine, Lexer &lexer, std::ostream &out_stream)
+         : engine(engine), lexer(lexer), out_stream(out_stream)
+      {
+         state = engine.new_state(); // create new state instance, parser maintains reference
+      }
+      ~Parser()
+      {
+         unref(engine.L, state); // release state reference
+      }
+
+      // parse from start_state, return true if no errors
+      bool parse(int start_state)
+      {
+         lua_State *L = engine.L;
+         engine.state_init(state);
+         bool has_errors = false;
+         Stack stack(L);
+         stack.push_back(State(start_state));
+         for (int r;;)
+         {
+            Stack good_stack(L, stack);
+            if ((r = parse_some(stack)) == PARSE_FAIL)
+            {
+               has_errors = true;
+               Token const &error_token = get_token(L, tokens[stack.token_pos]);
+               out_stream << error_token.loc << "Unexpected ";
+               if (error_token.number == 0)
+               {
+                  out_stream << "end";
+               }
+               else
+               {
+                  out_stream << '\'' << error_token.lexeme << '\'';
+               }
+               out_stream << std::endl;
+               stack.move(good_stack);
+               if ((r = recover(stack)) == PARSE_FAIL)
+               {
+                  return false;
+               }
+            }
+            clear_tokens(0, stack.token_pos);
+            stack.token_pos = 0;
+            if (r == PARSE_DONE)
+            {
+               break;
+            }
+         }
+         if (has_errors)
+         {
+            return false;
+         }
+         engine.state_close(state);
+         return true;
+      }
+
+   private:
+      struct State(int number, int guess_cnt = 0, int form = LUA_NOREF) {}
+      typedef std::vector<State> StateVector;
+      typedef StateVector::const_iterator StateVectorConstIter;
+      typedef StateVector::iterator StateVectorIter;
+
+      // parser stack is a state vector
+      struct Stack : StateVector
+      {
+         // new stack
+         Stack(lua_State *L)
+            : L(L), token_pos(0), guess_cnt(0)
+         {}
+         // copy of other stack
+         Stack(lua_State *L, Stack const &other)
+            : L(L), token_pos(0), guess_cnt(0)
+         {
+            copy(other);
+         }
+         ~Stack()
+         {
+            clear();
+         }
+         // copy other stack
+         void copy(Stack const &other)
+         {
+            clear();
+            reserve(other.size());
+            for (StateVectorConstIter i = other.begin(), endi = other.end(); i != endi; ++i)
+            {
+               State const &other_state = *i;
+               push_back(State(other_state.number, other_state.guess_cnt, copy_ref(L, other_state.form)));
+            }
+            token_pos = other.token_pos;
+            guess_cnt = other.guess_cnt;
+         }
+         // take other stack, move to this one
+         void move(Stack &other)
+         {
+            clear();
+            StateVector::swap(other);
+            token_pos = other.token_pos;
+            guess_cnt = other.guess_cnt;
+         }
+         Stack(Stack const &other); // must use copy or move
+      private:
+         // clear stack, release all nodes
+         void clear()
+         {
+            for (StateVectorIter i = begin(), endi = end(); i != endi ; ++i)
+            {
+               unref(L, i->form);
+            }
+            token_pos = 0;
+            guess_cnt = 0;
+            StateVector::clear();
+         }
+         lua_State *L;
+      public:
+         int token_pos;
+         int guess_cnt;
+      };
+
+      // parser snapshot, a stack plus actions
+      struct Snapshot : Stack
+      {
+         Snapshot(lua_State *L, Stack const &other, FSM::ActionPtrPair const &actions)
+            : Stack(L, other), actions(actions)
+         {}
+         // use this snapshot, move this stack to other and return actions
+         FSM::ActionPtrPair use(Stack &other)
+         {
+            other.move(*this);
+            return actions;
+         }
+         FSM::ActionPtrPair actions;
+         Snapshot(Snapshot const &other);
+      };
+
+      // a trail of stapshots for backtracking
+      struct SnapshotTrail
+      {
+         // return number of snapshots
+         inline int size() const
+         {
+            return snapshots.size();
+         }
+         // true if empty
+         inline bool empty() const
+         {
+            return snapshots.empty();
+         }
+         // delete last num snapshots
+         void cancel(int num)
+         {
+            for (; num > 0; --num)
+            {
+               delete snapshots.back();
+               snapshots.pop_back();
+            }
+         }
+         // take a new snapshot
+         void snap(lua_State *L, Stack const &stack, FSM::ActionPtrPair const &actions)
+         {
+            snapshots.push_back(new Snapshot(L, stack, actions));
+         }
+         // use last snapshot, move stack and return actions 
+         FSM::ActionPtrPair backtrack(Stack &stack)
+         {
+            FSM::ActionPtrPair actions = snapshots.back()->use(stack);
+            cancel(1);
+            return actions;
+         }
+         ~SnapshotTrail()
+         {
+            // delete all snapshots
+            cancel(size()); 
+         }
+      private:
+         std::vector<Snapshot*> snapshots;
+      };
+
+      // lookup actions for state at top of stack
+      FSM::ActionPtrPair lookup(Stack const &stack)
+      {
+         int state = stack.back().number;
+         return engine.get_action_seq(state, next_token_number(state, stack.token_pos));
+      }
+
+      // shift current token and advance token, guess true if this is a guess
+      void shift(Stack &stack, FSM::ActionPtr action, bool guess)
+      {
+         lua_State *L = engine.get_lua_state();
+         if (guess)
+         {
+            ++stack.guess_cnt;
+         }
+         stack.push_back(State(action->arg1, guess ? 1 : 0, copy_ref(L, tokens[stack.token_pos])));
+         ++stack.token_pos;
+      }
+
+      // reduce and run semantic actions
+      int reduce(Stack &stack, FSM::ActionPtr action, bool guess, int &num_cancel)
+      {
+         lua_State *L = engine.get_lua_state();
+         if (guess)
+         {
+            ++stack.guess_cnt;
+         }
+         int kind = action->kind;
+         FSM::Rule const &rule = engine.get_rule(action->arg1);
+         int shortcut = action->arg2;
+         int guess_cnt = guess ? 1 : 0;
+         int form = LUA_NOREF;
+         if (rule.node == FSM::NOINDEX && rule.size == 1)
+         {
+            State const &state = stack.back();
+            guess_cnt += state.guess_cnt;
+            form = state.form;
+            stack.pop_back();
+         }
+         else
+         {
+            // create table with children in array
+            lua_createtable(L, rule.size, 0);
+            StateVectorIter begi = stack.end() - rule.size, endi = stack.end();
+            for (StateVectorIter i = begi; i != endi; ++i)
+            {
+               State const &state = *i;
+               guess_cnt += state.guess_cnt;
+               if (state.form == LUA_NOREF)
+               {
+                  lua_pushnil(L);
+               }
+               else
+               {
+                  push_node(L, state.form);
+               }
+               lua_rawseti(L, -2, int(i-begi)+1);
+            }
+            // all child nodes in new node, so ok to discard
+            stack.erase(begi, endi);
+            if (rule.node == FSM::NOINDEX)
+            {
+               // prune child nodes
+               lua_pop(L, 1);
+            }
+            else
+            {
+               // call semantic actions with child nodes in table on top of stack
+               form = engine.on_node(L, rule.node, state);
+            }
+         }
+         if (kind == FSM::DONE)
+         {
+            assert(stack.size() == 1);
+            assert(guess_cnt == stack.guess_cnt);
+            num_cancel = guess_cnt;
+            stack.back().form = form;
+         }
+         else
+         {
+            int s1 = stack.back().number;
+            int s2 = engine.get_goto_state(s1, shortcut);
+            if (kind == FSM::ACCEPT)
+            {
+               assert(guess_cnt <= stack.guess_cnt);
+               num_cancel = guess_cnt;
+               guess_cnt = 0;
+               stack.guess_cnt -= num_cancel;
+               if (stack.guess_cnt > 0)
+               {
+                  kind = FSM::REDUCE; // not a full accept
+               }
+            }
+            stack.push_back(State(s2, guess_cnt, form));
+         }
+         return kind;
+      }
+
+      // parse_some return codes
+      enum
+      {
+         PARSE_FAIL   = -1,
+         PARSE_ACCEPT = FSM::ACCEPT,
+         PARSE_DONE   = FSM::DONE,
+      };
+
+      // parse until next full accept or done
+      int parse_some(Stack &stack)
+      {
+         lua_State *L = engine.get_lua_state();
+         SnapshotTrail snapshots;
+         for (;;)
+         {
+            FSM::ActionPtrPair actions = lookup(stack);
+            if (actions.first == actions.second)
+            {
+               if (snapshots.empty())
+               {
+                  return PARSE_FAIL;
+               }
+               actions = snapshots.backtrack(stack);
+            }
+            FSM::ActionPtr action = actions.first;
+            bool guess = ++actions.first != actions.second;
+            if (guess)
+            {
+               snapshots.snap(L, stack, actions);
+            }
+            if (action->kind == FSM::SHIFT)
+            {
+               shift(stack, action, guess);
+            }
+            else
+            {
+               int num_cancel = 0;
+               int r = reduce(stack, action, guess, num_cancel);
+               snapshots.cancel(std::min(num_cancel, snapshots.size()));
+               if (r == FSM::DONE || r == FSM::ACCEPT)
+               {
+                  assert(snapshots.empty());
+                  return r;
+               }
+            }
+         }
+      }
+
+      // get token number at pos, lex next token at state if nec 
+      int next_token_number(int state, int pos)
+      {
+         lua_State *L = engine.get_lua_state();
+         if (size_t(pos) < tokens.size())
+         {
+            return get_token(L, tokens[pos]).number;
+         }
+         assert(size_t(pos) == tokens.size()); // can't skip a token
+         Loc loc;
+         std::string lexeme;
+         int number = lexer.getNextToken(engine.get_lex_state(state), loc, lexeme);
+         tokens.push_back(create_token(L, number, loc, lexeme));
+         return number;
+      }
+
+      // release token references, num tokens from pos
+      void clear_tokens(int pos, int num)
+      {
+         lua_State *L = engine.get_lua_state();
+         IntVector::iterator beg = tokens.begin() + pos;
+         IntVector::iterator end = beg + num;
+         for (IntVector::iterator i = beg; i != end; ++i)
+         {
+            unref(L, *i);
+         }
+         tokens.erase(beg, end);
+      }
+
+      // try to recover from a syntax error, stack is last accepted stack
+      int recover(Stack &stack)
+      {
+         lua_State *L = engine.get_lua_state();
+         Stack save_stack(L, stack);
+         int r = PARSE_FAIL;
+         RecoverPolicyVector const &recover_policies = engine.get_recover_policies();
+         for (RecoverPolicyVector::const_iterator i = recover_policies.begin(), endi = recover_policies.end(); i != endi; ++i)
+         {
+            int type = i->type, arg = i->arg;
+            if (type == RECOVER_INSERT)
+            {
+               r = recover_insert(stack, arg);
+            }
+            else
+            {
+               r = recover_discard(stack, arg);
+            }
+            if (r == PARSE_ACCEPT || r == PARSE_DONE)
+            {
+               break;
+            }
+            stack.copy(save_stack);
+         }
+         return r;
+      }
+
+      // discard up to max_num tokens 
+      int recover_discard(Stack &stack, int max_num)
+      {
+         lua_State *L = engine.get_lua_state();
+         Stack init_stack(L, stack);
+         for (int num = 1; num <= max_num; ++num)
+         {
+            for (bool first;; first=false)
+            {
+               int i = 0;
+               for (; i < num; ++i)
+               {
+                  if (next_token_number(stack.back().number, stack.token_pos + i) == 0)
+                  {
+                     // end of tokens
+                     break;
+                  }
+               }
+               if (i != num)
+               {
+                  if (first)
+                  {
+                     return PARSE_FAIL;
+                  }
+                  break;
+               }
+               Stack save_stack(L, stack);
+               stack.token_pos += num;
+               int r = parse_some(stack);
+               if (r == PARSE_ACCEPT || r == PARSE_DONE)
+               {
+                  return r;
+               }
+               stack.move(save_stack);
+               if (!parse_one(stack))
+               {
+                  break;
+               }
+            }
+            stack.copy(init_stack);
+         }
+         return PARSE_FAIL; // will get here only if num == 0
+      }
+
+      // insert token
+      int recover_insert(Stack &stack, int token_num)
+      {
+         lua_State *L = engine.get_lua_state();
+         // work backwards from last token lexed 
+         for (int p = int(tokens.size()) - 1; p >= 0; --p)
+         {
+            Token const &token = get_token(L, tokens[p]);
+            if (token.number == token_num)
+            {
+               continue;
+            }
+            tokens.insert(tokens.begin() + p, create_token(L, token_num, token.loc, "<dummy>"));
+            Stack save_stack(L, stack);
+            int r = parse_some(stack);
+            if (r == PARSE_ACCEPT || r == PARSE_DONE)
+            {
+               return r;
+            }
+            stack.move(save_stack);
+            clear_tokens(p, 1); // remove inserted token
+         }
+         return PARSE_FAIL;
+      }
+
+      // parse until shift one token, true if shift, false if error
+      // called to advance one token during error recovery, so don't exect full accept or done
+      bool parse_one(Stack &stack)
+      {
+         for (;;)
+         {
+            FSM::ActionPtrPair actions = lookup(stack);
+            if (actions.first == actions.second)
+            {
+               return false;
+            }
+            FSM::ActionPtr action = actions.first;
+            bool guess = ++actions.first != actions.second;
+            if (action->kind == FSM::SHIFT)
+            {
+               shift(stack, action, guess);
+               return true;
+            }
+            else
+            {
+               int num_cancel = 0;
+               int r = reduce(stack, action, guess, num_cancel);
+               assert(r == FSM::REDUCE);
+            }
+         }
+      }
+
+  private:
+      Engine const &engine;
+      Lexer &lexer;
+      std::ostream &out_stream;
+      int state; // reference to state instance
+      typedef std::vector<int> IntVector;
+      IntVector tokens; // tokens from last accept
+  };
+
+   // register parser types
+   void register_parser(lua_State *L)
+   {
+      register_token(L);
+   }
+}
+
+using namespace basil;
+
+namespace
+{
+   // Token is internal to parser
+   struct Token
+   {
+      inline Token(int number, Loc const &loc, std::string const &lexeme)
+         : number(number), loc(loc), lexeme(lexeme)
+      {}
+      int number;
+      Loc loc;
+      std::string lexeme;
+   };
+
+   // register token class  
+   void register_token(lua_State *L)
+   {
+      luaL_newmetatable(L, MT_TOKEN);
+      lua_pushcfunction(L, token__gc);
+      lua_setfield(L, -2, "__gc");
+      lua_pushcfunction(L, token__index);
+      lua_setfield(L, -2, "__index");
+      lua_pop(L, 1);
+   }
+
+   // free token resources
+   int token__gc(lua_State *L)
+   {
+      Token *token = (Token *)lua_touserdata(L, 1);
+      token->Token::~Token();
+      return 0;
+   }
+
+   // token index for loc and lexeme
+   int token__index(lua_State *L)
+   {
+      Token const &token = *static_cast<Token *>(lua_touserdata(L, 1));
+      char const *key = lua_tostring(L, 2);
+      if (strcmp(key, "loc") == 0)
+      {
+         push_loc(L, token.loc);
+      }
+      else if (strcmp(key, "lexeme") == 0)
+      {
+         lua_pushstring(L, token.lexeme.c_str ());
+      }
+      else
+      {
+         luaL_argerror(L, 2, "invalid token property");
+      }
+      return 1;
+   }
+
+   // return token object at ref
+   Token const &get_token(lua_State *L, int ref)
+   {
+      lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+      Token const *token_ptr = static_cast<Token *>(luaL_testudata(L, -1, MT_TOKEN));
+      lua_pop(L, 1);
+      return *token_ptr;
+   }
+
+   // create token and store in registry, return reference
+   int create_token(lua_State *L, int number, Loc const &loc, std::string const &lexeme)
+   {
+      new (lua_newuserdata (L, sizeof(Token))) Token(number, loc, lexeme);
+      luaL_setmetatable(L, MT_TOKEN);
+      return luaL_ref(L, LUA_REGISTRYINDEX);
+   }
+
+   // return a new reference to object in registry
+   int copy_ref(lua_State *L, int ref)
+   {
+      if (ref == LUA_NOREF)
+      {
+         return LUA_NOREF;
+      }
+      lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+      return luaL_ref(L, LUA_REGISTRYINDEX);
+   }
+
+   // push child node on stack _and_ release reference
+   inline void push_node(lua_State *L, int ref)
+   {
+      lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+      unref(L, ref);
+   }
+
+   // release reference to object
+   inline void unref(lua_State *L, int ref)
+   {
+      luaL_unref(L, LUA_REGISTRYINDEX, ref);
+   }
+
+   char const MT_TOKEN[] = "basil.Token";
+}
+
+#hdr
+#include <basil_fsm.h>
+#include <basil_loc.h>
+#include <lauxlib.h>
+#include <vector>
+#end
+
+#src
+#include <basil_lexer.h>
+#include <basil_engine.h>
+#include <cassert>
+#include <cstring>
+#include <iostream>
+//#include <stddef.h>
+#end

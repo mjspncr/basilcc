@@ -1,0 +1,92 @@
+// token location
+namespace basil
+{
+   class Loc
+   {
+   public:
+      Loc()
+         : m_filename(0), m_fullname(0), m_line(0), m_column(0)
+      {}
+      Loc(char const *filename, int line, int column)
+         : m_filename(filename), m_fullname(filename), m_line(line), m_column(column)
+      {}
+      // fullname contains path
+      Loc(char const *filename, char const *fullname, int line, int column)
+         : m_filename(filename), m_fullname(fullname), m_line(line), m_column(column)
+      {}
+      // true if set location
+      inline bool is_set () const
+      {
+         return m_filename != 0;
+      }
+      inline char const *get_filename() const
+      {
+         return m_filename;
+      }
+      inline char const *get_fullname() const
+      {
+         return m_fullname;
+      }
+      inline int get_line() const
+      {
+         return m_line;
+      }
+      inline int get_column() const
+      {
+         return m_column;
+      }
+   private:
+      char const *m_filename; 
+      char const *m_fullname; 
+      int m_line;
+      int m_column;
+   }
+
+   // true if a < b, just to give some order
+   bool operator <(Loc const &a, Loc const &b)
+   {
+      bool result = false;
+      if (a.get_filename() == b.get_filename())
+      {
+         if (a.get_line() < b.get_line())
+         {
+            result = true;
+         }
+         else if (a.get_line() == b.get_line())
+         {
+            result = a.get_column() < b.get_column();
+         }
+      }
+      else
+      {
+         result = a.get_filename() < b.get_filename();
+      }
+      return result;
+   }
+
+   // to string
+   std::ostream &operator <<(std::ostream &os, Loc const &loc)
+   {
+      if (loc.is_set())
+      {
+         // what about fullname?
+         os << loc.get_filename() << ':' << loc.get_line() << ':' <<  loc.get_column() << ": ";
+      }
+      return os;
+   }
+   std::string loc_to_string(Loc const &loc)
+   {
+      std::ostringstream ss;
+      ss << loc;
+      return ss.str();
+   }
+}
+
+#hdr
+#include <iosfwd>
+#include <string>
+#end
+
+#src
+#include <sstream>
+#end

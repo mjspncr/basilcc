@@ -1,0 +1,10 @@
+// just a token name and number pair, used to provide non-keyword token numbers to engine
+namespace basil
+{
+   struct TokenNumber
+   {
+      char const *name;
+      int num;
+   };
+   typedef TokenNumber const *TokenNumberPtr;
+}

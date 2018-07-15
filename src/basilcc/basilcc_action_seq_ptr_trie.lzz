@@ -1,0 +1,14 @@
+namespace basilcc
+{
+  typedef Trie <unsigned int, 0xFFFFFFFF, 512, ActionSeqPtr> ActionSeqPtrTrie;
+  template class Trie <unsigned int, 0xFFFFFFFF, 512, ActionSeqPtr>;
+}
+
+#hdr
+#include <basilcc_action_seq_ptr.h>
+#include <basilcc_trie.h>
+#end
+
+#src
+#include <basilcc_trie.tpl>
+#end

@@ -1,0 +1,170 @@
+namespace basilcc
+{
+   // base class
+   class Symbol
+   {
+   public:
+      virtual ~Symbol()
+      {}
+
+      // get number
+      inline int getNumber() const
+      {
+         return m_num;
+      }
+
+      // get name
+      inline char const *getName() const
+      {
+         return m_name;
+      }
+    
+      // true if token
+      virtual bool isToken() const = 0;
+
+      // get first
+      inline First &getFirst()
+      {
+         return m_first;
+      }
+
+      // set number
+      void setNumber(int num)
+      {
+         m_num = num;
+      }
+
+   protected:
+      Symbol(int num, char const *name)
+         : m_num(num), m_name(name)
+      {}
+
+   private:
+      int m_num;
+      char const *m_name;
+      First m_first;
+   };
+
+   class Token : public Symbol
+   {
+   public:
+      // lexeme for keyword only
+      inline Token(int num, char const *name)
+         : Symbol(num, name)
+      {}
+      ~ Token()
+      {}
+
+      // true if token
+      bool isToken() const
+      {
+         return true;
+      }
+
+      // true if keyword
+      inline bool isKeyword() const
+      {
+         return ! m_lexeme.empty();
+      }
+
+      // set/get lexeme
+      void setLexeme(std::string const &lexeme)
+      {
+         m_lexeme = lexeme;
+      }
+      std::string const &getLexeme() const
+      {
+         return m_lexeme;
+      }
+
+   private:
+      std::string m_lexeme; 
+   };
+
+   class NonTerminal : public Symbol
+   {
+   public:
+      inline NonTerminal(int num, char const *name)
+         : Symbol(num, name), m_go2(0)
+      {}
+      ~ NonTerminal()
+      {
+         delete m_go2;
+      }
+
+      // true if token
+      bool isToken() const
+      {
+         return false;
+      }
+
+      // set goto
+      void setGoto(GotoPtr go2)
+      {
+         m_go2 = go2;
+      }
+
+      // get goto
+      inline GotoPtr getGoto() const
+      {
+         return m_go2;
+      }
+
+   private:
+      // nonterm responsible for deleting go2
+      GotoPtr m_go2;
+   };
+
+   // a < b
+   bool operator <(Symbol const &a, Symbol const &b)
+   {
+      // tokens first, otherwise order by number
+      bool a_is_token = a.isToken(), b_is_token = b.isToken();
+      return (a_is_token && ! b_is_token) || (a_is_token == b_is_token && a.getNumber() < b.getNumber());
+   }
+   inline bool symbolLess(Symbol const *a, Symbol const *b)
+   {
+      return *a < *b;
+   }
+   bool tokenLexemeLess(Symbol const *a, Symbol const *b)
+   {
+      return static_cast<Token const &>(*a).getLexeme() < static_cast<Token const &>(*b).getLexeme();
+   }
+
+   // to capitalized string, for get child method in node
+   std::string symbolToCapString(SymbolPtr symbol)
+   {
+      std::string str;
+      char const * name = symbol->getName();
+      if (symbol->isToken())
+      {
+         // replace '-' with '_'
+         char ch;
+         for (int i = 0; (ch = name [i]) != 0; ++ i)
+         {
+            if (ch == '-')
+            {
+               ch = '_';
+            }
+            str += ch;
+         }
+      }
+      else
+      {
+         str = toCapString(name);
+      }
+      return str;
+   }
+}
+
+#hdr
+#include <basilcc_first.h>
+#include <basilcc_goto_ptr.h>
+#include <string>
+#end
+
+#src
+#include <basilcc_goto.h>
+#include <basilcc_util.h>
+#include <cstring>
+#end

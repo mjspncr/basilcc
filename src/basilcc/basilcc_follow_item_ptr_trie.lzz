@@ -1,0 +1,14 @@
+namespace basilcc
+{
+  typedef Trie <unsigned int, 0xFFFFFFFF, 512, FollowItemPtr> FollowItemPtrTrie;
+  template class Trie <unsigned int, 0xFFFFFFFF, 512, FollowItemPtr>;
+}
+
+#hdr
+#include <basilcc_follow_item_ptr.h>
+#include <basilcc_trie.h>
+#end
+
+#src
+#include <basilcc_trie.tpl>
+#end

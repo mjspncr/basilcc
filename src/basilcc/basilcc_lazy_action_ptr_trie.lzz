@@ -1,0 +1,14 @@
+namespace basilcc
+{
+  typedef Trie <unsigned int, 0xFFFFFFFF, 512, LazyActionPtr> LazyActionPtrTrie;
+  template class Trie <unsigned int, 0xFFFFFFFF, 512, LazyActionPtr>;
+}
+
+#hdr
+#include <basilcc_lazy_action_ptr.h>
+#include <basilcc_trie.h>
+#end
+
+#src
+#include <basilcc_trie.tpl>
+#end

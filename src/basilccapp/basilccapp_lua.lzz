@@ -1,0 +1,365 @@
+// manages basilcc api in lua
+namespace basilcc
+{
+   class BasilCC;
+
+   class BasilCCLua
+   {
+   public:
+      BasilCCLua(lua_State *L, BasilCC &cc, std::ostream &error_stream)
+         : L(L), cc(cc), error_stream(error_stream), has_errors(false)
+      {
+         // create table
+         lua_newtable(L);
+         register_symbol(L, this);
+         register_priority(L);
+         register_rule(L, this);
+         lua_setglobal(L, "basilcc");
+      }
+      ~BasilCCLua()
+      {
+         // discard table
+         lua_pushnil(L);
+         lua_setglobal(L, "basilcc");
+      }
+   private:
+      lua_State *L;
+   public:
+      // for lua callbacks below
+      BasilCC &cc;
+      std::ostream &error_stream;
+      bool has_errors;
+   };
+}
+
+using namespace basilcc;
+
+namespace
+{
+   // raise type error for value at index i
+   void type_error(lua_State *L, int i, char const *expected_tname)
+   {
+      char const *tname;
+      if (luaL_getmetafield(L, i, "__name") != LUA_TNIL)
+      {
+         tname = lua_tostring(L, -1); // assume convertable to a string
+      }
+      else
+      {
+         tname = luaL_typename(L, i);
+      }
+      luaL_error(L, "%s expected, got %s", expected_tname, tname);
+   }
+   inline void type_error(lua_State *L, int i, int expected_type)
+   {
+      type_error(L, i, lua_typename(L, expected_type));
+   }
+
+   // error if value at index i is not expected type, otherwise return object pointer 
+   void *check_type(lua_State *L, int i, char const *expected_tname)
+   {
+      void *p = luaL_testudata(L, i, expected_tname);
+      if (p == NULL)
+      {
+         type_error(L, i, expected_tname);
+      }
+      return p;
+   }
+
+   // false if table at idx doesn't have field with name, otherwise get field _and leave on top of stack and return true
+   bool has_field(lua_State *L, int i, char const *name, int &type)
+   {
+      if ((type = lua_getfield(L, i, name)) == LUA_TNIL)
+      {
+         lua_pop(L, 1); // discard nil
+         return false;
+      }
+      return true;
+   }
+   inline bool has_field(lua_State *L, int idx, char const *name)
+   {
+      int type;
+      return has_field(L, idx, name, type);
+   }
+   // find field from table at index i, if NIL return false, otherwise check type and return true
+   bool has_type_field(lua_State *L, int i, char const *name, int expected_type)
+   {
+      int type;
+      if (!has_field(L, i, name, type))
+      {
+         return false;
+      }
+      if (type != expected_type)
+      {
+         type_error(L, -1, expected_type);
+      }
+      return true; // leave value on stack
+   }
+
+   // push value at index j in table i with expected_type
+   void get_type_element(lua_State *L, int i, int j, int expected_type)
+   {
+      int type = lua_geti(L, i, j);
+      if (type != expected_type)
+      {
+         type_error(L, -1, expected_type);
+      }
+      // leave value on top of stack
+   }
+
+   // if has element j in table i push value on stack, set type and return true
+   bool has_element(lua_State *L, int i, int j, int &type)
+   {
+      if ((type = lua_geti(L, i, j)) == LUA_TNIL)
+      {
+         lua_pop(L, 1);
+         return false;
+      }
+      return true;
+   }
+   inline bool has_element(lua_State *L, int i, int j)
+   {
+      int type;
+      return has_element(L, i, j, type);
+   }
+
+   // return int on top of stack and pop, no checking
+   int to_int(lua_State *L)
+   {
+      int value = lua_tointeger(L, -1);
+      return lua_pop(L, 1), value;
+   }
+   // get int at element j in table i 
+   int get_int_element(lua_State *L, int i, int j)
+   {
+      get_type_element(L, i, j, LUA_TNUMBER);
+      return to_int(L);
+   }
+   // get optional int field in table i
+   int opt_int_field(lua_State *L, int i, char const *name, int def = 0)
+   {
+      return has_type_field(L, i, name, LUA_TNUMBER) ? to_int(L) : def;
+   }
+
+   // return bool on top of stack and pop, no checking
+   bool to_bool(lua_State *L)
+   {
+      int value = lua_toboolean(L, -1);
+      return lua_pop(L, 1), value;
+   }
+   // get optional bool field in table i
+   bool opt_bool_field(lua_State *L, int i, char const *name, bool def = false)
+   {
+      return has_type_field(L, i, name, LUA_TBOOLEAN) ? to_bool(L) : def;
+   }
+
+   // return string on top of stack and pop, no checking
+   std::string to_string(lua_State *L)
+   {
+      std::string str = lua_tostring(L, -1);
+      return lua_pop(L, 1), str;
+   }      
+   // get string at element j in table i
+   std::string get_string_element(lua_State *L, int i, int j)
+   {
+      get_type_element(L, i, j, LUA_TSTRING);
+      return to_string(L);
+   }
+   // get optional string feild in table i 
+   std::string opt_string_field(lua_State *L, int i, char const *name, std::string const &def = std::string())
+   {
+      return has_type_field(L, i, name, LUA_TSTRING) ? to_string(L) : def;
+   }
+
+   // get loc at index i
+   basil::Loc get_loc(lua_State *L, int i)
+   {
+      return *static_cast<basil::Loc*>(check_type(L, i, basil::MT_LOC));
+   }
+   // get loc on top of stack and pop
+   basil::Loc get_loc(lua_State *L)
+   {
+      basil::Loc loc = get_loc(L, -1);
+      return lua_pop (L, 1), loc;
+   }
+   // get optional loc field in table i
+   basil::Loc opt_loc_field(lua_State *L, int i, char const *name, basil::Loc const &def = basil::Loc())
+   {
+      return has_field(L, i, name) ? get_loc(L) : def;
+   }
+
+   // priority
+   char const MT_PRIORITY[] = "basilcc.Priority";
+   void register_priority(lua_State *L)
+   {
+      // create metatable with __add
+      luaL_newmetatable(L, MT_PRIORITY);
+      lua_pushcfunction(L, priority_add);
+      lua_setfield(L, -2, "__add");
+      lua_pop(L, 1); // pop metatable
+      lua_pushcfunction(L, priority_new);
+      lua_setfield(L, -2, "priority"); // add to basilcc
+   }
+
+   // create new priority and push on stack
+   int priority_new(lua_State *L)
+   {
+      luaL_checktype(L, 1, LUA_TTABLE);
+      int count = get_int_element(L, 1, 1);
+      int bang  = opt_int_field(L, 1, "bang");
+      push_priority(L, Priority(count, bang));
+      return 1;
+   }
+   // __add metamethod
+   int priority_add(lua_State *L)
+   {
+      // one or the other might be nil
+      Priority p1 = opt_priority(L, 1);
+      Priority p2 = opt_priority(L, 2);
+      push_priority(L, p1 + p2);
+      return 1;
+   }
+   // push priority on stack
+   void push_priority(lua_State *L, Priority const &priority)
+   {
+      new(lua_newuserdata(L, sizeof(Priority))) Priority(priority);
+      luaL_setmetatable(L, MT_PRIORITY);
+   }
+
+   // get priority at index i
+   Priority get_priority(lua_State *L, int i)
+   {
+      return *static_cast<Priority*>(check_type(L, i, MT_PRIORITY));
+   }
+   // get priority on top of stack and pop
+   Priority get_priority(lua_State *L)
+   {
+      Priority priority = get_priority(L, -1);
+      return lua_pop (L, 1), priority;
+   }
+   // get optional priority at i, or def if none or nil
+   Priority opt_priority(lua_State *L, int i, Priority const &def = Priority())
+   {
+      return lua_isnoneornil(L, i) ? def : get_priority(L, i);
+   }
+   // get optional priority at field in table i
+   Priority opt_priority_field(lua_State *L, int i, char const *name, Priority const &def = Priority())
+   {
+      return has_field(L, i, name) ? get_priority(L) : def;
+   }
+
+   // symbol
+   char const MT_SYMBOL[] = "basilcc.Symbol";
+   void register_symbol(lua_State *L, BasilCCLua *cc_lua)
+   {
+      luaL_newmetatable(L, MT_SYMBOL);
+      lua_pop(L, 1);
+      lua_pushlightuserdata(L, cc_lua);
+      lua_pushcclosure(L, symbol_new, 1);
+      lua_setfield(L, -2, "symbol"); // add to basilcc
+   }
+
+   // create new symbol
+   int symbol_new(lua_State *L)
+   {
+      BasilCCLua &cc_lua = *(BasilCCLua *)lua_touserdata(L, lua_upvalueindex (1));
+      // expect table with name as first element, other args as fields
+      luaL_checktype(L, 1, LUA_TTABLE);
+      std::string name = get_string_element(L, 1, 1);
+      basil::Loc loc = opt_loc_field(L, 1, "loc");
+      Priority rp = opt_priority_field(L, 1, "reduce_priority");
+      Priority fp = opt_priority_field(L, 1, "first_priority");
+      Priority sp = opt_priority_field(L, 1, "shift_priority");
+      int lex_state = opt_int_field(L, 1, "lex_state", LEX_STATE_UNSET);
+      bool sticky = opt_bool_field(L, 1, "sticky");
+      bool accept = opt_bool_field(L, 1, "accept");
+      RuleSymbolPtr rule_symbol = getRuleSymbol(cc_lua.cc, name, loc, rp, fp, sp, lex_state, sticky, accept);
+      *(void**)lua_newuserdata(L, sizeof(void *)) = rule_symbol;
+      luaL_setmetatable(L, MT_SYMBOL);
+      return 1; // returns symbol
+   }
+
+   // get symbol at index i
+   RuleSymbolPtr get_symbol(lua_State *L, int i)
+   {
+      return *static_cast<RuleSymbolPtr*>(check_type(L, i, MT_SYMBOL));
+   }
+
+   // get symbol on top of stack and pop
+   RuleSymbolPtr get_symbol(lua_State *L)
+   {
+      RuleSymbolPtr symbol = get_symbol(L, -1);
+      return lua_pop(L, 1), symbol;
+   }
+
+   // get symbol at element j in table i
+   RuleSymbolPtr get_symbol_element(lua_State *L, int i, int j)
+   {
+      lua_geti(L, i, j);
+      return get_symbol(L);      
+   }
+
+   // get optional list of symbols from field in table i
+   void opt_symbols_field(lua_State *L, int i, char const *name, RuleSymbolPtrVector &rule_symbols)
+   {
+      if (has_type_field(L, i, name, LUA_TTABLE))
+      {
+         lua_pushnil(L);
+         while (lua_next(L, -2) != 0)
+         {
+            rule_symbols.push_back(get_symbol(L));
+         }
+         lua_pop(L, 1); // pop table
+      }
+   }
+
+   // rule
+   void register_rule(lua_State *L, BasilCCLua *cc_lua)
+   {
+      lua_pushlightuserdata(L, cc_lua);
+      lua_pushcclosure(L, rule_add, 1);
+      lua_setfield(L, -2, "add_rule"); // add to basil table
+   }
+
+   // add rule to basilcc
+   int rule_add(lua_State *L)
+   {
+      BasilCCLua &cc_lua = *(BasilCCLua*)lua_touserdata(L, lua_upvalueindex(1));
+      // expect table with rule name as optional first element, other args fields
+      luaL_checktype(L, 1, LUA_TTABLE);
+      RuleSymbolPtr left_symbol = get_symbol_element(L, 1, 1);
+      std::string node_name = opt_string_field(L, 1, "name");
+      RuleSymbolPtrVector right_symbols;
+      opt_symbols_field(L, 1, "right_hand_side", right_symbols);
+      RuleSymbolPtrVector explicit_follow;
+      opt_symbols_field(L, 1, "explicit_follow", explicit_follow);
+      bool no_bypass = opt_bool_field(L, 1, "no_bypass");
+      try
+      {
+         addRule(cc_lua.cc, node_name, left_symbol, right_symbols, explicit_follow, no_bypass);
+      }
+      catch (std::exception const &e)
+      {
+         // not a lua error
+         cc_lua.error_stream << e.what() << std::endl;
+         cc_lua.has_errors = true;
+      }
+      return 0; // doesn't return anything
+   }
+}
+
+#hdr
+#include <iosfwd>
+#include <lua.h>
+#end
+
+#src
+#include <basilcc_priority.h>
+#include <basilcc_rule_api.h>
+#include <basilcc_rule_symbol_api.h>
+#include <basilcc_symbol.h>
+#include <basil_engine.h>
+#include <lauxlib.h>
+#include <exception>
+#include <iostream>
+#end

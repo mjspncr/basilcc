@@ -1,0 +1,14 @@
+namespace basilcc
+{
+  typedef Trie <unsigned int, 0xFFFFFFFF, 512, LazyFollowMovePtr> LazyFollowMovePtrTrie;
+  template class Trie <unsigned int, 0xFFFFFFFF, 512, LazyFollowMovePtr>;
+}
+
+#hdr
+#include <basilcc_lazy_follow_move_ptr.h>
+#include <basilcc_trie.h>
+#end
+
+#src
+#include <basilcc_trie.tpl>
+#end

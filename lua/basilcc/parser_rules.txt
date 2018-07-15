@@ -1,0 +1,43 @@
+# basil parser generator grammar
+start -> rule-seq-opt
+
+rule-seq-opt ->
+rule-seq-opt -> rule-seq
+
+rule-seq -> rule
+rule-seq -> rule-seq rule
+
+rule (rule) -> symbol node-type-opt ARROW symbol-seq-opt >
+
+node-type-opt ->
+node-type-opt -> node-type
+
+# can use parens or square brackets to specify node name
+node-type (node_type) -> LPAREN IDENT RPAREN
+node-type [node_type] -> LBRACK IDENT RBRACK
+
+symbol-seq-opt ->
+symbol-seq-opt -> symbol-seq
+
+symbol-seq (symbol_seq_1) -> symbol
+symbol-seq (symbol_seq_2) -> symbol-seq symbol
+
+# will add symbol on reduction so keep follow symbols sticky, only reduce if valid tokens follow
+symbol <* (symbol) -> IDENT attrib-seq
+
+attrib-seq (attrib_seq_1) -> 
+attrib-seq (attrib_seq_2) -> attrib-seq NUMBER
+attrib-seq (attrib_seq_3) -> attrib-seq LT
+attrib-seq (attrib_seq_4) -> attrib-seq STAR
+attrib-seq (attrib_seq_5) -> attrib-seq PLUS  bang-seq-opt
+attrib-seq (attrib_seq_6) -> attrib-seq CARET bang-seq-opt
+attrib-seq (attrib_seq_7) -> attrib-seq GT    bang-seq-opt
+
+bang-seq-opt -> 
+bang-seq-opt -> bang-seq
+
+bang-seq (bang_seq_1) -> BANG
+bang-seq (bang_seq_2) -> bang-seq BANG
+
+# this was old format, node name preceding rule, still used by lzz3
+rule_deprecated : rule -> IDENT COLON symbol ARROW symbol-seq-opt >

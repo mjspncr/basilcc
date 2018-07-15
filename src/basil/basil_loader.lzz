@@ -1,0 +1,217 @@
+// initializes engine and FSM
+namespace basil
+{
+   class Engine;
+
+   class Loader
+   {
+   public:
+      Loader(Engine &engine, TokenNumberPtr token_numbers_beg, TokenNumberPtr token_numbers_end)
+         : engine(engine), initialized(false)
+      {
+         lua_State *L = engine.get_lua_state();
+         for (TokenNumberPtr i = token_numbers_beg; i != token_numbers_end; ++i)
+         {
+            token_numbers[i->name] = i->num;
+         }
+         // create global basil table
+         lua_newtable(L);
+         // finite_state_machine
+         lua_pushlightuserdata(L, this);
+         lua_pushcclosure(L, loader_finite_state_machine, 1);
+         lua_setfield(L, -2, "finite_state_machine");
+         lua_pushlightuserdata(L, this);
+         lua_pushcclosure(L, loader_state, 1);
+         lua_setfield(L, -2, "state");
+         // action constants
+         lua_pushinteger(L, FSM::REDUCE);
+         lua_setfield(L, -2, "ACTION_REDUCE");
+         lua_pushinteger(L, FSM::ACCEPT);
+         lua_setfield(L, -2, "ACTION_ACCEPT");
+         lua_pushinteger(L, FSM::SHIFT);
+         lua_setfield(L, -2, "ACTION_SHIFT");
+         lua_pushinteger(L, FSM::DONE);
+         lua_setfield(L, -2, "ACTION_DONE");
+         // recover policies
+         lua_pushinteger(L, RECOVER_INSERT);
+         lua_setfield(L, -2, "RECOVER_INSERT");
+         lua_pushinteger(L, RECOVER_DISCARD);
+         lua_setfield(L, -2, "RECOVER_DISCARD");
+         lua_pushlightuserdata(L, this);
+         lua_pushcclosure(L, loader_recover_policies, 1);
+         lua_setfield(L, -2, "recover_policies");
+         lua_setglobal(L, "basil");
+      }
+      ~Loader()
+      {
+         lua_State *L = engine.get_lua_state();
+         // discard basil table
+         lua_pushnil(L);
+         lua_setglobal(L, "basil");
+      }
+
+      // load lua module and initialize engine
+      void load(std::string const &module)
+      {
+         lua_State *L = engine.get_lua_state();
+         std::string line = "require('";
+         line += module;
+         line += "')";
+         if (luaL_dostring(L, line.c_str()))
+         {
+            std::string errmsg = lua_tostring(L, -1);
+            lua_pop(L, 1);
+            throw std::runtime_error(errmsg);
+         }
+         if (!initialized)
+         {
+            std::ostringstream ss;
+            ss << "Parser finite state machine not initialized after loading module: " << line;
+            throw std::runtime_error(ss.str());
+         }
+      }  
+
+      // lua callbacks
+
+      // initialize finite state machine 
+      int finite_state_machine()
+      {
+         lua_State *L = engine.get_lua_state();
+         // generated code so will skip error checking
+         // table is only argument, nodes metatables are maintaned in engine, rest is read by FSM
+         lua_getfield(L, 1, "nodes");
+         lua_len(L, -1);
+         int n = lua_tointeger(L, -1);
+         lua_pop(L, 1);
+         engine.m_node_mts.reserve(n);
+         lua_pushnil(L);
+         while (lua_next(L, -2) != 0)
+         {
+            // class is metatable too for objects
+            lua_pushvalue(L, -1);
+            lua_setfield(L, -2, "__index");
+            int ref = luaL_ref(L, LUA_REGISTRYINDEX); // pops value too
+            engine.m_node_mts.push_back(ref);
+         }
+         lua_pop(L, 1); // pop nodes table
+         static_cast<FSM &>(engine).load(L, 1, token_numbers);
+         initialized = true;
+         return 0;
+      }
+
+      // create and return state class
+      int state()
+      {
+         lua_State *L = engine.get_lua_state();
+         // if already defined just return it
+         if (engine.m_state_mt == LUA_NOREF)
+         {
+            lua_newtable(L);
+            lua_pushvalue(L, -1);
+            lua_setfield(L, -2, "__index");
+            engine.m_state_mt = luaL_ref(L, LUA_REGISTRYINDEX);
+         }
+         lua_rawgeti(L, LUA_REGISTRYINDEX, engine.m_state_mt);
+         return 1;
+      }
+
+      // set syntax error recover policies
+      int recover_policies()
+      {
+         lua_State *L = engine.L;
+         luaL_checktype(L, 1, LUA_TTABLE);
+         try
+         {
+            lua_pushnil(L);
+            while (lua_next(L, 1) != 0)
+            {
+               if (!lua_istable(L, -1))
+               {
+                  throw std::runtime_error("recover policy not a table");
+               }
+               lua_geti(L, -1, 1);
+               if (!lua_isinteger(L, -1))
+               {
+                  throw std::runtime_error("missing or invalid recover type, must be basil.RECOVER_INSERT or basil.RECOVER_DISCARD");
+               }
+               int type = lua_tointeger(L, -1);
+               lua_pop(L, 1);
+               if (!(type == RECOVER_INSERT || type == RECOVER_DISCARD))
+               {
+                  throw std::runtime_error("recover type is not valid, use basil.RECOVER_INSERT or basil.RECOVER_DISCARD");
+               }
+               lua_geti(L, -1, 2);
+               if (type == RECOVER_INSERT)
+               {
+                  if (!lua_isinteger(L, -1))
+                  {
+                     throw std::runtime_error("missing or invalid insert argument, must be a string");
+                  }
+                  std::string name = lua_tostring(L, -1);
+                  lua_pop(L, 1);
+                  StringIntMap::const_iterator p = token_numbers.find(name);
+                  if (p == token_numbers.end())
+                  {
+                     throw std::runtime_error("insert token not recognized");
+                  }
+                  engine.m_recover_policies.push_back(RecoverPolicy(type, p->second));
+               }
+               else
+               {
+                  if (!lua_isinteger(L, -1))
+                  {
+                     throw std::runtime_error("missing or invalid discard argument, must be an integer");
+                  }
+                  int num_discard = lua_tointeger(L, -1);
+                  lua_pop(L, 1);
+                  engine.m_recover_policies.push_back(RecoverPolicy(type, num_discard));
+               }
+               lua_pop(L, 1); // pop recover table
+            }
+         }
+         catch (std::runtime_error const &e)
+         {
+            luaL_error(L, e.what());
+         }
+         return 0;
+      }
+   public:
+      Engine &engine;
+      typedef std::map<std::string, int> StringIntMap;
+      StringIntMap token_numbers;
+      bool initialized;
+   };
+}
+
+using namespace basil;
+
+namespace
+{
+   int loader_finite_state_machine(lua_State *L)
+   {
+      return ((Loader*)lua_touserdata(L, lua_upvalueindex(1)))->finite_state_machine();
+   }
+   int loader_state(lua_State *L)
+   {
+      return ((Loader*)lua_touserdata(L, lua_upvalueindex(1)))->state();
+   }
+   int loader_recover_policies(lua_State *L)
+   {
+      return ((Loader*)lua_touserdata(L, lua_upvalueindex(1)))->recover_policies();
+   }
+}
+
+#hdr
+#include <basil_token_number.h>
+#include <map>
+#include <string>
+#include <lua.h>
+#end
+
+#src
+#include <basil_engine.h>
+#include <sstream>
+#include <stdexcept>
+#include <lauxlib.h>
+#include <lualib.h>
+#end

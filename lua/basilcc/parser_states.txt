@@ -1,0 +1,398 @@
+0
+-----
+start ->.rule-seq-opt
+rule-seq-opt ->. (1)
+rule-seq-opt ->.rule-seq
+rule-seq ->.rule
+rule-seq ->.rule-seq rule
+rule ->.symbol node-type-opt ARROW symbol-seq-opt >
+rule ->.IDENT COLON symbol ARROW symbol-seq-opt >
+symbol <* ->.IDENT attrib-seq
+
+IDENT - SHIFT 1
+* - REDUCE 1 rule-seq-opt
+
+rule-seq-opt - GOTO 2
+rule-seq - GOTO 3
+rule - GOTO 4
+symbol - GOTO 5
+
+1
+-----
+symbol <* -> IDENT.attrib-seq
+rule -> IDENT.COLON symbol ARROW symbol-seq-opt >
+attrib-seq ->. (15)
+attrib-seq ->.attrib-seq NUMBER
+attrib-seq ->.attrib-seq LT
+attrib-seq ->.attrib-seq STAR
+attrib-seq ->.attrib-seq PLUS bang-seq-opt
+attrib-seq ->.attrib-seq CARET bang-seq-opt
+attrib-seq ->.attrib-seq GT bang-seq-opt
+
+COLON - SHIFT 6
+* - REDUCE 15 attrib-seq
+
+attrib-seq - GOTO 7
+
+2
+-----
+start -> rule-seq-opt. (0)
+
+EOT - DONE 0
+
+3
+-----
+rule-seq-opt -> rule-seq. (2)
+rule-seq -> rule-seq.rule
+rule ->.symbol node-type-opt ARROW symbol-seq-opt >
+rule ->.IDENT COLON symbol ARROW symbol-seq-opt >
+symbol <* ->.IDENT attrib-seq
+
+IDENT - SHIFT 1
+* - REDUCE 2 rule-seq-opt
+
+rule - GOTO 8
+symbol - GOTO 5
+
+4
+-----
+rule-seq -> rule. (3)
+
+* - REDUCE 3 rule-seq
+
+5
+-----
+rule -> symbol.node-type-opt ARROW symbol-seq-opt >
+node-type-opt ->. (6)
+node-type-opt ->.node-type
+node-type ->.LPAREN IDENT RPAREN
+node-type ->.LBRACK IDENT RBRACK
+
+LPAREN - SHIFT 9
+LBRACK - SHIFT 10
+* - REDUCE 6 node-type-opt
+
+node-type-opt - GOTO 11
+node-type - GOTO 12
+
+6
+-----
+rule -> IDENT COLON.symbol ARROW symbol-seq-opt >
+symbol <* ->.IDENT attrib-seq
+
+IDENT - SHIFT 13
+
+symbol - GOTO 14
+
+7
+-----
+symbol <* -> IDENT attrib-seq. (14)
+attrib-seq -> attrib-seq.NUMBER
+attrib-seq -> attrib-seq.LT
+attrib-seq -> attrib-seq.STAR
+attrib-seq -> attrib-seq.PLUS bang-seq-opt
+attrib-seq -> attrib-seq.CARET bang-seq-opt
+attrib-seq -> attrib-seq.GT bang-seq-opt
+
+ARROW - ACCEPT 14 symbol
+LPAREN - ACCEPT 14 symbol
+LBRACK - ACCEPT 14 symbol
+NUMBER - SHIFT 15
+LT - SHIFT 16
+STAR - SHIFT 17
+PLUS - SHIFT 18
+CARET - SHIFT 19
+GT - SHIFT 20
+
+8
+-----
+rule-seq -> rule-seq rule. (4)
+
+* - REDUCE 4 rule-seq
+
+9
+-----
+node-type -> LPAREN.IDENT RPAREN
+
+IDENT - SHIFT 21
+
+10
+-----
+node-type -> LBRACK.IDENT RBRACK
+
+IDENT - SHIFT 22
+
+11
+-----
+rule -> symbol node-type-opt.ARROW symbol-seq-opt >
+
+ARROW - SHIFT 23
+
+12
+-----
+node-type-opt -> node-type. (7)
+
+* - REDUCE 7 node-type-opt
+
+13
+-----
+symbol <* -> IDENT.attrib-seq
+attrib-seq ->. (15)
+attrib-seq ->.attrib-seq NUMBER
+attrib-seq ->.attrib-seq LT
+attrib-seq ->.attrib-seq STAR
+attrib-seq ->.attrib-seq PLUS bang-seq-opt
+attrib-seq ->.attrib-seq CARET bang-seq-opt
+attrib-seq ->.attrib-seq GT bang-seq-opt
+
+* - REDUCE 15 attrib-seq
+
+attrib-seq - GOTO 24
+
+14
+-----
+rule -> IDENT COLON symbol.ARROW symbol-seq-opt >
+
+ARROW - SHIFT 25
+
+15
+-----
+attrib-seq -> attrib-seq NUMBER. (16)
+
+* - REDUCE 16 attrib-seq
+
+16
+-----
+attrib-seq -> attrib-seq LT. (17)
+
+* - REDUCE 17 attrib-seq
+
+17
+-----
+attrib-seq -> attrib-seq STAR. (18)
+
+* - REDUCE 18 attrib-seq
+
+18
+-----
+attrib-seq -> attrib-seq PLUS.bang-seq-opt
+bang-seq-opt ->. (22)
+bang-seq-opt ->.bang-seq
+bang-seq ->.BANG
+bang-seq ->.bang-seq BANG
+
+BANG - SHIFT 26
+* - REDUCE 22 bang-seq-opt
+
+bang-seq-opt - GOTO 27
+bang-seq - GOTO 28
+
+19
+-----
+attrib-seq -> attrib-seq CARET.bang-seq-opt
+bang-seq-opt ->. (22)
+bang-seq-opt ->.bang-seq
+bang-seq ->.BANG
+bang-seq ->.bang-seq BANG
+
+BANG - SHIFT 26
+* - REDUCE 22 bang-seq-opt
+
+bang-seq-opt - GOTO 29
+bang-seq - GOTO 28
+
+20
+-----
+attrib-seq -> attrib-seq GT.bang-seq-opt
+bang-seq-opt ->. (22)
+bang-seq-opt ->.bang-seq
+bang-seq ->.BANG
+bang-seq ->.bang-seq BANG
+
+BANG - SHIFT 26
+* - REDUCE 22 bang-seq-opt
+
+bang-seq-opt - GOTO 30
+bang-seq - GOTO 28
+
+21
+-----
+node-type -> LPAREN IDENT.RPAREN
+
+RPAREN - SHIFT 31
+
+22
+-----
+node-type -> LBRACK IDENT.RBRACK
+
+RBRACK - SHIFT 32
+
+23
+-----
+rule -> symbol node-type-opt ARROW.symbol-seq-opt >
+symbol-seq-opt ->. (10)
+symbol-seq-opt ->.symbol-seq
+symbol-seq ->.symbol
+symbol-seq ->.symbol-seq symbol
+symbol <* ->.IDENT attrib-seq
+
+IDENT - SHIFT 33, REDUCE 10 symbol-seq-opt
+* - REDUCE 10 symbol-seq-opt
+
+symbol - GOTO 34
+symbol-seq-opt - GOTO 35
+symbol-seq - GOTO 36
+
+24
+-----
+symbol <* -> IDENT attrib-seq. (14)
+attrib-seq -> attrib-seq.NUMBER
+attrib-seq -> attrib-seq.LT
+attrib-seq -> attrib-seq.STAR
+attrib-seq -> attrib-seq.PLUS bang-seq-opt
+attrib-seq -> attrib-seq.CARET bang-seq-opt
+attrib-seq -> attrib-seq.GT bang-seq-opt
+
+ARROW - ACCEPT 14 symbol
+NUMBER - SHIFT 15
+LT - SHIFT 16
+STAR - SHIFT 17
+PLUS - SHIFT 18
+CARET - SHIFT 19
+GT - SHIFT 20
+
+25
+-----
+rule -> IDENT COLON symbol ARROW.symbol-seq-opt >
+symbol-seq-opt ->. (10)
+symbol-seq-opt ->.symbol-seq
+symbol-seq ->.symbol
+symbol-seq ->.symbol-seq symbol
+symbol <* ->.IDENT attrib-seq
+
+IDENT - SHIFT 33, REDUCE 10 symbol-seq-opt
+* - REDUCE 10 symbol-seq-opt
+
+symbol - GOTO 34
+symbol-seq-opt - GOTO 37
+symbol-seq - GOTO 36
+
+26
+-----
+bang-seq -> BANG. (24)
+
+* - REDUCE 24 bang-seq
+
+27
+-----
+attrib-seq -> attrib-seq PLUS bang-seq-opt. (19)
+
+* - REDUCE 19 attrib-seq
+
+28
+-----
+bang-seq-opt -> bang-seq. (23)
+bang-seq -> bang-seq.BANG
+
+BANG - SHIFT 38
+* - REDUCE 23 bang-seq-opt
+
+29
+-----
+attrib-seq -> attrib-seq CARET bang-seq-opt. (20)
+
+* - REDUCE 20 attrib-seq
+
+30
+-----
+attrib-seq -> attrib-seq GT bang-seq-opt. (21)
+
+* - REDUCE 21 attrib-seq
+
+31
+-----
+node-type -> LPAREN IDENT RPAREN. (8)
+
+* - REDUCE 8 node-type
+
+32
+-----
+node-type -> LBRACK IDENT RBRACK. (9)
+
+* - REDUCE 9 node-type
+
+33
+-----
+symbol <* -> IDENT.attrib-seq
+attrib-seq ->. (15)
+attrib-seq ->.attrib-seq NUMBER
+attrib-seq ->.attrib-seq LT
+attrib-seq ->.attrib-seq STAR
+attrib-seq ->.attrib-seq PLUS bang-seq-opt
+attrib-seq ->.attrib-seq CARET bang-seq-opt
+attrib-seq ->.attrib-seq GT bang-seq-opt
+
+* - REDUCE 15 attrib-seq
+
+attrib-seq - GOTO 39
+
+34
+-----
+symbol-seq -> symbol. (12)
+
+* - REDUCE 12 symbol-seq
+
+35
+-----
+rule -> symbol node-type-opt ARROW symbol-seq-opt >. (5)
+
+* - REDUCE 5 rule
+
+36
+-----
+symbol-seq-opt -> symbol-seq. (11)
+symbol-seq -> symbol-seq.symbol
+symbol <* ->.IDENT attrib-seq
+
+IDENT - SHIFT 33, REDUCE 11 symbol-seq-opt
+* - REDUCE 11 symbol-seq-opt
+
+symbol - GOTO 40
+
+37
+-----
+rule -> IDENT COLON symbol ARROW symbol-seq-opt >. (26)
+
+* - REDUCE 26 rule
+
+38
+-----
+bang-seq -> bang-seq BANG. (25)
+
+* - REDUCE 25 bang-seq
+
+39
+-----
+symbol <* -> IDENT attrib-seq. (14)
+attrib-seq -> attrib-seq.NUMBER
+attrib-seq -> attrib-seq.LT
+attrib-seq -> attrib-seq.STAR
+attrib-seq -> attrib-seq.PLUS bang-seq-opt
+attrib-seq -> attrib-seq.CARET bang-seq-opt
+attrib-seq -> attrib-seq.GT bang-seq-opt
+
+EOT - ACCEPT 14 symbol
+IDENT - ACCEPT 14 symbol
+NUMBER - SHIFT 15
+LT - SHIFT 16
+STAR - SHIFT 17
+PLUS - SHIFT 18
+CARET - SHIFT 19
+GT - SHIFT 20
+
+40
+-----
+symbol-seq -> symbol-seq symbol. (13)
+
+* - REDUCE 13 symbol-seq
+

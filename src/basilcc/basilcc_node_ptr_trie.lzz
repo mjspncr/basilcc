@@ -1,0 +1,14 @@
+namespace basilcc
+{
+  typedef ITrie <unsigned int, NodePtr> NodePtrTrie;
+  template class ITrie <unsigned int, NodePtr>;
+}
+
+#hdr
+#include <basilcc_node_ptr.h>
+#include <basilcc_itrie.h>
+#end
+
+#src
+#include <basilcc_itrie.tpl>
+#end

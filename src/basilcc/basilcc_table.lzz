@@ -1,0 +1,14 @@
+namespace basilcc
+{
+   // base class for all tables
+   class Table
+   {
+   public:
+      virtual ~Table()
+      {}
+   }
+}
+
+#hdr
+#include <basilcc_table_number.h>
+#end

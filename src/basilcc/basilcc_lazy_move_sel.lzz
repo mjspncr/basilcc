@@ -1,0 +1,65 @@
+namespace basilcc
+{
+  class BasilCC;
+
+  // lazy move selection
+  class LazyMoveSel
+  {
+  public:
+    LazyMoveSel (int num, LazyMovePtrVector const & lazy_moves)
+      : m_num (num), m_lazy_moves (lazy_moves)
+    {}
+    ~ LazyMoveSel ()
+    {}
+
+    // get lazy move number (number really needed?)
+    inline int getNumber () const
+    {
+      return m_num;
+    }
+
+    // get lazy moves
+    inline LazyMovePtrVector const & getLazyMoves () const
+    {
+      return m_lazy_moves;
+    }
+
+    // get move sel
+    MoveSelPtr getMoveSel (BasilCC & cc, ShiftPtrVector const & token_shifts)
+    {
+      MovePtrVector moves;
+      moves.reserve (m_lazy_moves.size ());
+      transform (m_lazy_moves.begin (), m_lazy_moves.end (), back_inserter (moves), GetMove (cc, token_shifts));
+      return basilcc::getMoveSel (cc, moves);
+    }
+
+  private:
+    int m_num;
+    LazyMovePtrVector m_lazy_moves;
+  }
+}
+
+using namespace std;
+using namespace basilcc;
+
+namespace
+{
+  // get move from lazy move
+  inline MovePtr GetMove (BasilCC & cc, ShiftPtrVector const & token_shifts; LazyMovePtr lazy_move)
+  {
+    return lazy_move->getMove (cc, token_shifts);
+  }
+}
+
+#hdr
+#include <basilcc_lazy_move_ptr_vector.h>
+#include <basilcc_move_sel_ptr.h>
+#include <basilcc_shift_ptr_vector.h>
+#include <basilcc_symbol_ptr.h>
+#end
+
+#src
+#include <basilcc_lazy_move.h>
+#include <basilcc_move_sel_api.h>
+#include <algorithm>
+#end

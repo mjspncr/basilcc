@@ -1,0 +1,427 @@
+// finite state machine, just maintains LR tables, readonly
+namespace basil
+{
+   typedef std::vector<int> IntVector;
+   typedef std::vector<std::string> StringVector;
+   typedef std::pair<std::string, int> StringIntPair;
+   typedef std::vector<StringIntPair> StringIntVector;
+   typedef std::map<std::string, int> StringIntMap;
+
+   class FSM
+   {
+   public:
+      // load tables from table on top of stack
+      void load(lua_State *L, int idx, StringIntMap const &token_numbers)
+      {
+         read_keywords(L, idx);
+         read_rules(L, idx);
+         read_action_seqs(L, idx);
+         IntVector tokens;
+         read_operators(L, idx, token_numbers, tokens); 
+         read_move_sels(L, idx, tokens);
+         read_states(L, idx);
+         read_shift_state_sels(L, idx);
+         read_gotos(L, idx);
+      }
+
+      // constants
+      enum { REDUCE = 1, ACCEPT = 2, SHIFT = 3, DONE = 4 };
+      enum { NOINDEX = -1 };
+
+      // get vector of keyword name and token number pairs
+      inline StringIntVector const &get_keywords() const
+      {
+         return m_keywords;
+      }
+
+      // get lexical state at state
+      inline int get_lex_state(int state) const
+      {
+         return m_states[state].lex_state;
+      }
+
+      // get rule
+      struct Rule(int size, int node) {}
+      inline FSM::Rule const &get_rule(int rule_num) const
+      {
+         return m_rules[rule_num];
+      }
+
+      // get action sequence at state with next token 
+      struct Action(int kind, int arg1, int arg2) {}
+      typedef Action const * ActionPtr;
+      typedef std::pair <ActionPtr, ActionPtr> ActionPtrPair;
+      FSM::ActionPtrPair get_action_seq(int state_num, int token) const
+      {
+         State const &state = m_states[state_num];
+         MovePtr move_sel_beg = m_move_sels_beg[state.move_sel];
+         MovePtr move_sel_end = m_move_sels_beg[state.move_sel + 1];
+         Move const *t = std::lower_bound(move_sel_beg, move_sel_end, token, move_token_less);
+         int action_seq_num = (t == move_sel_end || t->token != token) ? state.def_action_seq : t->action_seq;
+         ActionPtr action_seq_end = m_action_seqs_beg[action_seq_num + 1];
+         ActionPtr action_seq_beg = m_action_seqs_beg[action_seq_num];
+         return ActionPtrPair(action_seq_beg, action_seq_end);
+      }
+
+      // get goto state at state and shortcut
+      int get_goto_state(int state_num, int shortcut) const
+      {
+         Goto const &go2 = m_gotos[shortcut];
+         if (go2.shift_state_sel == NOINDEX)
+         {
+            return NOINDEX;
+         }
+         ShiftStatePtr shift_state_sel_beg = m_shift_state_sels_beg[go2.shift_state_sel];
+         ShiftStatePtr shift_state_sel_end = m_shift_state_sels_beg[go2.shift_state_sel + 1];
+         int num = m_states[state_num].num;
+         ShiftStatePtr t = std::lower_bound(shift_state_sel_beg, shift_state_sel_end, num, shift_state_num_less);
+         return (t == shift_state_sel_end || t->num != num) ? go2.def_state : t->state;
+      }
+
+   private:
+      // other types
+      struct Move(int token, int action_seq) {}
+      struct State(int move_sel, int def_action_seq, int lex_state, int num) {}
+      struct ShiftState(int num, int state) {}
+      struct Goto(int shift_state_sel, int def_state) {}
+
+      typedef std::vector<Rule> RuleVector;
+      typedef Move const *MovePtr;
+      typedef std::vector<Move> MoveVector;
+      typedef std::vector<MovePtr> MovePtrVector;
+      typedef std::vector<Action> ActionVector;
+      typedef std::vector<ActionPtr> ActionPtrVector;
+      typedef std::vector<State> StateVector;
+      typedef ShiftState const *ShiftStatePtr;
+      typedef std::vector<ShiftState> ShiftStateVector;
+      typedef std::vector<ShiftStatePtr> ShiftStatePtrVector;
+      typedef std::vector<Goto> GotoVector;
+
+      // keywords
+      void read_keywords(lua_State *L, int idx)
+      {
+         int type = lua_getfield(L, idx, "keywords");
+         if (type == LUA_TNIL)
+         {
+            lua_pop(L, 1); // discard nil
+            return;
+         }
+         // start number
+         lua_getfield(L, -1, "start");
+         int number = lua_tointeger(L, -1);
+         lua_pop(L, 1);
+         // lexemes
+         lua_pushnil(L);
+         while (lua_next(L, -2) != 0)
+         {
+            std::string name = lua_tostring(L, -1);
+            m_keywords.push_back(StringIntPair(name, number));
+            ++number;
+            lua_pop(L, 1); // pop value only, leave key for next iteration
+         }
+         lua_pop(L, 1); // pop keywords table
+      }
+
+      // rules
+      void read_rules(lua_State *L, int idx)
+      {
+         lua_getfield(L, idx, "rules");
+         lua_len(L, -1);
+         int n = lua_tointeger(L, -1);
+         lua_pop(L, 1);
+         m_rules.reserve(n);
+         lua_pushnil(L);
+         while (lua_next(L, -2) != 0)
+         {
+            lua_geti(L, -1, 1);
+            int size = lua_tointeger(L, -1);
+            lua_pop(L, 1);
+            int node = -1;
+            if (lua_geti(L, -1, 2) != LUA_TNIL)
+            {
+               node = lua_tointeger(L, -1);
+            }
+            lua_pop(L, 1);
+            m_rules.push_back(Rule(size, node)); // or node is index in register of node metaclass?
+            lua_pop(L, 1); // pop value
+         }
+         lua_pop (L, 1); // pop rules table
+      }
+
+      // action seqs
+      void read_action_seqs(lua_State *L, int idx)
+      {
+         lua_getfield(L, idx, "action_seqs");
+         {
+            lua_len(L, -1);
+            int n = lua_tointeger(L, -1);
+            lua_pop(L, 1);
+            m_action_seqs.reserve (n);
+            lua_pushnil(L);
+            while (lua_next(L, -2) != 0)
+            {
+               lua_geti(L, -1, 1);
+               int kind = lua_tointeger(L, -1);
+               lua_pop(L, 1);
+               lua_geti(L, -1, 2);
+               int arg1 = lua_tointeger(L, -1);
+               lua_pop(L, 1);
+               int arg2 = -1; 
+               if (kind != SHIFT)
+               {
+                  lua_geti(L, -1, 3);
+                  arg2 = lua_tointeger(L, -1);
+                  lua_pop(L, 1);
+               }
+               m_action_seqs.push_back(Action(kind, arg1, arg2));
+               lua_pop(L, 1); // pop value
+            }
+         }
+         {
+            lua_getfield(L, -1, "seqs_end");
+            lua_len(L, -1);
+            int n = lua_tointeger(L, -1);
+            lua_pop(L, 1);
+            m_action_seqs_beg.reserve(n + 1);
+            m_action_seqs_beg.push_back(&m_action_seqs[0]);
+            lua_pushnil(L);
+            while (lua_next(L, -2) != 0)
+            {
+               int i = lua_tointeger(L, -1);
+               m_action_seqs_beg.push_back(&m_action_seqs[i]);
+               lua_pop(L, 1);
+            }
+            lua_pop(L, 1); // pop seqs_end table
+         }
+         lua_pop(L, 1); // action_seqs table
+      }
+
+      // operators, populate tokens
+      void read_operators(lua_State *L, int idx, StringIntMap const &token_numbers, IntVector &tokens)
+      {
+         lua_getfield(L, idx, "operators");
+         lua_len(L, -1);
+         int n = lua_tointeger(L, -1);
+         lua_pop(L, 1);
+         tokens.reserve(n);
+         lua_pushnil(L);
+         while (lua_next(L, -2) != 0)
+         {
+            std::string name = lua_tostring(L, -1);
+            StringIntMap::const_iterator p = token_numbers.find(name);
+            if (p == token_numbers.end())
+            {
+               std::ostringstream ss;
+               ss << "Missing token number for " << name;  
+               throw std::runtime_error(ss.str());
+            }
+            tokens.push_back(p->second);
+            lua_pop(L, 1); // pop value
+         }
+         lua_pop(L, 1); // pop operators table
+      }
+
+      // moves selections
+      void read_move_sels(lua_State *L, int idx, IntVector const &tokens)
+      {
+         lua_getfield(L, idx, "move_sels");
+         {
+            lua_len(L, -1);
+            int n = lua_tointeger(L, -1);
+            lua_pop(L, 1);
+            m_move_sels.reserve(n);
+            lua_pushnil(L);
+            while (lua_next(L, -2) != 0)
+            {
+               lua_geti(L, -1, 1);
+               int token = lua_tointeger(L, -1);
+               lua_pop(L, 1);
+               if (size_t(token) < tokens.size()) // keyword if token >= token.size()
+               {
+                  token = tokens[token];
+               }
+               lua_geti(L, -1, 2);
+               int action_seq_num = lua_tointeger(L, -1);
+               lua_pop(L, 1);
+               m_move_sels.push_back(Move(token, action_seq_num));
+               lua_pop(L, 1); // pop value
+            }
+         }
+         {
+            lua_getfield(L, -1, "sels_end");
+            lua_len(L, -1);
+            int n = lua_tointeger(L, -1);
+            lua_pop(L, 1);
+            m_move_sels_beg.reserve(n + 1);
+            m_move_sels_beg.push_back(&m_move_sels[0]);
+            lua_pushnil(L);
+            while (lua_next(L, -2) != 0)
+            {
+               int i = lua_tointeger(L, -1);
+               m_move_sels_beg.push_back(&m_move_sels[i]);
+               lua_pop(L, 1);
+            }
+            lua_pop(L, 1); // pop sels_end table
+            // sort moves in each selection by token number
+            for (MovePtrVector::iterator i = m_move_sels_beg.begin (), j = i+1, endj = m_move_sels_beg.end(); j != endj; i = j, ++j)
+            {
+               Move *p = const_cast<Move*>(*i);
+               Move *q = const_cast<Move*>(*j);
+               std::sort(p, q, move_less);
+            }
+         }
+         lua_pop(L, 1); // pop move_sels table
+      }
+
+      // states
+      void read_states(lua_State *L, int idx)
+      {
+         lua_getfield(L, idx, "states");
+         lua_len(L, -1);
+         int n = lua_tointeger(L, -1);
+         lua_pop(L, 1);
+         m_states.reserve(n);
+         lua_pushnil(L);
+         while (lua_next(L, -2) != 0)
+         {
+            lua_geti(L, -1, 1);
+            int move_sel = lua_tointeger(L, -1);
+            lua_pop(L, 1);
+            lua_geti(L, -1, 2);
+            int def_action_seq = lua_tointeger(L, -1);
+            lua_pop(L, 1);
+            lua_geti(L, -1, 3);
+            int lex_state = lua_tointeger(L, -1);
+            lua_pop(L, 1);
+            int num = -1;
+            if (lua_geti(L, -1, 4) != LUA_TNIL)
+            {
+               num = lua_tointeger(L, -1);
+            }
+            lua_pop(L, 1);
+            m_states.push_back(State(move_sel, def_action_seq, lex_state, num));
+            lua_pop(L, 1); // pop value
+         }
+         lua_pop(L, 1); // pop states table
+      }
+
+      // shift state selections
+      void read_shift_state_sels(lua_State *L, int idx)
+      {
+         lua_getfield(L, idx, "shift_state_sels");
+         {
+            lua_len(L, -1);
+            int n = lua_tointeger(L, -1);
+            lua_pop(L, 1);
+            m_shift_state_sels.reserve(n);
+            lua_pushnil(L);
+            while (lua_next(L, -2) != 0)
+            {
+               lua_geti(L, -1, 1);
+               int num = lua_tointeger(L, -1);
+               lua_pop(L, 1);
+               lua_geti(L, -1, 2);
+               int state = lua_tointeger(L, -1);
+               lua_pop(L, 1);
+               m_shift_state_sels.push_back(ShiftState(num, state));
+               lua_pop(L, 1); // pop value
+            }
+         }
+         {
+            lua_getfield(L, -1, "sels_end");
+            lua_len(L, -1);
+            int n = lua_tointeger(L, -1);
+            lua_pop(L, 1);
+            m_shift_state_sels_beg.reserve(n + 1);
+            m_shift_state_sels_beg.push_back(&m_shift_state_sels[0]);
+            lua_pushnil(L);
+            while (lua_next(L, -2) != 0)
+            {
+               int i = lua_tointeger(L, -1);
+               m_shift_state_sels_beg.push_back(&m_shift_state_sels[i]);
+               lua_pop(L, 1);
+            }
+            lua_pop(L, 1); // pop sels_end table
+         }
+         lua_pop(L, 1); // pop shift_state_sels table
+      }
+               
+      // gotos
+      void read_gotos(lua_State *L, int idx)
+      {
+         lua_getfield(L, idx, "gotos");
+         lua_len(L, -1);
+         int n = lua_tointeger(L, -1);
+         lua_pop(L, 1);
+         m_gotos.reserve(n);
+         lua_pushnil(L);
+         while (lua_next(L, -2) != 0)
+         {
+            int shift_state_sel = -1, def_state = -1;
+            if (lua_geti(L, -1, 1) != LUA_TNIL)
+            {
+               shift_state_sel = lua_tointeger(L, -1);
+               lua_pop(L, 1);
+               lua_geti(L, -1, 2);
+               def_state = lua_tointeger(L, -1);
+            }
+            lua_pop(L, 1);
+            m_gotos.push_back(Goto(shift_state_sel, def_state));
+            lua_pop(L, 1); // pop value
+         }
+         lua_pop(L, 1); // pop gotos table
+      }
+
+      // for sorting and searching
+
+      // true if move.token < token
+      static bool move_token_less(Move const &move, int token)
+      {
+         return move.token < token;
+      }
+      static bool move_less(Move const &move1, Move const &move2)
+      {
+         return move1.token < move2.token;
+      }
+      // true if num < shift_sate.num
+      static bool shift_state_num_less(ShiftState const &shift_state, int num)
+      {
+         return shift_state.num < num;
+      }
+
+   private:
+      StringIntVector m_keywords;
+      int m_num_start_rules;
+      StringVector m_nodes;
+      RuleVector m_rules;
+      ActionVector m_action_seqs;
+      ActionPtrVector m_action_seqs_beg;
+      MoveVector m_move_sels;
+      MovePtrVector m_move_sels_beg;
+      StateVector m_states;
+      ShiftStateVector m_shift_state_sels;
+      ShiftStatePtrVector m_shift_state_sels_beg;
+      GotoVector m_gotos;
+   }
+}
+
+using namespace basil;
+
+#hdr
+#include <map>
+#include <string>
+#include <vector>
+#include <lua.h>
+#end
+
+#src
+#include <algorithm>
+#include <cstring>
+#include <fstream>
+#include <limits>
+#include <sstream>
+#include <stddef.h>
+#include <stdexcept>
+#include <utility>
+#include <lauxlib.h>
+#end

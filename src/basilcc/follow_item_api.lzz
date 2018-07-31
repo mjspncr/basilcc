@@ -32,8 +32,8 @@ namespace
     // freeze follow item, return shared item, reuse follow_item or delete it
     FollowItemPtr freeze (FollowItemPtr & follow_item)
     {
-      m_follow_item_trie.push (unsigned (follow_item->getToken ()));
-      m_follow_item_trie.push (unsigned (follow_item->getShortcut ()));
+      m_follow_item_trie.push (ptrdiff_t (follow_item->getToken ()));
+      m_follow_item_trie.push (ptrdiff_t (follow_item->getShortcut ()));
       Priority const & rp = follow_item->getReducePriority ();
       m_follow_item_trie.push (rp.getCount ());
       m_follow_item_trie.push (rp.getBang ());

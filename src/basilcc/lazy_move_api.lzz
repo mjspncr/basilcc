@@ -26,8 +26,8 @@ namespace
     // get lazy move from token and action sequence 
     LazyMovePtr getLazyMove (SymbolPtr token, LazyActionSeqPtr lazy_action_seq)
     {
-      m_lazy_move_trie.push (unsigned (token));
-      m_lazy_move_trie.push (unsigned (lazy_action_seq));
+      m_lazy_move_trie.push (ptrdiff_t (token));
+      m_lazy_move_trie.push (ptrdiff_t (lazy_action_seq));
       LazyMovePtr & lazy_move = m_lazy_move_trie.commit (0);
       if (! lazy_move)
       {

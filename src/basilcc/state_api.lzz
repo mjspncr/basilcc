@@ -79,7 +79,7 @@ namespace
     StatePtrVector & getBaseStates (BasilCC & cc, FollowKernelPtr follow_kernel)
     {
       BaseKernelPtr base_kernel = follow_kernel->getShiftKernel (cc)->getBaseKernel (cc);
-      return m_state_trie.insert (unsigned (base_kernel), StatePtrVector ());
+      return m_state_trie.insert (ptrdiff_t (base_kernel), StatePtrVector ());
     }
 
   private:

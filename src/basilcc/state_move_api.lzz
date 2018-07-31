@@ -32,8 +32,8 @@ namespace
     // get state move from components
     StateMovePtr getStateMove (MoveSelPtr move_sel, ActionSeqPtr def_action_seq)
     {
-      m_state_move_trie.push (unsigned (move_sel));
-      m_state_move_trie.push (unsigned (def_action_seq));
+      m_state_move_trie.push (ptrdiff_t (move_sel));
+      m_state_move_trie.push (ptrdiff_t (def_action_seq));
       StateMovePtr & state_move = m_state_move_trie.commit (0);
       if (! state_move)
       {

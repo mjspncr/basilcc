@@ -53,7 +53,7 @@ namespace
   // apend follow item to trie key
   inline void PushFollowItem (FollowPtrTrie & trie; FollowItemPtr follow_item) const
   {
-    trie.push (unsigned (follow_item));
+    trie.push (ptrdiff_t (follow_item));
   }
 }
 

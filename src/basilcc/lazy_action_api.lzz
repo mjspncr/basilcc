@@ -45,8 +45,8 @@ namespace
     // get reduce lazy action
     LazyActionPtr getReduceLazyAction (RulePtr rule, SymbolPtr shortcut, bool accept)
     {
-      m_lazy_action_trie.push (unsigned (rule));
-      m_lazy_action_trie.push (unsigned (shortcut));
+      m_lazy_action_trie.push (ptrdiff_t (rule));
+      m_lazy_action_trie.push (ptrdiff_t (shortcut));
       m_lazy_action_trie.push (accept ? 1 : 0);
       LazyActionPtr & lazy_action = m_lazy_action_trie.commit (0);
       if (! lazy_action)

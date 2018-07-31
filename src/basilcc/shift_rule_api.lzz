@@ -44,7 +44,7 @@ namespace
     // freeze shift rule, reuse shift_rule or delete it
     ShiftRulePtr freeze (ShiftRulePtr & shift_rule)
     {
-      m_shift_rules_trie.push (unsigned (shift_rule->getBaseRule ()));
+      m_shift_rules_trie.push (ptrdiff_t (shift_rule->getBaseRule ()));
       Priority const & sp = shift_rule->getShiftPriority ();
       m_shift_rules_trie.push (sp.getCount ());
       m_shift_rules_trie.push (sp.getBang ());
@@ -63,7 +63,7 @@ namespace
     // get shared rule from base rule and shift priority
     ShiftRulePtr getRule (BaseRulePtr base_rule, Priority const & sp)
     {
-      m_shift_rules_trie.push (unsigned (base_rule));
+      m_shift_rules_trie.push (ptrdiff_t (base_rule));
       m_shift_rules_trie.push (sp.getCount ());
       m_shift_rules_trie.push (sp.getBang ());
       ShiftRulePtr & shift_rule = m_shift_rules_trie.commit (0);

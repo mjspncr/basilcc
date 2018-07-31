@@ -44,7 +44,7 @@ namespace
 
   inline void PushLazyMove (LazyMoveSelPtrTrie & trie; LazyMovePtr lazy_move) const
   {
-    trie.push (unsigned (lazy_move));
+    trie.push (ptrdiff_t (lazy_move));
   }
 }
 

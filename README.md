@@ -14,8 +14,8 @@ over all possible lookahead tokens, and the same holds true
 recursively over all pairwise state transitions. The FSM provides the
 power of LR with minimum overhead.
 
-The generated fsm right now is not interchangeably between 32/64 bits
-we need to regenerate it for 32/64.
+**The generated FSM right now is not interchangeably between 32/64 bits
+we need to regenerate it for 32/64.**
 
 ## Grammar File
 

@@ -69,11 +69,11 @@ namespace basil
             ss << "Parser finite state machine not initialized after loading module: " << line;
             throw std::runtime_error(ss.str());
          }
-      }  
+      }
 
       // lua callbacks
 
-      // initialize finite state machine 
+      // initialize finite state machine
       int finite_state_machine()
       {
          lua_State *L = engine.get_lua_state();
@@ -205,7 +205,7 @@ namespace
 #include <basil_token_number.h>
 #include <map>
 #include <string>
-#include <lua.h>
+#include <lua.hpp>
 #end
 
 #src

@@ -28,11 +28,11 @@ namespace
     {
       deleteObjects (m_base_rules.begin (), m_base_rules.end ());
     }
-    
+
     // get base rule
     BaseRulePtr getBaseRule (RulePtr rule, int pos)
     {
-      m_base_rule_trie.push (unsigned (rule));
+      m_base_rule_trie.push (size_t (rule));
       m_base_rule_trie.push (pos);
       BaseRulePtr & base_rule = m_base_rule_trie.commit (0);
       if (! base_rule)

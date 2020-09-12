@@ -8,7 +8,7 @@ namespace basilcc
     BaseRulePtrVector base_rules;
     base_rules.reserve (shift_rules.size ());
     transform (shift_rules.begin (), shift_rules.end (), back_inserter (base_rules), getShiftBaseRule);
-    return cc.getTable <BaseKernelTable> ().getBaseKernel (base_rules); 
+    return cc.getTable <BaseKernelTable> ().getBaseKernel (base_rules);
   }
 }
 
@@ -48,7 +48,7 @@ namespace
   // append base rule to trie key
   inline void PushBaseRule (BaseKernelPtrTrie & trie; BaseRulePtr base_rule) const
   {
-    trie.push (unsigned (base_rule));
+    trie.push (size_t (base_rule));
   }
 }
 

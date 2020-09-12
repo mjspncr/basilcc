@@ -57,7 +57,7 @@ namespace
   // append action to trie key
   inline void PushAction (ActionSeqPtrTrie & trie; ActionPtr action) const
   {
-    trie.push (unsigned (action));
+    trie.push (size_t (action));
   }
 }
 

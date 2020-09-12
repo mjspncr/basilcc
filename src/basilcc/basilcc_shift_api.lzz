@@ -26,8 +26,8 @@ namespace
     // get shift from symbol and state
     ShiftPtr getShift (SymbolPtr symbol, StatePtr state)
     {
-      m_shift_trie.push (unsigned (symbol));
-      m_shift_trie.push (unsigned (state));
+      m_shift_trie.push (size_t (symbol));
+      m_shift_trie.push (size_t (state));
       ShiftPtr & shift = m_shift_trie.commit (0);
       if (! shift)
       {

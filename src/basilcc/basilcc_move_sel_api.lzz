@@ -29,7 +29,7 @@ namespace
     {
       deleteObjects (m_move_sels.begin (), m_move_sels.end ());
     }
-    
+
     // get move sel from moves
     MoveSelPtr getMoveSel (MovePtrVector & moves)
     {
@@ -49,7 +49,7 @@ namespace
       return m_move_sels;
     }
 
-    enum { TABLE = TABLE_MOVE_SEL } 
+    enum { TABLE = TABLE_MOVE_SEL }
   private:
     MoveSelPtrTrie m_move_sel_trie;
     MoveSelPtrVector m_move_sels;
@@ -57,7 +57,7 @@ namespace
 
   inline void PushMove (MoveSelPtrTrie & trie; MovePtr move) const
   {
-    trie.push (unsigned (move));
+    trie.push (size_t (move));
   }
 }
 

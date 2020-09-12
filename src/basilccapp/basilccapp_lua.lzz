@@ -55,7 +55,7 @@ namespace
       type_error(L, i, lua_typename(L, expected_type));
    }
 
-   // error if value at index i is not expected type, otherwise return object pointer 
+   // error if value at index i is not expected type, otherwise return object pointer
    void *check_type(lua_State *L, int i, char const *expected_tname)
    {
       void *p = luaL_testudata(L, i, expected_tname);
@@ -129,7 +129,7 @@ namespace
       int value = lua_tointeger(L, -1);
       return lua_pop(L, 1), value;
    }
-   // get int at element j in table i 
+   // get int at element j in table i
    int get_int_element(lua_State *L, int i, int j)
    {
       get_type_element(L, i, j, LUA_TNUMBER);
@@ -158,14 +158,14 @@ namespace
    {
       std::string str = lua_tostring(L, -1);
       return lua_pop(L, 1), str;
-   }      
+   }
    // get string at element j in table i
    std::string get_string_element(lua_State *L, int i, int j)
    {
       get_type_element(L, i, j, LUA_TSTRING);
       return to_string(L);
    }
-   // get optional string feild in table i 
+   // get optional string feild in table i
    std::string opt_string_field(lua_State *L, int i, char const *name, std::string const &def = std::string())
    {
       return has_type_field(L, i, name, LUA_TSTRING) ? to_string(L) : def;
@@ -296,7 +296,7 @@ namespace
    RuleSymbolPtr get_symbol_element(lua_State *L, int i, int j)
    {
       lua_geti(L, i, j);
-      return get_symbol(L);      
+      return get_symbol(L);
    }
 
    // get optional list of symbols from field in table i
@@ -350,7 +350,7 @@ namespace
 
 #hdr
 #include <iosfwd>
-#include <lua.h>
+#include <lua.hpp>
 #end
 
 #src

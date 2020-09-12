@@ -1,7 +1,7 @@
 namespace basilcc
 {
-  typedef Trie <unsigned int, 0xFFFFFFFF, 512, ActionPtr> ActionPtrTrie;
-  template class Trie <unsigned int, 0xFFFFFFFF, 512, ActionPtr>;
+  typedef Trie <size_t, 0xFFFFFFFF, 512, ActionPtr> ActionPtrTrie;
+  template class Trie <size_t, 0xFFFFFFFF, 512, ActionPtr>;
 }
 
 #hdr

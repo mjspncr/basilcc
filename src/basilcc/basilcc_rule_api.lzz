@@ -72,14 +72,14 @@ namespace
          if (left_symbol->isToken())
          {
             std::ostringstream ss;
-            ss << left_rule_symbol->getLoc() << "Rule left-hand symbol is token: " << left_symbol->getName(); 
+            ss << left_rule_symbol->getLoc() << "Rule left-hand symbol is token: " << left_symbol->getName();
             throw std::runtime_error(ss.str());
          }
          NodePtr node = 0;
          if (!rule_name.empty())
          {
             char const *node_name = m_cc.intern(toCapString(rule_name.c_str()));
-            NodePtr &node_ = m_node_trie.insert(unsigned(node_name), 0);
+            NodePtr &node_ = m_node_trie.insert(size_t(node_name), 0);
             if (!node_)
             {
                node_ = *m_nodes.insert(m_nodes.end(), new Node(node_name));
@@ -90,13 +90,13 @@ namespace
          bool can_bypass = !is_start && canBypass(node, right_rule_symbols, no_bypass);
          RulePtr rule = *m_rules.insert(m_rules.end(),
                new Rule(m_rules.size(), node, is_start, left_rule_symbol, right_rule_symbols, explicit_follow, can_bypass));
-         m_left_symbol_rules.insert(unsigned(left_rule_symbol->getSymbol()), RulePtrVector()).push_back(rule);
+         m_left_symbol_rules.insert(size_t(left_rule_symbol->getSymbol()), RulePtrVector()).push_back(rule);
       }
 
-      // get rule with left hand symbol, must be a left symbol 
+      // get rule with left hand symbol, must be a left symbol
       RulePtrVector const &getRules(SymbolPtr left_symbol) const
       {
-         return *m_left_symbol_rules.find(unsigned(left_symbol));
+         return *m_left_symbol_rules.find(size_t(left_symbol));
       }
 
       // get all rules
@@ -108,10 +108,10 @@ namespace
       // get rule with left hand symbol
       bool isLeftHandSymbol(SymbolPtr left_symbol) const
       {
-         return m_left_symbol_rules.find(unsigned(left_symbol)) != 0;
+         return m_left_symbol_rules.find(size_t(left_symbol)) != 0;
       }
 
-      // freeze rules 
+      // freeze rules
       void freezeRules()
       {
          // order rule nodes and assign numbers
@@ -140,7 +140,7 @@ namespace
          // if enabled, no semantic actions, and not explicitly ruled out
          if (m_enable_bypass && !node && !no_bypass)
          {
-            // and only if one non terminal on right hand size 
+            // and only if one non terminal on right hand size
             if (right_rule_symbols.size() == 1 && !right_rule_symbols.front()->getSymbol()->isToken())
             {
                bypass = true;

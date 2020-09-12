@@ -53,7 +53,7 @@ namespace basilcc
   }
 
   // key manager
-  template <class T, T TERM, unsigned int BLOCKSIZE>
+  template <class T, T TERM, size_t BLOCKSIZE>
   class TrieKeyStore
   {
   public:
@@ -171,10 +171,10 @@ namespace basilcc
     Block * m_blocks;
   }
 
-  template class TrieKey <unsigned int, 0xFFFFFFFF>;
-  template class TrieKeyStore <unsigned int, 0xFFFFFFFF, 512>; 
+  template class TrieKey <size_t, 0xFFFFFFFF>;
+  template class TrieKeyStore <size_t, 0xFFFFFFFF, 512>;
   template class TrieKey <char, 0>;
-  template class TrieKeyStore <char, 0, 128>; 
+  template class TrieKeyStore <char, 0, 128>;
 }
 
 #pragma tpl

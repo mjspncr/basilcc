@@ -46,7 +46,7 @@ namespace
     // get state
     StatePtr getState (BasilCC & cc, FollowKernelPtr follow_kernel)
     {
-      StatePtr state = 0; 
+      StatePtr state = 0;
       // get state set with same base kernel then match follow kernel
       StatePtrVector & base_states = getBaseStates (cc, follow_kernel);
       for (StatePtrVectorConstIter i = base_states.begin (), endi = base_states.end (); i != endi; ++ i)
@@ -72,14 +72,14 @@ namespace
     {
       return m_states;
     }
-    
+
     enum { TABLE = TABLE_STATE }
   private:
     // get states with same base
     StatePtrVector & getBaseStates (BasilCC & cc, FollowKernelPtr follow_kernel)
     {
       BaseKernelPtr base_kernel = follow_kernel->getShiftKernel (cc)->getBaseKernel (cc);
-      return m_state_trie.insert (unsigned (base_kernel), StatePtrVector ());
+      return m_state_trie.insert (size_t (base_kernel), StatePtrVector ());
     }
 
   private:

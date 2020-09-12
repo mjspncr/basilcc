@@ -17,7 +17,7 @@ namespace basil
       {
         throw runtime_error (Message ("failed to open parser FSM file: %") << fsm_filename);
       }
-      BinaryReader r (is);
+      FsmReader r (is);
       readKeywords (r);
       readNodes (r);
       readRules (r);
@@ -130,7 +130,7 @@ namespace basil
     //
 
     // keywords
-    void readKeywords (BinaryReader & r)
+    void readKeywords (FsmReader & r)
     {
       StringVector lexemes;
       readStringVector (r, lexemes);
@@ -147,13 +147,13 @@ namespace basil
     }
 
     // nodes
-    void readNodes (BinaryReader & r)
+    void readNodes (FsmReader & r)
     {
       readStringVector (r, m_nodes);
     }
 
     // rules
-    void readRules (BinaryReader & r)
+    void readRules (FsmReader & r)
     {
       size_t size = r.readSize ();
       m_num_start_rules = r.readSize ();
@@ -161,7 +161,7 @@ namespace basil
       m_rules.reserve (size);
       generate_n (back_inserter (m_rules), size, ReadRule (r));
     }
-    inline FSM::Rule ReadRule (BinaryReader & r;) const
+    inline FSM::Rule ReadRule (FsmReader & r;) const
     {
       int size = r.readInt ();
       int node = r.readInt ();
@@ -169,7 +169,7 @@ namespace basil
     }
 
     // actions
-    void readActionSeqs (BinaryReader & r)
+    void readActionSeqs (FsmReader & r)
     {
       int size = r.readInt ();
 //--//std::cout << "readActionSeqs  " << " = " << size << "\n";
@@ -181,7 +181,7 @@ namespace basil
       m_action_seqs_beg.push_back (& m_action_seqs [0]);
       transform (nums.begin (), nums.end (), back_inserter (m_action_seqs_beg), GetActionPtr (m_action_seqs));
     }
-    inline FSM::Action ReadAction (BinaryReader & r;) const
+    inline FSM::Action ReadAction (FsmReader & r;) const
     {
       int kind = r.readInt ();
       int arg1 = r.readInt ();
@@ -194,7 +194,7 @@ namespace basil
     }
 
     // read token names and set real token numbers
-    void getTokens (BinaryReader & r, TokenNumberPtr token_numbers_beg, TokenNumberPtr token_numbers_end, IntVector & tokens)
+    void getTokens (FsmReader & r, TokenNumberPtr token_numbers_beg, TokenNumberPtr token_numbers_end, IntVector & tokens)
     {
       StringVector names;
       readStringVector (r, names);
@@ -215,7 +215,7 @@ namespace basil
     }
 
     // moves, tokens is real token numbers
-    void readMoveSels (BinaryReader & r, IntVector const & tokens)
+    void readMoveSels (FsmReader & r, IntVector const & tokens)
     {
       // read all moves, filling in with real operator numbers
       int size = r.readInt ();
@@ -238,7 +238,7 @@ namespace basil
       }
     }
     // read move
-    inline FSM::Move ReadMove (BinaryReader & r, IntVector const & tokens;) const
+    inline FSM::Move ReadMove (FsmReader & r, IntVector const & tokens;) const
     {
       int token = r.readInt ();
       // keyword if token >= size, don't need to translate
@@ -255,14 +255,14 @@ namespace basil
     }
 
     // states
-    void readStates (BinaryReader & r)
+    void readStates (FsmReader & r)
     {
       size_t size = r.readSize ();
 //--//std::cout << "readStates  " << " = " << size << "\n";
       m_states.reserve (size);
       generate_n (back_inserter (m_states), size, ReadState (r));
     }
-    inline FSM::State ReadState (BinaryReader & r;) const
+    inline FSM::State ReadState (FsmReader & r;) const
     {
       int move_sel = r.readInt ();
       int def_action_seq = r.readInt ();
@@ -272,7 +272,7 @@ namespace basil
     }
 
     // shift states
-    void readShiftStateSels (BinaryReader & r)
+    void readShiftStateSels (FsmReader & r)
     {
       int size = r.readInt ();
 //--//std::cout << "readShiftStateSels  " << " = " << size << "\n";
@@ -284,7 +284,7 @@ namespace basil
       m_shift_state_sels_beg.push_back (& m_shift_state_sels [0]);
       transform (nums.begin (), nums.end (), back_inserter (m_shift_state_sels_beg), GetShiftStatePtr (m_shift_state_sels));
     }
-    inline FSM::ShiftState ReadShiftState (BinaryReader & r;) const
+    inline FSM::ShiftState ReadShiftState (FsmReader & r;) const
     {
       int num = r.readInt ();
       int state = r.readInt ();
@@ -296,14 +296,14 @@ namespace basil
     }
 
     // and gotos
-    void readGotos (BinaryReader & r)
+    void readGotos (FsmReader & r)
     {
       size_t size = r.readSize ();
 //--//std::cout << "readGotos  " << " = " << size << "\n";
       m_gotos.reserve (size);
       generate_n (back_inserter (m_gotos), size, ReadGoto (r));
     }
-    inline FSM::Goto ReadGoto (BinaryReader & r;) const
+    inline FSM::Goto ReadGoto (FsmReader & r;) const
     {
       int shift_state_sel = r.readInt ();
       int def_state = r.readInt ();
@@ -311,13 +311,13 @@ namespace basil
     }
 
     // read recover strategies, tokens is real token numbers
-    void readStrategies (BinaryReader & r, IntVector const & tokens)
+    void readStrategies (FsmReader & r, IntVector const & tokens)
     {
       size_t size = r.readSize ();
 //--//std::cout << "readStrategies  " << " = " << size << "\n";
       generate_n (back_inserter (m_recover_strategies), size, ReadRecoverStrategy (r, tokens));
     }
-    FSM::RecoverStrategy ReadRecoverStrategy (BinaryReader & r, IntVector const & tokens;) const
+    FSM::RecoverStrategy ReadRecoverStrategy (FsmReader & r, IntVector const & tokens;) const
     {
       int type = r.readInt ();
       int arg  = r.readInt ();
@@ -381,6 +381,8 @@ using namespace std;
 #include <basil/token_number.h>
 #include <vector>
 #include <map>
+//#define FsmReader BinaryReader
+#define FsmReader TextReader
 #end
 
 #src

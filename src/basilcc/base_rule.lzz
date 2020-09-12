@@ -14,7 +14,7 @@ namespace basilcc
       return m_num;
     }
 
-    // get rule  
+    // get rule
     inline RulePtr getRule () const
     {
       return m_rule;
@@ -29,7 +29,7 @@ namespace basilcc
     // true if reduction
     bool isReduction () const
     {
-      return m_pos == m_rule->getSize ();
+      return m_pos == (int)m_rule->getSize ();
     }
 
     // get next rule symbol (rule symbol at position)
@@ -51,7 +51,7 @@ namespace basilcc
       RuleSymbolPtr next_rule_symbol = m_rule->getRightRuleSymbol (m_pos);
       return left_rule_symbol->getFirstPriority () + next_rule_symbol->getFirstPriority ();
     }
-    
+
     // get shift priority
     Priority getShiftPriority () const
     {

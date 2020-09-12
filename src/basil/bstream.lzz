@@ -6,6 +6,7 @@ namespace basil
     template <class T>
     BinaryWriter const & operator << (T num) const
     {
+//--//std::cout << "BinaryWriter num for " << sizeof (T) << " = " << num << "\n";
       os.write (reinterpret_cast <char const *> (& num), sizeof (T));
       return * this;
     }
@@ -13,13 +14,15 @@ namespace basil
     BinaryWriter const & operator << (std::string const & str) const
     {
       string::size_type length = str.length ();
+//--//std::cout << "BinaryWriter std::string for " << length << " = " << str << "\n";
       (* this) << length;
       os.write (str.data (), length);
       return * this;
     }
     BinaryWriter const & operator << (char const * str) const
     {
-      string::size_type length = strlen (str); 
+      string::size_type length = strlen (str);
+//--//std::cout << "BinaryWriter str for " << length << " = " << str << "\n";
       (* this) << length;
       os.write (str, length);
       return * this;
@@ -33,6 +36,7 @@ namespace basil
     BinaryReader const & operator >> (T & num) const
     {
       is.read (reinterpret_cast <char *> (& num), sizeof (T));
+//--//std::cout << "BinaryReader num for " << sizeof (T) << " = " << num << "\n";
       return * this;
     }
     // string
@@ -42,30 +46,35 @@ namespace basil
       (* this) >> length;
       str.resize (length);
       is.read (& str [0], length);
+//--//std::cout << "BinaryReader std::string for " << length << " = " << str << "\n";
       return * this;
     }
     inline char readChar () const
     {
       char num;
       (* this) >> num;
+//--//std::cout << "BinaryReader readChar " << num << "\n";
       return num;
     }
     inline int readInt () const
     {
       int num;
       (* this) >> num;
+//--//std::cout << "BinaryReader readInt " << num << "\n";
       return num;
     }
     inline size_t readSize () const
     {
       size_t num;
       (* this) >> num;
+//--//std::cout << "BinaryReader readSize " << num << "\n";
       return num;
     }
     inline std::string readString () const
     {
       std::string str;
       (* this) >> str;
+//--//std::cout << "BinaryReader readString " << str << "\n";
       return str;
     }
   };

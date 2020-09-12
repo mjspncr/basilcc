@@ -62,7 +62,7 @@ namespace basil
       return m_rules [rule_num];
     }
 
-    // get action sequence at state with next token 
+    // get action sequence at state with next token
     struct Action (int kind, int arg1, int arg2) {}
     typedef Action const * ActionPtr;
     typedef std::pair <ActionPtr, ActionPtr> ActionPtrPair;
@@ -137,6 +137,7 @@ namespace basil
       if (! lexemes.empty ())
       {
         int start_number = r.readInt ();
+//--//std::cout << "readKeywords  " << " = " << start_number << "\n";
         transform (lexemes.begin (), lexemes.end (), back_inserter (m_keywords), SetNumber (start_number));
       }
     }
@@ -154,8 +155,9 @@ namespace basil
     // rules
     void readRules (BinaryReader & r)
     {
-      int size = r.readInt ();
-      m_num_start_rules = r.readInt ();
+      size_t size = r.readSize ();
+      m_num_start_rules = r.readSize ();
+//--//std::cout << "readRules  " << " = " << size << ", " << m_num_start_rules << "\n";
       m_rules.reserve (size);
       generate_n (back_inserter (m_rules), size, ReadRule (r));
     }
@@ -170,6 +172,7 @@ namespace basil
     void readActionSeqs (BinaryReader & r)
     {
       int size = r.readInt ();
+//--//std::cout << "readActionSeqs  " << " = " << size << "\n";
       m_action_seqs.reserve (size);
       generate_n (back_inserter (m_action_seqs), size, ReadAction (r));
       IntVector nums;
@@ -216,6 +219,7 @@ namespace basil
     {
       // read all moves, filling in with real operator numbers
       int size = r.readInt ();
+//--//std::cout << "readMoveSels  " << " = " << size << "\n";
       m_move_sels.reserve (size);
       generate_n (back_inserter (m_move_sels), size, ReadMove (r, tokens));
       // now move selections, just ptrs into moves
@@ -253,7 +257,8 @@ namespace basil
     // states
     void readStates (BinaryReader & r)
     {
-      int size = r.readInt ();
+      size_t size = r.readSize ();
+//--//std::cout << "readStates  " << " = " << size << "\n";
       m_states.reserve (size);
       generate_n (back_inserter (m_states), size, ReadState (r));
     }
@@ -270,6 +275,7 @@ namespace basil
     void readShiftStateSels (BinaryReader & r)
     {
       int size = r.readInt ();
+//--//std::cout << "readShiftStateSels  " << " = " << size << "\n";
       m_shift_state_sels.reserve (size);
       generate_n (back_inserter (m_shift_state_sels), size, ReadShiftState (r));
       IntVector nums;
@@ -292,7 +298,8 @@ namespace basil
     // and gotos
     void readGotos (BinaryReader & r)
     {
-      int size = r.readInt ();
+      size_t size = r.readSize ();
+//--//std::cout << "readGotos  " << " = " << size << "\n";
       m_gotos.reserve (size);
       generate_n (back_inserter (m_gotos), size, ReadGoto (r));
     }
@@ -306,7 +313,8 @@ namespace basil
     // read recover strategies, tokens is real token numbers
     void readStrategies (BinaryReader & r, IntVector const & tokens)
     {
-      int size = r.readInt ();
+      size_t size = r.readSize ();
+//--//std::cout << "readStrategies  " << " = " << size << "\n";
       generate_n (back_inserter (m_recover_strategies), size, ReadRecoverStrategy (r, tokens));
     }
     FSM::RecoverStrategy ReadRecoverStrategy (BinaryReader & r, IntVector const & tokens;) const
@@ -350,7 +358,7 @@ namespace basil
     }
 
   private:
-    int m_num_start_rules;
+    size_t m_num_start_rules;
     StringIntVector m_keywords;
     StringVector m_nodes;
     RuleVector m_rules;

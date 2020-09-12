@@ -37,6 +37,7 @@ namespace
   void writeKeywords (BasilCC const & cc, BinaryWriter & w)
   {
     SymbolPtrVector keywords = getKeywords (cc);
+//--//std::cout << "writeKeywords  " << " = " << keywords.size () << "\n";
     w << keywords.size ();
     for_each (keywords.begin (), keywords.end (), WriteTokenLexeme (w));
     if (! keywords.empty ())
@@ -53,6 +54,7 @@ namespace
   void writeNodeNames (BasilCC & cc, BinaryWriter & w)
   {
     NodePtrVector const & nodes = getNodes (cc);
+//--//std::cout << "writeNodeNames  " << " = " << nodes.size () << "\n";
     w << nodes.size ();
     for_each (nodes.begin (), nodes.end (), WriteNodeName (w));
   }
@@ -65,12 +67,14 @@ namespace
   void writeRules (BasilCC & cc, BinaryWriter & w)
   {
     RulePtrVector const & rules = getRules (cc);
+//--//std::cout << "writeRules  " << " = " << rules.size () << "\n";
     w << rules.size () << getStartRules (cc).size ();
     for_each (rules.begin (), rules.end (), WriteRule (cc, w));
   }
   inline void WriteRule (BasilCC & cc, BinaryWriter & w; RulePtr rule) const
   {
     // size and node name, 0 if no node name
+//--//std::cout << "WriteRule  " << " = " << rule->getSize () << "\n";
     w << rule->getSize ();
     NodePtr node = rule->getNode ();
     if (node)
@@ -89,8 +93,10 @@ namespace
     // write all actions together
     ActionSeqPtrVector const & action_seqs = getActionSeqs (cc);
     w << accumulate (action_seqs.begin (), action_seqs.end (), 0, accumActionSeqSize);
+//--//std::cout << "writeActionSeqs  " << " = " << accumulate (action_seqs.begin (), action_seqs.end (), 0, accumActionSeqSize) << "\n";
     for_each (action_seqs.begin (), action_seqs.end (), WriteActionSeq (w));
     w << action_seqs.size ();
+//--//std::cout << "writeActionSeqs2  " << " = " << action_seqs.size () << "\n";
     for_each (action_seqs.begin (), action_seqs.end (), WriteActionSeqSizeAccum (w, 0));
   }
   int accumActionSeqSize (int acc, ActionSeqPtr action_seq)
@@ -105,6 +111,7 @@ namespace
   void WriteActionSeqSizeAccum (BinaryWriter & w, int p = 0; ActionSeqPtr action_seq)
   {
     w << (p += action_seq->getActions ().size ());
+//--//std::cout << "WriteActionSeqSizeAccum  " << " = " << p << "\n";
   }
   void WriteAction (BinaryWriter & w; ActionPtr action) const
   {
@@ -131,14 +138,14 @@ namespace
       {
         w << (int) REDUCE;
       }
-      w << rule->getNumber ();
-      w << r_action.getShortcut ()->getNumber ();
+      w << (int)rule->getNumber ();
+      w << (int)r_action.getShortcut ()->getNumber ();
     }
     else
     {
       ShiftAction const & s_action = static_cast <ShiftAction const &> (* action);
       w << (int) SHIFT;
-      w << s_action.getState ()->getNumber ();
+      w << (int)s_action.getState ()->getNumber ();
     }
   }
 
@@ -146,6 +153,7 @@ namespace
   void writeOperatorNames (BasilCC const & cc, BinaryWriter & w)
   {
     SymbolPtrVector operators = getOperators (cc);
+//--//std::cout << "writeOperatorNames  " << " = " << operators.size () << "\n";
     w << operators.size ();
     for_each (operators.begin (), operators.end (), WriteTokenName (w));
   }
@@ -158,8 +166,10 @@ namespace
   void writeMoveSels (BasilCC const & cc, BinaryWriter & w)
   {
     MoveSelPtrVector const & move_sels = getMoveSels (cc);
+//--//std::cout << "writeMoveSels  " << " = " << accumulate (move_sels.begin (), move_sels.end (), 0, accumMoveSelSize) << "\n";
     w << accumulate (move_sels.begin (), move_sels.end (), 0, accumMoveSelSize);
     for_each (move_sels.begin (), move_sels.end (), WriteMoveSel (w));
+//--//std::cout << "writeMoveSels2  " << " = " << move_sels.size () << "\n";
     w << move_sels.size ();
     for_each (move_sels.begin (), move_sels.end (), WriteMoveSelSizeAccum (w, 0));
   }
@@ -174,7 +184,7 @@ namespace
   }
   void WriteMove (BinaryWriter & w; MovePtr move) const
   {
-    w << move->getToken ()->getNumber () << move->getActionSeq ()->getNumber ();
+    w << (int)move->getToken ()->getNumber () << (int)move->getActionSeq ()->getNumber ();
   }
   void WriteMoveSelSizeAccum (BinaryWriter & w, int p = 0; MoveSelPtr move_sel)
   {
@@ -185,18 +195,19 @@ namespace
   void writeStates (BasilCC const & cc, BinaryWriter & w)
   {
     StatePtrVector const & states = getStates (cc);
+//--//std::cout << "writeStates  " << " = " << states.size () << "\n";
     w << states.size ();
     for_each (states.begin (), states.end (), WriteState (w));
   }
   void WriteState (BinaryWriter & w; StatePtr state) const
   {
     StateMovePtr state_move = state->getStateMove ();
-    w << state_move->getMoveSel ()->getNumber () << state_move->getDefaultActionSeq ()->getNumber ();
-    w << state->getLexState ().getState ();
+    w << (int)state_move->getMoveSel ()->getNumber () << (int)state_move->getDefaultActionSeq ()->getNumber ();
+    w << (int)state->getLexState ().getState ();
     ShiftSelPtr shift_sel = state->getNontermShiftSel ();
     if (shift_sel)
     {
-      w << shift_sel->getNumber ();
+      w << (int)shift_sel->getNumber ();
     }
     else
     {
@@ -208,8 +219,10 @@ namespace
   void writeShiftStateSels (BasilCC const & cc, BinaryWriter & w)
   {
     ShiftStateSelPtrVector const & shift_state_sels = getShiftStateSels (cc);
+//--//std::cout << "writeShiftStateSels  " << " = " << accumulate (shift_state_sels.begin (), shift_state_sels.end (), 0, accumShiftStateSelSize) << "\n";
     w << accumulate (shift_state_sels.begin (), shift_state_sels.end (), 0, accumShiftStateSelSize);
     for_each (shift_state_sels.begin (), shift_state_sels.end (), WriteShiftStateSel (w));
+//--//std::cout << "writeShiftStateSels2  " << " = " << shift_state_sels.size () << "\n";
     w << shift_state_sels.size ();
     for_each (shift_state_sels.begin (), shift_state_sels.end (), WriteShiftStateSelSizeAccum (w));
   }
@@ -224,7 +237,7 @@ namespace
   }
   void WriteShiftState (BinaryWriter & w; ShiftState const & shift_state)
   {
-    w << shift_state.getNumber () << shift_state.getState ()->getNumber ();
+    w << (int)shift_state.getNumber () << (int)shift_state.getState ()->getNumber ();
   }
   void WriteShiftStateSelSizeAccum (BinaryWriter & w, int p = 0; ShiftStateSelPtr shift_state_sel)
   {
@@ -235,6 +248,7 @@ namespace
   void writeGotos (BasilCC const & cc, BinaryWriter & w)
   {
     SymbolPtrVector const & nonterms = getNonTerminals (cc);
+//--//std::cout << "writeGotos  " << " = " << nonterms.size () << "\n";
     w << nonterms.size ();
     for_each (nonterms.begin (), nonterms.end (), WriteGoto (w));
   }
@@ -244,7 +258,7 @@ namespace
     // goto not set for the start symbol
     if (go2)
     {
-      w << go2->getShiftStateSel ()->getNumber () << go2->getDefaultState ()->getNumber ();
+      w << (int)go2->getShiftStateSel ()->getNumber () << (int)go2->getDefaultState ()->getNumber ();
     }
     else
     {
@@ -256,8 +270,9 @@ namespace
   void writeRecoverStrategies (BasilCC const & cc, BinaryWriter & w)
   {
     RecoverStrategyPtrVector const & strategies = getRecoverStrategies (cc);
+//--//std::cout << "writeRecoverStrategies  " << " = " << strategies.size () << "\n";
     w << strategies.size ();
-    for_each (strategies.begin (), strategies.end (), WriteRecoverStrategy (w)); 
+    for_each (strategies.begin (), strategies.end (), WriteRecoverStrategy (w));
   }
   void WriteRecoverStrategy (BinaryWriter & w; RecoverStrategyPtr strategy) const
   {
@@ -268,12 +283,12 @@ namespace
       // keep simple for now, one integer arg
       case STRATEGY_INSERT:
       {
-        w << static_cast <InsertStrategy const &> (* strategy).getToken ()->getNumber ();
+        w << (int)static_cast <InsertStrategy const &> (* strategy).getToken ()->getNumber ();
         break;
       }
       case STRATEGY_DISCARD:
       {
-        w << static_cast <DiscardStrategy const &> (* strategy).getMaxNumber ();
+        w << (int)static_cast <DiscardStrategy const &> (* strategy).getMaxNumber ();
         break;
       }
     }

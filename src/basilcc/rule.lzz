@@ -11,13 +11,13 @@ namespace basilcc
     {}
     ~ Rule ()
     {}
-    
+
     // get rule number
-    inline size_t getNumber () const
+    inline int getNumber () const
     {
       return m_num;
     }
-    
+
     // get node by index, null if no node
     NodePtr getNode () const
     {
@@ -111,7 +111,7 @@ namespace basilcc
       return str;
     }
   private:
-    size_t m_num;
+    int m_num;
     NodePtr m_node;
     bool m_is_start;
     RuleSymbolPtr m_left_rule_symbol;

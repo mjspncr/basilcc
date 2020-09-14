@@ -1,7 +1,7 @@
 namespace basilcc
 {
   class BasilCC;
-  
+
   // get shift kernel from follow rules
   ShiftKernelPtr getShiftKernel (BasilCC & cc, FollowRulePtrVector const & follow_rules)
   {
@@ -47,7 +47,7 @@ namespace
 
   inline void PushShiftRule (ShiftKernelPtrTrie & trie; ShiftRulePtr shift_rule)
   {
-    trie.push (unsigned (shift_rule));
+    trie.push (size_t (shift_rule));
   }
 }
 

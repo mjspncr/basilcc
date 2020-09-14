@@ -1,7 +1,7 @@
 namespace basilcc
 {
-  typedef Trie <unsigned int, 0xFFFFFFFF, 512, ShiftKernelPtr> ShiftKernelPtrTrie;
-  template class Trie <unsigned int, 0xFFFFFFFF, 512, ShiftKernelPtr>;
+  typedef Trie <size_t, 0xFFFFFFFF, 512, ShiftKernelPtr> ShiftKernelPtrTrie;
+  template class Trie <size_t, 0xFFFFFFFF, 512, ShiftKernelPtr>;
 }
 
 #hdr

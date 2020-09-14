@@ -1,7 +1,7 @@
 namespace basilcc
 {
-  typedef Trie <unsigned int, 0xFFFFFFFF, 512, FollowRulePtr> FollowRulePtrTrie;
-  template class Trie <unsigned int, 0xFFFFFFFF, 512, FollowRulePtr>;
+  typedef Trie <size_t, 0xFFFFFFFF, 512, FollowRulePtr> FollowRulePtrTrie;
+  template class Trie <size_t, 0xFFFFFFFF, 512, FollowRulePtr>;
 }
 
 #hdr

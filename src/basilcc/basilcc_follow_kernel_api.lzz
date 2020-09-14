@@ -45,7 +45,7 @@ namespace
   // append follow_rule to trie key
   inline void PushFollowRule (FollowKernelPtrTrie & trie; FollowRulePtr follow_rule) const
   {
-    trie.push (unsigned (follow_rule));
+    trie.push (size_t (follow_rule));
   }
 }
 

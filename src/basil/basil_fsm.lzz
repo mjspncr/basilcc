@@ -17,7 +17,7 @@ namespace basil
          read_rules(L, idx);
          read_action_seqs(L, idx);
          IntVector tokens;
-         read_operators(L, idx, token_numbers, tokens); 
+         read_operators(L, idx, token_numbers, tokens);
          read_move_sels(L, idx, tokens);
          read_states(L, idx);
          read_shift_state_sels(L, idx);
@@ -47,7 +47,7 @@ namespace basil
          return m_rules[rule_num];
       }
 
-      // get action sequence at state with next token 
+      // get action sequence at state with next token
       struct Action(int kind, int arg1, int arg2) {}
       typedef Action const * ActionPtr;
       typedef std::pair <ActionPtr, ActionPtr> ActionPtrPair;
@@ -166,7 +166,7 @@ namespace basil
                lua_geti(L, -1, 2);
                int arg1 = lua_tointeger(L, -1);
                lua_pop(L, 1);
-               int arg2 = -1; 
+               int arg2 = -1;
                if (kind != SHIFT)
                {
                   lua_geti(L, -1, 3);
@@ -212,7 +212,7 @@ namespace basil
             if (p == token_numbers.end())
             {
                std::ostringstream ss;
-               ss << "Missing token number for " << name;  
+               ss << "Missing token number for " << name;
                throw std::runtime_error(ss.str());
             }
             tokens.push_back(p->second);
@@ -345,7 +345,7 @@ namespace basil
          }
          lua_pop(L, 1); // pop shift_state_sels table
       }
-               
+
       // gotos
       void read_gotos(lua_State *L, int idx)
       {
@@ -411,7 +411,7 @@ using namespace basil;
 #include <map>
 #include <string>
 #include <vector>
-#include <lua.h>
+#include <lua.hpp>
 #end
 
 #src

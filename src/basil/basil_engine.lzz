@@ -11,7 +11,7 @@ namespace basil
       RECOVER_DISCARD, // discard up to some number of tokens
    };
    struct RecoverPolicy(int type, int arg) {} // arg is token number for insert, number of tokens for discard
-   // parser takes a sequence of recover policies, keeps trying until one succeeds 
+   // parser takes a sequence of recover policies, keeps trying until one succeeds
    typedef std::vector<RecoverPolicy> RecoverPolicyVector;
 
    // engine is a finite state machine
@@ -63,7 +63,7 @@ namespace basil
       {
          state_method(state, "init");
       }
-      
+
       // call state close method (after successful parse)
       void state_close(int state) const
       {
@@ -112,8 +112,8 @@ namespace basil
          return m_recover_policies;
       }
 
-      inline lua_State *get_lua_state() const 
-      { 
+      inline lua_State *get_lua_state() const
+      {
          return L;
       }
       lua_State *const L;
@@ -188,7 +188,7 @@ namespace
 #hdr
 #include <basil_fsm.h>
 #include <basil_token_number.h>
-#include <lua.h>
+#include <lua.hpp>
 #include <string>
 #include <vector>
 #end

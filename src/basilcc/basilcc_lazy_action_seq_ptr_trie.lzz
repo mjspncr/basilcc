@@ -1,7 +1,7 @@
 namespace basilcc
 {
-  typedef Trie <unsigned int, 0xFFFFFFFF, 512, LazyActionSeqPtr> LazyActionSeqPtrTrie;
-  template class Trie <unsigned int, 0xFFFFFFFF, 512, LazyActionSeqPtr>;
+  typedef Trie <size_t, 0xFFFFFFFF, 512, LazyActionSeqPtr> LazyActionSeqPtrTrie;
+  template class Trie <size_t, 0xFFFFFFFF, 512, LazyActionSeqPtr>;
 }
 
 #hdr

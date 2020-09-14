@@ -57,7 +57,7 @@ namespace
 
   inline void PushShift (ShiftSelPtrTrie & trie; ShiftPtr shift) const
   {
-    trie.push (unsigned (shift));
+    trie.push (size_t (shift));
   }
 }
 

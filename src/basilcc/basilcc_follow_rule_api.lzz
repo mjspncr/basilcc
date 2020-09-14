@@ -45,8 +45,8 @@ namespace
       // freeze follow rule, reuse follow_rule or delete it
       FollowRulePtr freeze(FollowRulePtr &follow_rule)
       {
-         m_follow_rule_trie.push(unsigned(follow_rule->getShiftRule()));
-         m_follow_rule_trie.push(unsigned(follow_rule->getFollow()));
+         m_follow_rule_trie.push(size_t(follow_rule->getShiftRule()));
+         m_follow_rule_trie.push(size_t(follow_rule->getFollow()));
          FollowRulePtr shared_follow_rule = m_follow_rule_trie.commit(follow_rule);
          if (shared_follow_rule == follow_rule)
          {
@@ -62,8 +62,8 @@ namespace
       // get follow rule from shift rule and follow
       FollowRulePtr getFollowRule(ShiftRulePtr shift_rule, FollowPtr follow)
       {
-         m_follow_rule_trie.push(unsigned(shift_rule));
-         m_follow_rule_trie.push(unsigned(follow));
+         m_follow_rule_trie.push(size_t(shift_rule));
+         m_follow_rule_trie.push(size_t(follow));
          FollowRulePtr &follow_rule = m_follow_rule_trie.commit(0);
          if (!follow_rule)
          {

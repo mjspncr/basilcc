@@ -1,7 +1,7 @@
 // trie
 namespace basilcc
 {
-  template <class T, T TERM, unsigned int BLOCKSIZE, class X>
+  template <class T, T TERM, size_t BLOCKSIZE, class X>
   class Trie
   {
   public:
@@ -17,7 +17,7 @@ namespace basilcc
     ~ Trie ()
     {
       delete m_root;
-    } 
+    }
     // append to current key
     void push (T t)
     {

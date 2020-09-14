@@ -1,7 +1,7 @@
 namespace basilcc
 {
-  typedef Trie <unsigned int, 0xFFFFFFFF, 512, LazyMovePtr> LazyMovePtrTrie;
-  template class Trie <unsigned int, 0xFFFFFFFF, 512, LazyMovePtr>;
+  typedef Trie <size_t, 0xFFFFFFFF, 512, LazyMovePtr> LazyMovePtrTrie;
+  template class Trie <size_t, 0xFFFFFFFF, 512, LazyMovePtr>;
 }
 
 #hdr

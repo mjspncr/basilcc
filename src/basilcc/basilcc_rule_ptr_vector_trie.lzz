@@ -1,7 +1,7 @@
 namespace basilcc
 {
-  typedef ITrie <unsigned int, RulePtrVector> RulePtrVectorTrie;
-  template class ITrie <unsigned int, RulePtrVector>;
+  typedef ITrie <size_t, RulePtrVector> RulePtrVectorTrie;
+  template class ITrie <size_t, RulePtrVector>;
 }
 
 #hdr

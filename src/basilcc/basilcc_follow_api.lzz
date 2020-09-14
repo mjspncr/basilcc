@@ -25,8 +25,8 @@ namespace
     {
       deleteObjects (m_follows.begin (), m_follows.end ());
     }
-    
-    // freeze follow and return shared follow, reuse follow or delete it  
+
+    // freeze follow and return shared follow, reuse follow or delete it
     FollowPtr freeze (FollowPtr follow)
     {
       FollowItemPtrList const & follow_items = follow->getFollowItems ();
@@ -53,7 +53,7 @@ namespace
   // apend follow item to trie key
   inline void PushFollowItem (FollowPtrTrie & trie; FollowItemPtr follow_item) const
   {
-    trie.push (unsigned (follow_item));
+    trie.push (size_t (follow_item));
   }
 }
 

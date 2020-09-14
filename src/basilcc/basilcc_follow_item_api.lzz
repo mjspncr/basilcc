@@ -7,7 +7,7 @@ namespace basilcc
   {
     return cc.getTable <FollowItemTable> ().freeze (follow_item);
   }
-  
+
   // freeze follow item functor
   inline FollowItemPtr FreezeFollowItem (BasilCC & cc; FollowItemPtr & follow_item) const
   {
@@ -17,7 +17,7 @@ namespace basilcc
 
 using namespace basilcc;
 
-namespace 
+namespace
 {
   class FollowItemTable : public Table
   {
@@ -28,12 +28,12 @@ namespace
     {
       deleteObjects (m_follow_items.begin (), m_follow_items.end ());
     }
-    
+
     // freeze follow item, return shared item, reuse follow_item or delete it
     FollowItemPtr freeze (FollowItemPtr & follow_item)
     {
-      m_follow_item_trie.push (unsigned (follow_item->getToken ()));
-      m_follow_item_trie.push (unsigned (follow_item->getShortcut ()));
+      m_follow_item_trie.push (size_t (follow_item->getToken ()));
+      m_follow_item_trie.push (size_t (follow_item->getShortcut ()));
       Priority const & rp = follow_item->getReducePriority ();
       m_follow_item_trie.push (rp.get_count());
       m_follow_item_trie.push (rp.get_bang());

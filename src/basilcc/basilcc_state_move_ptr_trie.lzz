@@ -1,7 +1,7 @@
 namespace basilcc
 {
-  typedef Trie <unsigned int, 0xFFFFFFFF, 512, StateMovePtr> StateMovePtrTrie;
-  template class Trie <unsigned int, 0xFFFFFFFF, 512, StateMovePtr>;
+  typedef Trie <size_t, 0xFFFFFFFF, 512, StateMovePtr> StateMovePtrTrie;
+  template class Trie <size_t, 0xFFFFFFFF, 512, StateMovePtr>;
 }
 
 #hdr

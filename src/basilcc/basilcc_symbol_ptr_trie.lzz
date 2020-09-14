@@ -1,7 +1,7 @@
 namespace basilcc
 {
-   typedef ITrie<unsigned int, SymbolPtr> SymbolPtrTrie;
-   template class ITrie<unsigned int, SymbolPtr>;
+   typedef ITrie<size_t, SymbolPtr> SymbolPtrTrie;
+   template class ITrie<size_t, SymbolPtr>;
 }
 
 #hdr

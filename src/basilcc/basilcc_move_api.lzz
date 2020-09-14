@@ -2,7 +2,7 @@ namespace basilcc
 {
   class BasilCC;
 
-  // get move from token and action seq 
+  // get move from token and action seq
   MovePtr getMove (BasilCC & cc, SymbolPtr token, ActionSeqPtr action_seq)
   {
     return cc.getTable <MoveTable> ().getMove (token, action_seq);
@@ -32,8 +32,8 @@ namespace
     // get move from token and action seq
     MovePtr getMove (SymbolPtr token, ActionSeqPtr action_seq)
     {
-      m_move_trie.push (unsigned (token));
-      m_move_trie.push (unsigned (action_seq));
+      m_move_trie.push (size_t (token));
+      m_move_trie.push (size_t (action_seq));
       MovePtr & move = m_move_trie.commit (0);
       if (! move)
       {

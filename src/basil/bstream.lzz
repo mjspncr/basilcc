@@ -6,6 +6,7 @@ namespace basil
     template <class T>
     BinaryWriter const & operator << (T num) const
     {
+//--//std::cout << "BinaryWriter num for " << sizeof (T) << " = " << num << "\n";
       os.write (reinterpret_cast <char const *> (& num), sizeof (T));
       return * this;
     }
@@ -13,13 +14,15 @@ namespace basil
     BinaryWriter const & operator << (std::string const & str) const
     {
       string::size_type length = str.length ();
+//--//std::cout << "BinaryWriter std::string for " << length << " = " << str << "\n";
       (* this) << length;
       os.write (str.data (), length);
       return * this;
     }
     BinaryWriter const & operator << (char const * str) const
     {
-      string::size_type length = strlen (str); 
+      string::size_type length = strlen (str);
+//--//std::cout << "BinaryWriter str for " << length << " = " << str << "\n";
       (* this) << length;
       os.write (str, length);
       return * this;
@@ -33,6 +36,7 @@ namespace basil
     BinaryReader const & operator >> (T & num) const
     {
       is.read (reinterpret_cast <char *> (& num), sizeof (T));
+//--//std::cout << "BinaryReader num for " << sizeof (T) << " = " << num << "\n";
       return * this;
     }
     // string
@@ -42,30 +46,35 @@ namespace basil
       (* this) >> length;
       str.resize (length);
       is.read (& str [0], length);
+//--//std::cout << "BinaryReader std::string for " << length << " = " << str << "\n";
       return * this;
     }
     inline char readChar () const
     {
       char num;
       (* this) >> num;
+//--//std::cout << "BinaryReader readChar " << num << "\n";
       return num;
     }
     inline int readInt () const
     {
       int num;
       (* this) >> num;
+//--//std::cout << "BinaryReader readInt " << num << "\n";
       return num;
     }
     inline size_t readSize () const
     {
       size_t num;
       (* this) >> num;
+//--//std::cout << "BinaryReader readSize " << num << "\n";
       return num;
     }
     inline std::string readString () const
     {
       std::string str;
       (* this) >> str;
+//--//std::cout << "BinaryReader readString " << str << "\n";
       return str;
     }
   };
@@ -119,6 +128,146 @@ namespace basil
     r >> num;
     return num;
   }
+
+  //TextWriter
+  struct TextWriter (std::ostream & os)
+  {
+    // numbers
+    template <class T>
+    TextWriter const & operator << (T num) const
+    {
+//--//std::cout << "TextWriter num for " << sizeof (T) << " = " << num << "\n";
+      os << num << "\n";
+      return * this;
+    }
+    // string
+    TextWriter const & operator << (std::string const & str) const
+    {
+      string::size_type length = str.length ();
+//--//std::cout << "TextWriter std::string for " << length << " = " << str << "\n";
+      os << length << "\n";
+      os.write (str.data (), length);
+      os << "\n";
+      return * this;
+    }
+    TextWriter const & operator << (char const * str) const
+    {
+      string::size_type length = strlen (str);
+//--//std::cout << "TextWriter str for " << length << " = " << str << "\n";
+      os << length << "\n";
+      os.write (str, length);
+      os << "\n";
+      return * this;
+    }
+  };
+
+  struct TextReader (std::istream & is)
+  {
+    // numerical types only
+    template <class T>
+    TextReader const & operator >> (T & num) const
+    {
+      is >> num;
+      is.ignore();
+//--//std::cout << "TextReader num for " << sizeof (T) << " = " << num << "\n";
+      return * this;
+    }
+    // string
+    TextReader const & operator >> (std::string & str) const
+    {
+      string::size_type length;
+      is >> length;
+      is.ignore();
+      str.resize (length);
+      is.read (& str [0], length);
+      is.ignore();
+//--//std::cout << "TextReader std::string for " << length << " = " << str << "\n";
+      return * this;
+    }
+    inline char readChar () const
+    {
+      char num;
+      is >> num;
+     is.ignore();
+//--//std::cout << "TextReader readChar " << num << "\n";
+      return num;
+    }
+    inline int readInt () const
+    {
+      int num;
+      is >> num;
+      is.ignore();
+//--//std::cout << "TextReader readInt " << num << "\n";
+      return num;
+    }
+    inline size_t readSize () const
+    {
+      size_t num;
+      is >> num;
+      is.ignore();
+//--//std::cout << "TextReader readSize " << num << "\n";
+      return num;
+    }
+    inline std::string readString () const
+    {
+      std::string str;
+      is >> str;
+      is.ignore();
+//--//std::cout << "TextReader readString " << str << "\n";
+      return str;
+    }
+  };
+
+  // helper functions
+
+  // write string vector
+  typedef std::vector <std::string> StringVector;
+  void writeStringVector (TextWriter & w, StringVector const & strs)
+  {
+    w << strs.size ();
+    for (StringVector::const_iterator i = strs.begin (), endi = strs.end (); i != endi; ++ i)
+    {
+      w << * i;
+    }
+  }
+
+  // read string vector
+  void readStringVector (TextReader & r, StringVector & strs)
+  {
+    strs.clear ();
+    size_t size = readSize (r);
+    strs.reserve (size);
+    for (size_t i = 0; i < size; ++ i)
+    {
+      string str;
+      r >> str;
+      strs.insert (strs.end (), string ())->swap (str);
+    }
+  }
+
+  // read number vector
+  template <class T>
+  void readVector (TextReader & r, std::vector <T> & nums)
+  {
+    nums.clear ();
+    size_t size = readSize (r);
+    nums.reserve (size);
+    for (size_t i = 0; i < size; ++ i)
+    {
+      T t;
+      r >> t;
+      nums.push_back (t);
+    }
+  }
+
+  // read size_t
+  inline size_t readSize (TextReader & r)
+  {
+    size_t num;
+    r >> num;
+    return num;
+  }
+
 }
 
 using namespace std;

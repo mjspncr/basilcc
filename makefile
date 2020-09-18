@@ -9,5 +9,8 @@ export CONFIG ?= gcc
 # need lzz to build lzz
 export LZZ ?= lzz
 
+#export INCDIRS=$(HOME)/local/lua-5.3.5/include
+#export MORELIBDIRS=$(HOME)/local/lua-5.3.5/lib
+
 SUBDIRS=src
 include $(MAKETOOLS)/make.include

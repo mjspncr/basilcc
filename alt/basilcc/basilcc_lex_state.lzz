@@ -1,0 +1,100 @@
+// basilcc_lex_state
+//
+// lexical state, a integeral state for lexer
+//
+
+namespace basilcc {
+
+// special states
+enum
+{
+    // not set
+    LEX_STATE_UNSET = -1,
+    // conflict
+    LEX_STATE_CONFLICT = -2,
+};
+
+class LexState
+{
+  public:
+    inline LexState(int state = LEX_STATE_UNSET)
+        : _state(state)
+    {}
+
+    // true if not unset
+    bool is_set() const
+    {
+        return _state != LEX_STATE_UNSET;
+    }
+
+    // true if conflict
+    inline bool is_conflict() const
+    {
+        return _state == LEX_STATE_CONFLICT;
+    }
+
+    // update lex state, return true if changed
+    bool update(LexState s)
+    {
+        bool changed = false;
+        if (s._state != LEX_STATE_UNSET)
+        {
+            if (_state != LEX_STATE_UNSET)
+            {
+                if (s._state != _state)
+                {
+                    _state = LEX_STATE_CONFLICT;
+                    changed = true; 
+                }
+            }
+            else
+            {
+                _state = s._state;
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    // get state, 0 if not set
+    int get_state() const
+    {
+        return _state == LEX_STATE_UNSET ? 0 : _state;
+    }
+
+    // to string, empty string if not set
+    std::string to_string() const
+    {
+        if (_state == LEX_STATE_UNSET)
+        {
+            return std::string();
+        }
+        std::stringstream ss;
+        ss << _state;
+        return ss.str();
+    }
+    
+private:
+    int _state;
+};
+
+// true if lex states are equal
+inline bool operator ==(LexState a, LexState b)
+{
+    return a.get_state() == b.get_state();
+}
+
+inline bool operator !=(LexState a, LexState b)
+{
+    return !(a == b);
+}
+
+} // basilcc
+
+#hdr
+#include <string>
+#end
+
+#src
+#include <sstream>
+#end

@@ -1,0 +1,42 @@
+// basilcc_state
+//
+// basilcc parser tables, maintains all state
+//
+
+namespace basilcc {
+
+class State
+{
+  public:
+    State()
+       : _symbol_table(*this)
+    {}
+
+    // intern std::string, return shared char const *
+    inline char const *intern(std::string const &str)
+    {
+      return _strings.insert(str).first->c_str ();
+    }
+
+    // symbols
+
+    // get symbol from name, new symbol if doesn't exist
+    Symbol *getSymbol(std::string const &name)
+    {
+        return _symbol_table.get_symbol(intern(name));
+    }
+
+  private:
+    // cached strings
+    std::set<std::string> _strings;
+    // tables
+    SymbolTable _symbol_table;
+};
+
+} // basilcc
+
+#hdr
+#include <basilcc_symbol_table.h>
+#include <string>
+#include <set>
+#end

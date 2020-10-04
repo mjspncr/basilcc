@@ -1,0 +1,73 @@
+// basilcc_symbol_table
+//
+// maintains all symbols
+//
+
+namespace basilcc {
+
+class Symbol;
+class State;
+
+class SymbolTable
+{
+  public:
+    SymbolTable(State &state);
+
+    // get symbol from name, new symbol if doesn't exist
+    Symbol *get_symbol(char const *name)
+    {
+        SymbolPtr &symbol_ptr = _symbols[name];
+        if (symbol_ptr)
+        {
+            return symbol_ptr.get();
+        }
+        if (isToken(name))
+        {
+            symbol_ptr.reset(new Token(name));
+            _tokens.push_back(symbol_ptr.get());
+        }
+        else
+        {
+            symbol_ptr.reset(new Nonterminal(name)); 
+            _nonterminals.push_back(symbol_ptr.get());
+        }
+        return symbol_ptr.get();
+    }
+
+  private:
+    State &_state;
+    typedef std::shared_ptr<Symbol> SymbolPtr; 
+    typedef std::map<char const *, SymbolPtr> SymbolPtrMap;
+    SymbolPtrMap _symbols;
+    std::vector<Symbol *> _tokens;
+    std::vector<Symbol *> _nonterminals;
+};
+
+namespace {
+
+// true if name is a token, if no lower case characters
+bool isToken(char const *name)
+{
+    for (char const *p = name; *p != '\0'; ++p)
+    {
+        if (islower(*p))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+} // unnamed
+} // basilcc
+
+#hdr
+#include <memory>
+#include <map>
+#include <vector>
+#end
+
+#src
+#include <basilcc_state.h>
+#include <basilcc_symbol.h>
+#end

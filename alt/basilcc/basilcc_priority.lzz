@@ -1,0 +1,137 @@
+// basilcc_priority
+//
+// shift, reduce and first priority
+//
+
+namespace basilcc {
+
+class Priority
+{
+  public:
+    // count and exclusive count
+    inline Priority(int count = 0, int bang = 0)
+        : _count(count), _bang(bang)
+    {}
+
+    // get priority count
+    inline int get_count() const
+    {
+      return _count;
+    }
+
+    // get exclusive count
+    inline int get_bang() const
+    {
+      return _bang;
+    }
+
+    // true if count is non-zero
+    inline bool is_set() const
+    {
+      return _count > 0;
+    }
+
+    // operator +=
+    Priority &operator +=(Priority const &p)
+    {
+      _count += p.get_count();
+      _bang += p.get_bang();
+      return *this;
+    }
+
+    // return priority as string
+    std::string to_string(char cnt_ch) const
+    {
+        std::ostringstream ss;
+        int count = _count, bang = _bang;
+        int n = std::min(count, bang);
+        if (n > 2)
+        {
+            ss << '(' << cnt_ch << "!)" << n;
+            count -= n;
+            bang -= n;
+        }
+        if (count > 2)
+        {
+            ss << '(' << cnt_ch << ')' << count;
+            count = 0;
+        }
+        if (bang > 2)
+        {
+            ss << "(!)" << bang;
+            bang = 0;
+        }
+        for (; count > 0; -- count)
+        {
+            ss << cnt_ch;
+        }
+        for (; bang > 0; -- bang)
+        {
+            ss << '!';
+        }
+        return ss.str();
+    }
+
+  private:
+    // priority count
+    int _count;
+    // exclusive count
+    int _bang;
+  };
+
+  // a == b
+  inline bool operator ==(Priority const &a, Priority const &b)
+  {
+    return a.get_count() == b.get_count() && a.get_bang() == b.get_bang();
+  }
+
+  // a != b
+  inline bool operator !=(Priority const &a, Priority const &b)
+  {
+    return !(a == b);
+  }
+    
+  // a < b
+  inline bool operator <(Priority const &a, Priority const &b)
+  {
+    return a.get_count() < b.get_count() || a.get_bang() < b.get_bang();
+  }
+    
+  // a + b
+  inline Priority operator +(Priority const &a, Priority const &b)
+  {
+    return Priority(a.get_count() + b.get_count(), a.get_bang() + b.get_bang());
+  }
+
+  // max(a, b)
+  Priority max_priority(Priority const &a, Priority const &b)
+  {
+    return Priority(std::max(a.get_count(), b.get_count()), std::max(a.get_bang(), b.get_bang()));
+  }
+
+  // shift priority to string
+  std::string shift_priority_to_string(Priority const &p)
+  {
+    return p.to_string('>');
+  }
+
+  // first priority to string
+  std::string first_priority_to_string(Priority const &p)
+  {
+    return p.to_string('^');
+  }
+
+  // reduce priority to string
+  std::string reduce_priority_to_string(Priority const &p)
+  {
+    return p.to_string('+');
+  }
+}
+
+#hdr
+#include <string>
+#end
+
+#src
+#include <sstream>
+#end

@@ -1,0 +1,151 @@
+// basilcc_symbol
+//
+// token and nonterminal symbols
+//
+
+namespace basilcc {
+
+class Symbol
+{
+  public:
+    virtual ~Symbol()
+    {}
+
+    // symbol numbers are assigned when symbol table is frozen, once all symbols are known
+    void set_number(int num)
+    {
+        _num = num;
+    }
+
+    // get symbol number
+    inline int get_number() const
+    {
+        return _num;
+    }
+
+    // get symbol name
+    inline char const *get_name() const
+    {
+        return _name;
+    }
+    
+    // true if symbol is a token
+    virtual bool is_token() const = 0;
+
+    // get symbol's first set
+    inline First &get_first()
+    {
+        return _first;
+    }
+
+  protected:
+    Symbol(char const *name)
+        : _num(-1), _name(name)
+    {}
+
+  private:
+    int _num;
+    char const *_name;
+    First _first;
+};
+
+//
+// Token
+//
+
+class Token : public Symbol
+{
+  public:
+    // lexeme for keyword only
+    inline Token(char const *name)
+        : Symbol(name)
+    {}
+
+    ~Token ()
+    {}
+
+    bool is_token() const
+    {
+      return true;
+    }
+
+    // true if token is a keyword
+    inline bool is_keyword() const
+    {
+        return !_keyword_lexeme.empty();
+    }
+
+    // token is a keyword, set string as it is spelled in the source
+    void set_keyword(std::string const &lexeme)
+    {
+        _keyword_lexeme = lexeme;
+    }
+
+    // return keyword lexeme
+    std::string const &get_keyword() const
+    {
+      return _keyword_lexeme;
+    }
+
+  private:
+    // keyword lexeme 
+    std::string _keyword_lexeme;
+};
+
+//
+// Nonterminal
+//
+
+class Goto;
+typedef std::shared_ptr<Goto> GotoPtr;
+ 
+class Nonterminal : public Symbol
+{
+  public:
+    inline Nonterminal(char const *name)
+        : Symbol(name)
+    {}
+
+    // true if token
+    bool is_token() const
+    {
+        return false;
+    }
+
+    // set goto
+    void set_goto(GotoPtr const &go2)
+    {
+        _go2 = go2;
+    }
+
+    // get goto
+    inline Goto *get_goto() const
+    {
+        return _go2.get();
+    }
+
+  private:
+    GotoPtr _go2;
+};
+
+// true if a < b, tokens first, otherwise order by number
+bool operator <(Symbol const &a, Symbol const &b)
+{
+    bool a_is_token = a.is_token(), b_is_token = b.is_token();
+    return (a_is_token && !b_is_token) || (a_is_token == b_is_token && a.get_number() < b.get_number());
+}
+inline bool symbol_less(Symbol const *a, Symbol const *b)
+{
+   return *a < *b;
+}
+
+} // basilcc
+
+#hdr
+#include <basilcc_first.h>
+#include <string>
+#include <memory>
+#end
+
+#src
+#end

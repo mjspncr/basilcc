@@ -1,0 +1,62 @@
+// basilcc_first_item
+//
+// item in symbol first set
+
+namespace basilcc {
+
+class Symbol;
+
+class FirstItem
+{
+  public:
+    inline explicit FirstItem(Symbol const *token, Priority const &priority = Priority())
+        : _token(token), _priority(priority)
+    {}
+    ~ FirstItem()
+    {}
+
+    // get token
+    inline Symbol const *get_token() const
+    {
+        return _token;
+    }
+
+    // get first item priority
+    inline Priority const &get_priority() const
+    {
+        return _priority;
+    }
+
+    // update first item priority, max of priority and item priority
+    inline void update(Priority const &priority)
+    {
+        _priority = max_priority(_priority, priority);
+    }
+
+  private:
+    Symbol const *_token;
+    Priority _priority; // first priority
+};
+
+// return a < b, can assume both are in symbol's first set
+bool operator <(FirstItem const &a, FirstItem const &b)
+{
+    return *a.get_token() < *b.get_token();
+}
+
+//  true if first item token is specified token
+bool IsFirstItemToken(Symbol const *token; FirstItem const &item) const
+{
+    return item.get_token() == token;
+}
+
+} // basilcc
+
+#hdr
+#include <basilcc_priority.h>
+#end
+
+#src
+#include <basilcc_symbol.h>
+#end
+

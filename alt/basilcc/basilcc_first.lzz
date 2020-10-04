@@ -1,0 +1,103 @@
+// basil_first
+//
+// symbol first set
+//
+
+namespace basilcc {
+
+class ShiftRule;
+typedef std::vector<FirstItem> FirstItemVector;
+typedef std::vector<ShiftRule const *> ShiftRuleVector;
+    
+class First
+{
+  public:
+    First ()
+      : _null(false)
+    {}
+
+    ~ First()
+    {}
+
+    // set null
+    void set_null()
+    {
+        _null = true;
+    }
+
+    // update lex state
+    void update(LexState const &lex_state)
+    {
+        _lex_state.update(lex_state);
+    }
+
+    // update first item
+    void update(Symbol const *token, Priority const &shift_priority)
+    {
+        FirstItemVector::iterator i = std::find_if(_first_items.begin(), _first_items.end(), IsFirstItemToken(token));
+        if (i == _first_items.end())
+        {
+            _first_items.push_back(FirstItem(token, shift_priority));
+        }
+        else
+        {
+            (*i).update(shift_priority);
+        }
+    }
+
+    // freeze, no more first items
+    void freeze()
+    {
+        std::sort(_first_items.begin(), _first_items.end());
+    }
+
+    // true if set has null
+    inline bool has_null() const
+    {
+        return _null;
+    }
+
+    // get lex state
+    inline LexState const &get_lex_state() const
+    {
+        return _lex_state;
+    }
+
+    // get first items
+    inline FirstItemVector const &get_first_items() const
+    {
+        return _first_items;
+    }
+
+    // set shift rules, will take
+    inline void set_shift_rules(ShiftRuleVector &shift_rules)
+    {
+        _shift_rules.swap(shift_rules);
+    }
+
+    // get shift rules
+    inline ShiftRuleVector const &getShiftRules() const
+    {
+      return _shift_rules;
+    }
+
+  private:
+    // first items, instead of vector faster to use item set?
+    FirstItemVector _first_items;
+    // true if first has null
+    bool _null;
+    LexState _lex_state;
+    ShiftRuleVector _shift_rules;
+};
+
+} // basilcc
+
+#hdr
+#include <basilcc_first_item.h>
+#include <basilcc_lex_state.h>
+#include <vector>
+#end
+
+#src
+#include <algorithm>
+#end

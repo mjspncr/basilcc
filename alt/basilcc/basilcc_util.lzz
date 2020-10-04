@@ -1,0 +1,37 @@
+// basilcc_util
+//
+// misc utility functions
+//
+
+namespace basilcc {
+
+// append str2 to str1 with space if str1 non-empty
+void append_with_space(std::string &str1, std::string const &str2)
+{
+    if (!str2.empty())
+    {
+        if (!str1.empty())
+        {
+            str1 += ' ';
+        }
+        str1 += str2;
+    }
+}
+
+// return int as string
+std::string int_to_string(int v)
+{
+    std::ostringstream ss;
+    ss << v;
+    return ss.str();
+}
+
+} // basilcc
+
+#hdr
+#include <string>
+#end
+
+#src
+#include <sstream>
+#end

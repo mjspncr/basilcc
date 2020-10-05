@@ -1,0 +1,46 @@
+// basilcc_node_table
+//
+// maintains all nodes
+//
+
+namespace basilcc {
+
+class Node;
+typedef std::shared_ptr<Node> NodePtr;
+
+class NodeTable
+{
+  public:
+    NodeTable()
+    {}
+
+    ~NodeTable()
+    {}
+
+    // get node with name, create new if doesn't exist
+    Node *get_node(char const *name)
+    {
+        NodePtr node_ptr = _nodes[name];
+        if (!node_ptr)
+        {
+            node_ptr.reset(new Node(name));
+        }
+        return node_ptr.get();
+    }
+
+  private:
+    typedef std::map<char const *, NodePtr> NodePtrMap;
+    NodePtrMap _nodes;
+};
+
+} // basilcc
+
+#hdr
+#include <map>
+#include <memory>
+#end
+
+#src
+#include <basilcc_node.h>
+#end
+

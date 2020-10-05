@@ -8,7 +8,8 @@ namespace basilcc {
 class ShiftRule;
 typedef std::vector<FirstItem> FirstItemVector;
 typedef std::vector<ShiftRule const *> ShiftRuleVector;
-    
+typedef std::set<FirstItem> FirstItemSet;
+
 class First
 {
   public:
@@ -34,22 +35,17 @@ class First
     // update first item
     void update(Symbol const *token, Priority const &shift_priority)
     {
-        FirstItemVector::iterator i = std::find_if(_first_items.begin(), _first_items.end(), IsFirstItemToken(token));
-        if (i == _first_items.end())
-        {
-            _first_items.push_back(FirstItem(token, shift_priority));
-        }
-        else
-        {
-            (*i).update(shift_priority);
+        std::pair<FirstItemSet::iterator, bool> r = _first_items.insert(FirstItem(token, shift_priority));
+        if (!r.second) {
+            // update shift priority of existing item, modifying set item is safe
+            // as the order depends only on the token
+            const_cast<FirstItem&>(*r.first).update(shift_priority);
         }
     }
 
     // freeze, no more first items
     void freeze()
-    {
-        std::sort(_first_items.begin(), _first_items.end());
-    }
+    {}
 
     // true if set has null
     inline bool has_null() const
@@ -64,26 +60,25 @@ class First
     }
 
     // get first items
-    inline FirstItemVector const &get_first_items() const
+    inline FirstItemSet const &get_first_items() const
     {
         return _first_items;
     }
 
-    // set shift rules, will take
+    // set shift rules, steals rules
     inline void set_shift_rules(ShiftRuleVector &shift_rules)
     {
         _shift_rules.swap(shift_rules);
     }
 
     // get shift rules
-    inline ShiftRuleVector const &getShiftRules() const
+    inline ShiftRuleVector const &get_shift_rules() const
     {
-      return _shift_rules;
+        return _shift_rules;
     }
 
   private:
-    // first items, instead of vector faster to use item set?
-    FirstItemVector _first_items;
+    FirstItemSet _first_items;
     // true if first has null
     bool _null;
     LexState _lex_state;
@@ -96,8 +91,9 @@ class First
 #include <basilcc_first_item.h>
 #include <basilcc_lex_state.h>
 #include <vector>
+#include <set>
 #end
 
 #src
-#include <algorithm>
+//#include <algorithm>
 #end

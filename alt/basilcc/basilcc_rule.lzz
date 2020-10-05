@@ -1,0 +1,168 @@
+// basilcc_rule
+//
+// grammar rule
+//
+
+namespace basilcc {
+
+class Node;
+class RuleSymbol;
+class Symbol;
+
+typedef std::vector<RuleSymbol> RuleSymbolVector;
+
+class Rule
+{
+  public:
+    Rule(
+        int num,
+        Node const *node,
+        bool is_start,
+        RuleSymbol const &left_rule_symbol,
+        RuleSymbolVector const &right_rule_symbols,
+        RuleSymbolVector const &explicit_follow,
+        bool can_bypass
+    )
+      : _num(num),
+        _node(node),
+        _is_start(is_start),
+        _left_rule_symbol(left_rule_symbol),
+        _right_rule_symbols(right_rule_symbols),
+        _explicit_follow(explicit_follow),
+        _can_bypass(can_bypass)
+    {}
+
+    ~Rule ()
+    {}
+
+    // get rule number
+    inline int get_number() const
+    {
+        return _num;
+    }
+
+    // get rule node, NULL if rule has no node
+    Node const *get_node() const
+    {
+      return _node;
+    }
+
+    // true if a start rule
+    inline bool is_start() const
+    {
+        return _is_start;
+    }
+
+    // get left rule symbol
+    inline RuleSymbol const &get_left_rule_symbol() const
+    {
+        return _left_rule_symbol;
+    }
+    inline Symbol *get_left_symbol() const
+    {
+        return _left_rule_symbol.get_symbol();
+    }
+
+    // get right rule symbol set
+    inline RuleSymbolVector const &get_right_rule_symbols() const
+    {
+        return _right_rule_symbols;
+    }
+
+    // get right rule symbol at pos 
+    inline RuleSymbol const &get_right_rule_symbol(int pos) const
+    {
+        return _right_rule_symbols[pos];
+    }
+
+    // get right symbol
+    inline Symbol *get_right_symbol(int pos) const
+    {
+        return get_right_rule_symbol(pos).get_symbol();
+    }
+
+    // true if rule has nonempty explicit follow set
+    inline bool has_explicit_follow() const
+    {
+        return !_explicit_follow.empty();
+    }
+
+    // get explicit follow set
+    inline RuleSymbolVector const &get_explicit_follow() const
+    {
+        return _explicit_follow;
+    }
+
+    // get size of rule, number of right hand side symbols
+    int get_size() const
+    {
+        return _right_rule_symbols.size();
+    }
+
+    // true if can bypass
+    inline bool can_bypass() const
+    {
+      return _can_bypass;
+    }
+
+    // to string with dot pos
+    std::string to_string(int pos = -1) const
+    {
+        std::ostringstream ss;
+        ss << _left_rule_symbol.to_string() << " ->";
+        for (RuleSymbolVector::const_iterator i = _right_rule_symbols.begin(), endi = _right_rule_symbols.end(); i != endi; ++ i)
+        {
+            if (int(i - _right_rule_symbols.begin()) == pos)
+            {
+                ss << '.';
+            }
+            else
+            {
+                ss << ' ';
+            }
+            ss << (*i).to_string();
+      }
+      // if reduction append number
+      if (pos == int(_right_rule_symbols.size()))
+      {
+          ss << ". (" << _num << ')';
+      }
+      return ss.str();
+    }
+    
+  private:
+    int _num;
+    Node const *_node;
+    bool _is_start;
+    RuleSymbol _left_rule_symbol;
+    RuleSymbolVector _right_rule_symbols;
+    RuleSymbolVector _explicit_follow;
+    bool _can_bypass;
+};
+
+// a < b
+inline bool operator <(Rule const &a, Rule const &b)
+{
+    return a.get_number() < b.get_number();
+}
+
+inline bool rule_less(Rule const *a, Rule const *b)
+{
+    return *a < *b;
+}
+
+} // basilcc
+
+#hdr
+#include <basilcc_priority.h>
+#include <basilcc_rule_symbol.h>
+#include <string>
+#include <vector>
+#end
+
+#inl
+#end
+
+#src
+#include <sstream>
+#end

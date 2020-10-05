@@ -37,18 +37,14 @@ class LexState
     bool update(LexState s)
     {
         bool changed = false;
-        if (s._state != LEX_STATE_UNSET)
-        {
-            if (_state != LEX_STATE_UNSET)
-            {
-                if (s._state != _state)
-                {
+        if (s._state != LEX_STATE_UNSET) {
+            if (_state != LEX_STATE_UNSET) {
+                if (s._state != _state) {
                     _state = LEX_STATE_CONFLICT;
                     changed = true; 
                 }
             }
-            else
-            {
+            else {
                 _state = s._state;
                 changed = true;
             }
@@ -65,8 +61,7 @@ class LexState
     // to string, empty string if not set
     std::string to_string() const
     {
-        if (_state == LEX_STATE_UNSET)
-        {
+        if (_state == LEX_STATE_UNSET) {
             return std::string();
         }
         std::stringstream ss;

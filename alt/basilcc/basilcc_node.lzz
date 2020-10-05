@@ -1,0 +1,70 @@
+// basilcc_node
+//
+// parse tree node  
+//
+
+namespace basilcc {
+
+class Rule;
+
+class Node
+{
+  public:
+    Node(char const *name)
+      : _name(name), _num(0), _rule(0), _has_code(false)
+    {}
+    
+    ~Node ()
+    {}
+    
+    // get name
+    char const *get_name() const
+    {
+        return _name;
+    }
+
+    // set/get number
+    void set_number(int num)
+    {
+        _num = num;
+    }
+    
+    int get_number() const
+    {
+        return _num;
+    }
+    
+    // set rule that defines this node, has_code true if node has user code on reduce
+    void set_rule(Rule const *rule, bool has_code)
+    {
+        _rule = rule;
+        _has_code = has_code;
+    }
+
+    // true if node has associated rule
+    bool is_defined() const
+    {
+        return _rule != 0;
+    }
+
+  private:
+    char const *_name;
+    int _num;
+    // rule that defines node
+    Rule const *_rule;
+    // true if node has user code on reduce, if true will generate a node on_node
+    // method declaration
+    bool _has_code;
+};
+
+// true if a->name < b->name
+bool node_name_less(Node const *a, Node const *b)
+{
+    return strcmp(a->get_name(), b->get_name()) < 0;
+}
+
+} // basilcc
+
+#hdr
+#include <cstring>
+#end

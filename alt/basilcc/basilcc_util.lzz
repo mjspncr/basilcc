@@ -5,8 +5,8 @@
 
 namespace basilcc {
 
-// append str2 to str1 with space if str1 non-empty
-void append_with_space(std::string &str1, std::string const &str2)
+// append str2 to str1 with space if str1 non-empty, return str1
+std::string &append_with_space(std::string &str1, std::string const &str2)
 {
     if (!str2.empty())
     {
@@ -16,6 +16,7 @@ void append_with_space(std::string &str1, std::string const &str2)
         }
         str1 += str2;
     }
+    return str1;
 }
 
 // return int as string
@@ -26,10 +27,48 @@ std::string int_to_string(int v)
     return ss.str();
 }
 
+// delete object and set pointer to 0
+template <class PTR>
+inline void delete_object(PTR &p)
+{
+    delete p;
+    p = 0;
+}
+// functor
+template <class PTR>
+inline void DeleteObject (; PTR &p)
+{
+    delete_object(p);
+}
+
+// delete objects over iterators
+template <class ITER>
+inline void delete_objects(ITER beg, ITER end)
+{
+    std::for_each(beg, end, DeleteObject<typename ITER::value_type>());
+}
+template <class PTR>
+inline void delete_objects(PTR *beg, PTR *end)
+{
+    std::for_each(beg, end, DeleteObject<PTR>());
+}
+
+template <class T>
+inline void delete_objects(T &t)
+{
+    for (typename T::value_type x: t) {
+        delete x;
+    }
+}
+
 } // basilcc
 
 #hdr
 #include <string>
+#end
+
+#tnl
+#include <algorithm>
 #end
 
 #src

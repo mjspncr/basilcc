@@ -11,42 +11,63 @@ class State;
 class SymbolTable
 {
   public:
-    SymbolTable(State &state);
+    SymbolTable(State &state)
+        : _state(state)
+    {
+        _eot = get_symbol(_state.intern("EOT"));
+        _start = get_symbol(_state.intern("start"));
+    }
+
+    ~SymbolTable()
+    {
+        delete_objects(_tokens.begin(), _tokens.end());
+        delete_objects(_nonterminals.begin(), _nonterminals.end());
+    }
+
+    // get EOT symbol
+    Symbol *get_eot_symbol() const
+    {
+        return _eot;
+    }
+
+    // get start symbol
+    Symbol *get_start_symbol() const
+    {
+        return _start;
+    }
 
     // get symbol from name, new symbol if doesn't exist
     Symbol *get_symbol(char const *name)
     {
-        SymbolPtr &symbol_ptr = _symbols[name];
-        if (symbol_ptr)
-        {
-            return symbol_ptr.get();
+        Symbol *&symbol = _symbols[name];
+        if (!symbol) {
+            if (is_token(name)) {
+                symbol = *_tokens.insert(_tokens.end(), new Token(name));
+            }
+            else {
+                symbol = *_nonterminals.insert(_tokens.end(), new Nonterminal(name));
+            }
         }
-        if (isToken(name))
-        {
-            symbol_ptr.reset(new Token(name));
-            _tokens.push_back(symbol_ptr.get());
-        }
-        else
-        {
-            symbol_ptr.reset(new Nonterminal(name)); 
-            _nonterminals.push_back(symbol_ptr.get());
-        }
-        return symbol_ptr.get();
+        return symbol;
     }
 
   private:
     State &_state;
-    typedef std::shared_ptr<Symbol> SymbolPtr; 
-    typedef std::map<char const *, SymbolPtr> SymbolPtrMap;
-    SymbolPtrMap _symbols;
+    // tokens and nonterminals, owns the symbols
     std::vector<Symbol *> _tokens;
     std::vector<Symbol *> _nonterminals;
+    // index of symbols by name
+    typedef std::map<char const *, Symbol *> SymbolMap;
+    SymbolMap _symbols;
+    // special symbols EOT and start
+    Symbol *_eot;
+    Symbol *_start;
 };
 
 namespace {
 
 // true if name is a token, if no lower case characters
-bool isToken(char const *name)
+bool is_token(char const *name)
 {
     for (char const *p = name; *p != '\0'; ++p)
     {
@@ -62,7 +83,6 @@ bool isToken(char const *name)
 } // basilcc
 
 #hdr
-#include <memory>
 #include <map>
 #include <vector>
 #end
@@ -70,4 +90,6 @@ bool isToken(char const *name)
 #src
 #include <basilcc_state.h>
 #include <basilcc_symbol.h>
+#include <basilcc_util.h>
+#include <ctype.h>
 #end

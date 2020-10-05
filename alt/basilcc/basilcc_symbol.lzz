@@ -37,6 +37,10 @@ class Symbol
     {
         return _first;
     }
+    inline First const &get_first() const
+    {
+        return _first;
+    }
 
   protected:
     Symbol(char const *name)
@@ -97,7 +101,9 @@ class Token : public Symbol
 //
 
 class Goto;
+class Type;
 typedef std::shared_ptr<Goto> GotoPtr;
+typedef std::shared_ptr<Type> TypePtr;
  
 class Nonterminal : public Symbol
 {
@@ -126,6 +132,9 @@ class Nonterminal : public Symbol
 
   private:
     GotoPtr _go2;
+    // return type of user defined on_node function for rule with this left
+    // hand symbol
+    TypePtr _type;
 };
 
 // true if a < b, tokens first, otherwise order by number

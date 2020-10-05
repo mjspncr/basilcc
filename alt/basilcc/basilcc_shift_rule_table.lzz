@@ -1,0 +1,61 @@
+// basilcc_shift_rule_table
+//
+//
+
+namespace basilcc {
+
+class BaseRule;
+class Priority;
+class ShiftRule;
+typedef std::unique_ptr<ShiftRule> ShiftRulePtr;
+
+class ShiftRuleTable
+{
+public:
+    ShiftRuleTable()
+    {}
+
+    ~ShiftRuleTable()
+    {
+        delete_objects(_shift_rules);
+    }
+
+    // freeze shift rule, return shared frozen rule
+    ShiftRule const *freeze_shift_rule(ShiftRulePtr &shift_rule)
+    {
+        std::pair<ShiftRuleSet::iterator, bool> r = _shift_rules.insert(shift_rule.get());
+        if (r.second) {
+            shift_rule.release();
+        }
+        return *r.first;
+    }
+
+    // get shared rule from components
+    ShiftRule const *get_shift_rule(BaseRule const *base_rule, Priority const &sp)
+    {
+        ShiftRulePtr shift_rule(new ShiftRule(base_rule, sp));
+        return freeze_shift_rule(shift_rule);
+    }
+
+  private:
+    inline bool ShiftRuleLess(; ShiftRule const *a, ShiftRule const *b) const
+    {
+        return *a < *b;
+    }
+    typedef std::set<ShiftRule const *, ShiftRuleLess> ShiftRuleSet;
+    ShiftRuleSet _shift_rules;
+  }
+}
+
+#hdr
+#include <memory>
+#include <set>
+#end
+
+#inl
+#include <basilcc_shift_rule.h>
+#end
+
+#src
+#include <basilcc_util.h>
+#end

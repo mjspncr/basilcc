@@ -1,6 +1,7 @@
 // basilcc_first_item
 //
 // item in symbol first set
+//
 
 namespace basilcc {
 
@@ -9,10 +10,11 @@ class Symbol;
 class FirstItem
 {
   public:
-    inline explicit FirstItem(Symbol const *token, Priority const &priority = Priority())
-        : _token(token), _priority(priority)
+    inline explicit FirstItem(Symbol const *token, Priority const &fp = Priority())
+        : _token(token), _fp(fp)
     {}
-    ~ FirstItem()
+
+    ~FirstItem()
     {}
 
     // get token
@@ -22,20 +24,20 @@ class FirstItem
     }
 
     // get first item priority
-    inline Priority const &get_priority() const
+    inline Priority const &get_first_priority() const
     {
-        return _priority;
+        return _fp;
     }
 
     // update first item priority, max of priority and item priority
-    inline void update(Priority const &priority)
+    inline void update(Priority const &fp)
     {
-        _priority = max_priority(_priority, priority);
+        _fp = max_priority(_fp, fp);
     }
 
   private:
     Symbol const *_token;
-    Priority _priority; // first priority
+    Priority _fp; // first priority
 };
 
 // return a < b, can assume both are in symbol's first set
@@ -44,7 +46,7 @@ bool operator <(FirstItem const &a, FirstItem const &b)
     return *a.get_token() < *b.get_token();
 }
 
-//  true if first item token is specified token
+// true if first item token is specified token
 bool IsFirstItemToken(Symbol const *token; FirstItem const &item) const
 {
     return item.get_token() == token;

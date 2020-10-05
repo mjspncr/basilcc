@@ -1,0 +1,130 @@
+// basilcc_follow_item
+//
+// item in follow set
+//
+
+namespace basilcc {
+
+class Symbol;
+
+class FollowItem
+{
+  public:
+    FollowItem(Symbol const *token, Symbol const *shortcut)
+        : _token(token), _shortcut(shortcut), _sticky(false), _accept(false)
+    {}
+
+    FollowItem(Symbol const *token, Symbol const *shortcut, Priority const &rp, bool sticky, bool accept)
+        : _token(token), _shortcut(shortcut), _rp(rp), _sticky(sticky), _accept(accept)
+    {}
+
+    ~FollowItem ()
+    {}
+    
+    // get token
+    inline Symbol const *get_token() const
+    {
+        return _token;
+    }
+
+    // get shortcut
+    inline Symbol const *get_shortcut() const
+    {
+        return _shortcut;
+    }
+
+    // get reduce priority
+    inline Priority const &get_reduce_priority() const
+    {
+        return _rp;
+    }
+
+    // true if has sticky
+    inline bool has_sticky() const
+    {
+        return _sticky;
+    }
+
+    // true if has accept
+    inline bool has_accept() const
+    {
+        return _accept;
+    }
+
+    // update, return true if item changed
+    bool update(Priority const &rp, bool sticky, bool accept)
+    {
+        bool changed = false;
+        Priority max_rp = max_priority(_rp, rp);
+        if (max_rp != _rp)
+        {
+            _rp = max_rp;
+            changed = true;
+        }
+        if (sticky && !_sticky)
+        {
+            _sticky = true;
+            changed = true;
+        }
+        if (accept && !_accept)
+        {
+          _accept = true;
+          changed = true;
+        }
+        return changed;
+    }
+
+    // to string, to reduce clutter suppress shortcut if equal to left hand symbol in rule
+    std::string to_string(Symbol const *left_symbol) const
+    {
+        std::ostringstream ss;
+        ss << _token->get_name();
+        if (left_symbol != _shortcut) {
+            ss << '.' << _shortcut->get_name();
+        }
+        ss << first_priority_to_string(_rp);
+        if (_sticky) {
+            ss << '<'; 
+        }
+        if (_accept) {
+            ss << '*';
+        }
+        return ss.str();
+    }
+
+  private:
+    Symbol const *_token;
+    // symbol to follow on reduction, left rule symbol or shortcut
+    Symbol const *_shortcut;
+    // reduce/first priority
+    Priority _rp;
+    // follow item never considered for default reduce
+    bool _sticky;
+    // rule is an accept on reduction
+    bool _accept;
+};
+
+// a < b
+bool operator <(FollowItem const &a, FollowItem const &b)
+{
+    // order by token and shortcut
+    if (a.get_token() != b.get_token()) {
+        return *a.get_token() < *b.get_token();
+    }
+    if (a.get_shortcut() != b.get_shortcut()) {
+        return *a.get_shortcut() < *b.get_shortcut();
+    }
+    return false;
+}
+
+} // basilcc
+
+#hdr
+#include <basilcc_priority.h>
+#include <string>
+#end
+
+#src
+#include <basilcc_symbol.h>
+#include <sstream>
+#end

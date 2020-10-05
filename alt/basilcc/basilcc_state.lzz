@@ -9,7 +9,8 @@ class State
 {
   public:
     State()
-       : _symbol_table(*this)
+       : _symbols(*this),
+         _rules(*this)
     {}
 
     // intern std::string, return shared char const *
@@ -18,24 +19,107 @@ class State
       return _strings.insert(str).first->c_str ();
     }
 
+    //
     // symbols
+    //
 
     // get symbol from name, new symbol if doesn't exist
-    Symbol *getSymbol(std::string const &name)
+    inline Symbol *get_symbol(std::string const &name)
     {
-        return _symbol_table.get_symbol(intern(name));
+        return _symbols.get_symbol(intern(name));
     }
+
+    // get special symbols
+    inline Symbol const *get_eot_symbol() const
+    {
+        return _symbols.get_eot_symbol();
+    }
+    inline Symbol const *get_start_symbol() const
+    {
+        return _symbols.get_start_symbol();
+    }
+    inline bool is_start_symbol(Symbol const *symbol) const
+    {
+        return symbol == get_start_symbol();
+    }
+
+    //
+    // rules
+    //
+
+    // add new rule
+    inline void add_rule(
+        Node const *node,
+        RuleSymbol const &left_rule_symbol,
+        RuleSymbolVector const &right_rule_symbols,
+        RuleSymbolVector const &explicit_follow,
+        bool no_bypass
+    )
+    {
+        _rules.add_rule(
+            node,
+            left_rule_symbol,
+            right_rule_symbols,
+            explicit_follow,
+            no_bypass
+        );
+    }
+
+    // get all rules
+    inline RuleVector const &get_rules() const
+    {
+        return _rules.get_rules();
+    }
+    // get rules with left hand symbol
+    inline RuleVector const &get_rules(Symbol const *left_symbol) const
+    {
+        return _rules.get_rules(left_symbol);
+    }
+
+    // get base rule
+    inline BaseRule const *get_base_rule(Rule *rule, int pos)
+    {
+        return _base_rules.get_base_rule(rule, pos);
+    }
+
+    // freeze shift rule, return shared frozen rule
+    inline ShiftRule const *freeze_shift_rule(ShiftRulePtr &shift_rule)
+    {
+        return _shift_rules.freeze_shift_rule(shift_rule);
+    }
+    // get frozen shift rule from components
+    inline ShiftRule const *get_shift_rule(BaseRule const *base_rule, Priority const &sp)
+    {
+        return _shift_rules.get_shift_rule(base_rule, sp);
+    }
+
+    // follow
+    /*
+    FollowItem const *freeze_follow_item(FollowItemPtr const &follow_item)
+    {
+    }
+    */
 
   private:
     // cached strings
     std::set<std::string> _strings;
     // tables
-    SymbolTable _symbol_table;
+    SymbolTable _symbols;
+    NodeTable _nodes;
+    RuleTable _rules;
+    BaseRuleTable _base_rules;
+    ShiftRuleTable _shift_rules;
+    FollowRuleTable _follow_rules;
 };
 
 } // basilcc
 
 #hdr
+#include <basilcc_base_rule_table.h>
+#include <basilcc_follow_rule_table.h>
+#include <basilcc_node_table.h>
+#include <basilcc_rule_table.h>
+#include <basilcc_shift_rule_table.h>
 #include <basilcc_symbol_table.h>
 #include <string>
 #include <set>

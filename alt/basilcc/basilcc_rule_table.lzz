@@ -1,0 +1,107 @@
+// basilcc_rule_table
+//
+// maintains all rules
+//
+
+namespace basilcc {
+
+class Node;
+class State;
+class Symbol;
+class Rule;
+typedef std::vector<RuleSymbol> RuleSymbolVector;
+typedef std::vector<Rule *> RuleVector;
+
+class RuleTable
+{
+  public:
+    RuleTable(State &state)
+        : _state(state)
+    {
+        _enable_bypass = false; // TODO: read from config
+    }
+
+    ~RuleTable()
+    {
+        delete_objects(_rules.begin(), _rules.end());
+    }
+
+    // add new rule
+    void add_rule(
+        Node const *node,
+        RuleSymbol const &left_rule_symbol,
+        RuleSymbolVector const &right_rule_symbols,
+        RuleSymbolVector const &explicit_follow,
+        bool no_bypass
+    )
+    {
+        Symbol const *left_symbol = left_rule_symbol.get_symbol();
+        if (!left_symbol->is_token()) {
+            std::ostringstream ss;
+            ss << "left hand symbol '" << left_symbol->get_name() << "' is a token";
+            throw std::runtime_error(ss.str());
+        }
+        bool is_start = _state.is_start_symbol(left_symbol);
+        bool can_bypass = false;
+        // can bypass rule on reduction if only one nonterminal on right hand side and no node
+        if (_enable_bypass && !no_bypass && !node) {
+            if (right_rule_symbols.size() == 1 && !right_rule_symbols.front().get_symbol()->is_token()) {
+                can_bypass = true;
+            }
+        }
+        Rule *rule = *_rules.insert(_rules.end(),
+            new Rule(
+                _rules.size(),
+                node,
+                is_start,
+                left_rule_symbol,
+                right_rule_symbols,
+                explicit_follow,
+                can_bypass
+            )
+        );
+        _left_symbol_rules[left_symbol].push_back(rule);
+    }
+
+    // get all rules
+    inline RuleVector const &get_rules() const
+    {
+        return _rules;
+    }
+
+    // get rules with left hand symbol
+    RuleVector const &get_rules(Symbol const *left_symbol) const
+    {
+        SymbolRuleVectorMap::const_iterator p = _left_symbol_rules.find(left_symbol);
+        if (p == _left_symbol_rules.end()) {
+            throw std::runtime_error("unexpected: no rule with left hand symbol");
+        }
+        return p->second;
+    }
+
+  private:
+    State &_state;
+    bool _enable_bypass; // true if option to bypass rules is enabled
+    RuleVector _rules; // all rules ordered by number
+    typedef std::map<Symbol const *, RuleVector> SymbolRuleVectorMap;
+    SymbolRuleVectorMap _left_symbol_rules; // rules indexed by left hand symbol
+};
+
+namespace {
+} // unnamed
+
+} // basilcc
+
+#hdr
+#include <basilcc_rule_symbol.h>
+#include <vector>
+#include <map>
+#end
+
+#src
+#include <basilcc_rule.h>
+#include <basilcc_state.h>
+#include <basilcc_symbol.h>
+#include <basilcc_util.h>
+#include <sstream>
+#end

@@ -1,0 +1,39 @@
+// basilcc action seq
+
+namespace basilcc {
+
+class Action;
+typedef std::vector<Action const *> ActionVector;
+
+class ActionSeq
+{
+  public:
+    // steals actions
+    ActionSeq(int num, ActionVector &actions)
+        : _num(num)
+    {
+        _actions.swap(actions);
+    }
+    ~ActionSeq()
+    {}
+    
+    inline int get_number() const
+    {
+        return _num;
+    }
+    
+    inline ActionVector const &get_actions() const
+    {
+        return _actions;
+    }
+
+  private:
+    int _num;
+    ActionVector _actions;
+};
+    
+} // basilcc
+
+#hdr
+#include <vector>
+#end

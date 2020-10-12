@@ -1,0 +1,72 @@
+// basilcc action table
+//
+
+namespace basilcc {
+
+class ActionTable : public Table
+{
+  public:
+    ActionTable()
+    {}
+
+    ~ActionTable()
+    {
+        delete_objects(_actions.begin(), _actions.end());
+    }
+
+    // get shift action from state
+    Action const *get_shift_action(State const *state)
+    {
+        std::unique_ptr<ShiftAction> action_ptr(new ShiftAction(state));
+        std::pair<ShiftActionSet::iterator, bool> r = _shift_actions.insert(action_ptr.get());
+        if (r.second) {
+            action_ptr.release();
+        }
+        return *r.first;
+    }
+
+    // get reduce action from components
+    Action const *get_reduce_action(Rule const *rule, Symbol const *shortcut, bool accept)
+    {
+        m_action_trie.push (ptrdiff_t (rule));
+      m_action_trie.push (ptrdiff_t (shortcut));
+      m_action_trie.push (accept ? 1 : 0);
+      ActionPtr & action = m_action_trie.commit (0);
+      if (! action)
+      {
+        action = new ReduceAction (m_actions.size (), rule, shortcut, accept);
+        m_actions.push_back (action);
+      }
+      return action;
+    }
+
+    // get all actions
+    inline ActionPtrVector const & getActions () const
+    {
+      return m_actions;
+    }
+
+  private:
+    typedef std::set<Action const *, ShiftActionLess> ShiftActionSet;
+    typedef std::set<Action const *, ReduceActionLess> ReduceActionSet;
+    ShiftActionSet _shift_actions;
+    ReduceActionSet _reduce_actions;
+};
+
+} // basilcc
+
+#hdr
+#include <basilcc/action_ptr_vector.h>
+#include <basilcc/rule_ptr.h>
+#include <basilcc/state_ptr.h>
+#include <basilcc/symbol_ptr.h>
+#end
+
+#src
+#include <basilcc/action.h>
+#include <basilcc/action_ptr_trie.h>
+#include <basilcc/action_ptr_vector.h>
+#include <basilcc/basilcc.h>
+#include <basilcc/table.h>
+#include <basilcc/util.h>
+#end

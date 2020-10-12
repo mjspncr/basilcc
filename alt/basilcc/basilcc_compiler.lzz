@@ -5,12 +5,11 @@
 
 namespace basilcc {
 
-class State
+class Compiler
 {
   public:
-    State()
-       : _symbols(*this),
-         _rules(*this)
+    Compiler()
+        : _symbols(*this), _rules(*this)
     {}
 
     // intern std::string, return shared char const *
@@ -93,12 +92,13 @@ class State
         return _shift_rules.get_shift_rule(base_rule, sp);
     }
 
-    // follow
-    /*
-    FollowItem const *freeze_follow_item(FollowItemPtr const &follow_item)
+    // kernels
+
+    // get base kernel from kernel shift rules, steals rules
+    inline BaseKernel const *get_base_kernel(BaseRuleVector &base_rules)
     {
+        return _base_kernels.get_base_kernel(base_rules);
     }
-    */
 
   private:
     // cached strings
@@ -110,16 +110,20 @@ class State
     BaseRuleTable _base_rules;
     ShiftRuleTable _shift_rules;
     FollowRuleTable _follow_rules;
+    BaseKernelTable _base_kernels;
+    ShiftKernelTable _shift_kernels;
 };
 
 } // basilcc
 
 #hdr
+#include <basilcc_base_kernel_table.h>
 #include <basilcc_base_rule_table.h>
 #include <basilcc_follow_rule_table.h>
 #include <basilcc_node_table.h>
 #include <basilcc_rule_table.h>
 #include <basilcc_shift_rule_table.h>
+#include <basilcc_shift_kernel_table.h>
 #include <basilcc_symbol_table.h>
 #include <string>
 #include <set>

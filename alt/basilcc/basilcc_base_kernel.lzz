@@ -1,6 +1,4 @@
-// basilcc_base_kernel
-//
-// base kernel
+// basilcc base kernel
 //
 
 namespace basilcc {
@@ -21,13 +19,13 @@ public:
     {}
 
     // get kernel size, or number of base rules
-    inline int get_kernel_size() const
+    inline int get_size() const
     {
         return int(_base_rules.size());
     }
 
     // get kernrel rules
-    inline BaseRuleVector const &get_base_Rules() const
+    inline BaseRuleVector const &get_base_rules() const
     {
         return _base_rules;
     }
@@ -36,9 +34,31 @@ private:
     // kernel rules
     BaseRuleVector _base_rules;
 };
-    
+
+// true if a < b
+bool operator <(BaseKernel const &a, BaseKernel const &b)
+{
+    BaseRuleVector const &a_rules = a.get_base_rules();
+    BaseRuleVector const &b_rules = b.get_base_rules();
+    if (a_rules.size() != b_rules.size()) {
+        return a_rules.size() < b_rules.size();
+    }
+    for (BaseRuleVector::const_iterator i = a_rules.begin(), endi = a_rules.end(), j = b_rules.begin(); i != endi; ++ i, ++ j) {
+        BaseRule const *a_rule = *i;
+        BaseRule const *b_rule = *j;
+        if (a_rule != b_rule) {
+            return *a_rule < *b_rule;
+        }
+    }
+    return false;
+}
+
 } // basilcc
 
 #hdr
 #include <vector>
+#end
+
+#src
+#include <basilcc_base_rule.h>
 #end

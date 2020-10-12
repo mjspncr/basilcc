@@ -6,16 +6,15 @@
 namespace basilcc {
 
 class Symbol;
-class State;
+class Compiler;
 
 class SymbolTable
 {
   public:
-    SymbolTable(State &state)
-        : _state(state)
+    SymbolTable(Compiler &c)
     {
-        _eot = get_symbol(_state.intern("EOT"));
-        _start = get_symbol(_state.intern("start"));
+        _eot = get_symbol(c.intern("EOT"));
+        _start = get_symbol(c.intern("start"));
     }
 
     ~SymbolTable()
@@ -52,7 +51,6 @@ class SymbolTable
     }
 
   private:
-    State &_state;
     // tokens and nonterminals, owns the symbols
     std::vector<Symbol *> _tokens;
     std::vector<Symbol *> _nonterminals;
@@ -65,7 +63,6 @@ class SymbolTable
 };
 
 namespace {
-
 // true if name is a token, if no lower case characters
 bool is_token(char const *name)
 {
@@ -78,7 +75,6 @@ bool is_token(char const *name)
     }
     return true;
 }
-
 } // unnamed
 } // basilcc
 
@@ -88,7 +84,7 @@ bool is_token(char const *name)
 #end
 
 #src
-#include <basilcc_state.h>
+#include <basilcc_compiler.h>
 #include <basilcc_symbol.h>
 #include <basilcc_util.h>
 #include <ctype.h>

@@ -93,15 +93,20 @@ class BaseRule
   };
 
 // true if a < b
-bool operator <(BaseRule const &a, BaseRule const &b)
+inline bool operator <(BaseRule const &a, BaseRule const &b)
 {
     return *a.get_rule() < *b.get_rule() || (a.get_rule() == b.get_rule() && a.get_pos() < b.get_pos());
+}
+
+inline bool BaseRuleLess(; BaseRule const *a, BaseRule const *b) const
+{
+    return *a < *b;
 }
 
 } // basilcc
 
 #hdr
-#include <memory>
+#include <string>
 #end
 
 #inl

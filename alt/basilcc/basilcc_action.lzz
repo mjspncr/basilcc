@@ -1,0 +1,213 @@
+// basilcc action
+//
+
+namespace basilcc {
+
+class State;
+class Rule;
+class Symbol;
+
+class Action
+{
+  public:
+    inline Action(int num)
+      : _num(num)
+    {}
+    virtual ~Action()
+    {}
+
+    // get action number
+    inline int get_number() const
+    {
+      return _num;
+    }
+
+    // true if shift
+    virtual bool is_shift() const = 0;
+    // true if reduction
+    inline  bool is_reduction() const { return ! is_shift(); }
+  private:
+    // number
+    int _num;
+};
+
+class ReduceAction : public Action
+{
+  public:
+    ReduceAction(int num, Rule const *rule, Symbol const *shortcut, bool accept)
+        : Action(num), _rule(rule), _shortcut(shortcut), _accept(accept)
+    {}
+    ~ReduceAction()
+    {}
+
+    // true if shift
+    virtual bool is_shift() const
+    {
+        return false;
+    }
+
+    // get rule
+    inline Rule const *get_rule() const
+    {
+        return _rule;
+    }
+
+    // get shortcut
+    inline Symbol const *get_shortcut() const
+    {
+        return _shortcut;
+    }
+
+    // get shortcut number
+    int get_shortcut_number() const
+    {
+      return _shortcut->get_number();
+    }
+
+    // true if has accept
+    bool has_accept() const
+    {
+      return _accept;
+    }
+
+  private:
+    // reduce on this rule
+    Rule const *_rule;
+    // shortcut
+    Symbol const *_shortcut;
+    // true if accept
+    bool _accept;
+};
+
+// true if a < b 
+bool operator <(ReduceAction const &a, ReduceAction const &b)
+{
+    Rule const *a_rule = a.get_rule();
+    Rule const *b_rule = b.get_rule();
+    if (a_rule != b_rule()) {
+        return *a_rule < *b_rule;
+    }
+    Symbol const *a_shortcut = a.get_shortcut();
+    Symbol const *b_shortcut = b.get_shortcut();
+    if (a_shortcut != b_shortcut) {
+        return *a_shortcut < *b_shortcut;
+    }
+    if (!a.has_accept() && b.has_accept()) {
+        return true;
+    }
+    return false;
+}
+
+inline bool ReduceActionLess(; Action const *a, Action const *b) const
+{
+    return static_cast<ReduceAction const &>(*a) < static_cast<ReduceAction const &>(*b);
+}
+
+class ShiftAction : public Action
+{
+  public:
+    ShiftAction(int num, State const *state)
+        : Action(num), _state(state)
+    {}
+    ~ ShiftAction()
+    {}
+
+    // true if shift
+    bool is_shift() const
+    {
+        return true;
+    }
+
+    // get state
+    inline State const *get_state() const
+    {
+        return _state;
+    }
+  private:
+    // state on shift
+    State const *_state;
+};
+
+// true if a < b
+inline bool operator <(ShiftAction const &a, ShiftAction const &b)
+{
+    State const *a_state = a.get_state();
+    State const *b_state = b.get_state();
+    if (a_state != b_state) {
+        return *a_state < *b_state;
+    }
+    return false;
+}
+
+inline bool ShiftActionLess(; Action const *a, Action const *b) const
+{
+    return static_cast<ShiftAction const &>(*a) < static_cast<ShiftAction const &>(*b);
+}
+
+/*
+// action to string
+std::string actionToString (ActionPtr action)
+{
+    string str;
+    if (action->isShift ())
+    {
+        ShiftAction const & shift_action = shiftAction (* action);
+        str = "SHIFT";
+        appendWithSpace (str, intToString (shift_action.getState ()->getNumber ()));
+    }
+    else
+    {
+        ReduceAction const & reduce_action = reduceAction (* action);
+        RulePtr rule = reduce_action.getRule ();
+        SymbolPtr shortcut = reduce_action.getShortcut ();
+        if (rule->isStart ())
+        {
+            str = "DONE";
+            appendWithSpace (str, intToString (rule->getNumber ()));
+        }
+        else
+        {
+            if (reduce_action.hasAccept ())
+            {
+                str = "ACCEPT";
+            }
+            else
+            {
+                str = "REDUCE";
+            }
+            appendWithSpace (str, intToString (rule->getNumber ()));
+            appendWithSpace (str, shortcut->getName ());
+        }
+    }
+    return str;
+}
+
+// append actions to string
+void appendActions (std::string & str, ActionPtrVector const & actions)
+{
+    if (! actions.empty ())
+    {
+        for (ActionPtrVectorConstIter i = actions.begin (), endi = actions.end ();;) {
+            str += actionToString (* i);
+            if (++ i == endi) {
+                break;
+            }
+            str += ", ";
+        }
+    }
+}
+*/
+
+} // basilcc
+
+
+#hdr
+#include <string>
+#end
+
+#src
+#include <basilcc_rule.h>
+#include <basilcc_symbol.h>
+//#include <basilcc_state.h>
+//#include <basilcc_util.h>
+#end

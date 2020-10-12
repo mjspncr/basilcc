@@ -44,8 +44,9 @@ public:
     }
     typedef std::set<ShiftRule const *, ShiftRuleLess> ShiftRuleSet;
     ShiftRuleSet _shift_rules;
-  }
-}
+};
+
+} // basilcc
 
 #hdr
 #include <memory>

@@ -6,7 +6,7 @@
 namespace basilcc {
 
 class Node;
-class State;
+class Compiler;
 class Symbol;
 class Rule;
 typedef std::vector<RuleSymbol> RuleSymbolVector;
@@ -15,8 +15,8 @@ typedef std::vector<Rule *> RuleVector;
 class RuleTable
 {
   public:
-    RuleTable(State &state)
-        : _state(state)
+    RuleTable(Compiler &c)
+        : _c(c)
     {
         _enable_bypass = false; // TODO: read from config
     }
@@ -41,7 +41,7 @@ class RuleTable
             ss << "left hand symbol '" << left_symbol->get_name() << "' is a token";
             throw std::runtime_error(ss.str());
         }
-        bool is_start = _state.is_start_symbol(left_symbol);
+        bool is_start = _c.is_start_symbol(left_symbol);
         bool can_bypass = false;
         // can bypass rule on reduction if only one nonterminal on right hand side and no node
         if (_enable_bypass && !no_bypass && !node) {
@@ -80,7 +80,7 @@ class RuleTable
     }
 
   private:
-    State &_state;
+    Compiler &_c;
     bool _enable_bypass; // true if option to bypass rules is enabled
     RuleVector _rules; // all rules ordered by number
     typedef std::map<Symbol const *, RuleVector> SymbolRuleVectorMap;
@@ -89,7 +89,6 @@ class RuleTable
 
 namespace {
 } // unnamed
-
 } // basilcc
 
 #hdr
@@ -99,8 +98,8 @@ namespace {
 #end
 
 #src
+#include <basilcc_compiler.h>
 #include <basilcc_rule.h>
-#include <basilcc_state.h>
 #include <basilcc_symbol.h>
 #include <basilcc_util.h>
 #include <sstream>

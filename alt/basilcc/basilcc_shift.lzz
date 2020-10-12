@@ -1,0 +1,70 @@
+// basilcc shift
+//
+
+namespace basilcc {
+
+class Symbol;
+class State;
+
+class Shift
+{
+  public:
+    Shift(Symbol const *symbol, State const *state)
+        : _symbol(symbol), _state(state)
+    {}
+    ~Shift()
+    {}
+
+    // get symbol
+    inline Symbol const *get_symbol() const
+    {
+        return _symbol;
+    }
+
+    // get state
+    inline State const *get_state() const
+    {
+        return _state;
+    }
+
+  private:
+    Symbol const *_symbol;
+    State const *_state;
+};
+
+// true if shift symbol number < symbol_num
+bool shift_less_symbol_number(Shift const &shift, int symbol_num)
+{
+    return shift.get_symbol()->get_number() < symbol_num; 
+}
+
+// true if shift symbol number == symbol_num
+bool shift_same_symbol_number(Shift const &shift, int symbol_num)
+{
+    return shift.get_symbol()->get_number() == symbol_num; 
+}
+
+// get shift state given symbol number, 0 if symbol not found
+typedef std::vector<Shift> ShiftVector;
+State const *get_shift_state(ShiftVector const &shifts, int symbol_num)
+{
+    ShiftVector::const_iterator p = std::lower_bound(shifts.begin(), shifts.end(), symbol_num, shift_less_symbol_number);
+    if (p != shifts.end()) {
+        ShiftPtr shift = *p;
+        if (shift_same_symbol_number(shift, symbol_num)) {
+            return shift.get_state();
+        }
+    }
+    return 0;
+}
+
+} // basilcc
+
+#hdr
+#include <vector>
+#end
+
+#src
+#include <basilcc_symbol.h>
+#include <algorithm>
+#end

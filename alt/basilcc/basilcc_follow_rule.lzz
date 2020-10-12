@@ -16,7 +16,6 @@ class FollowRule
     FollowRule(ShiftRule const *shift_rule)
       : _shift_rule(shift_rule)
     {}
-    
     FollowRule(ShiftRule const *shift_rule, Follow const &follow)
       : _shift_rule(shift_rule), _follow(follow)
     {}
@@ -55,7 +54,7 @@ class FollowRule
         bool accept = next_rule_symbol.has_accept();
         // add first of next symbols while null
         bool null = true;
-        for (int i = base_rule->get_pos() + 1, endi = rule->get_size(); null && i != endi; ++ i) {
+        for (int i = base_rule->get_pos() + 1, endi = rule->get_size(); null && i != endi; ++i) {
             RuleSymbol const &rule_symbol = rule->get_right_rule_symbol(i);
             Symbol const *symbol = rule_symbol.get_symbol();
             First const &first = symbol->get_first();

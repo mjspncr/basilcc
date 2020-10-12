@@ -1,0 +1,55 @@
+// basilcc shift base
+
+namespace basilcc {
+
+class Compiler;
+class BaseKernel;
+class ShiftRule;
+
+typedef std::vector<ShiftRule const *> ShiftRuleVector;
+
+class ShiftBase
+{
+  public:
+    // steals shift rules
+    ShiftBase(BaseKernel const &base_kernel, ShiftRuleVector const &shift_rules)
+        : _base_kernel(base_kernel), _shift_rules(shift_rules)
+    {}
+
+    ~ShiftBase ()
+    {}
+
+    // get base kernel
+    inline BaseKernel const &get_base_kernel() const
+    {
+        return _base_kernel;
+    }
+
+    // get shift rules
+    inline ShiftRuleVector const &get_shift_rules() const
+    {
+        return _shift_rules;
+    }
+
+    // closure on shift base 
+    void closure(Compiler &c)
+    {
+        // adds non kernel rules
+        shift_closure(c, _shift_rules);
+    }
+
+  private:
+    BaseKernel const &_base_kernel;
+    ShiftRuleVector _shift_rules;
+};
+
+} // basilcc
+
+#hdr
+#include <vector>
+#end
+
+#src
+#include <basilcc_shift_closure.h>
+#end
+

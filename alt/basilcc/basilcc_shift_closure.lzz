@@ -1,0 +1,80 @@
+// basilc shift closure
+
+
+namespace basilcc {
+
+class Compiler;
+class ShiftRule;
+
+// shift closure, adds non-kernel shift rules
+typedef std::vector<ShiftRule const *> ShiftRuleVector;
+void shift_closure(Compiler &c, ShiftRuleVector &shift_rules)
+{
+    add_non_kernel_shift_rules(c, shift_rules);
+}
+
+namespace {
+
+// append non-kernel shift rules to shift rules
+void add_non_kernel_shift_rules(Compiler &c, ShiftRuleVector &shift_rules)
+{
+    ShiftSymbolMap shift_symbols;
+    std::for_each(shift_rules.begin(), shift_rules.end(), UpdateShiftSymbol(shift_symbols));
+    ShiftRuleMap non_kernel_shift_rules;
+    std::for_each(shift_symbols.begin(), shift_symbols.end(), UpdateShiftRules(non_kernel_shift_rules));
+    for (ShiftRuleMap::value_type &p: non_kernel_shift_rules) {
+        shift_rules.push_back(c.freeze_shift_rule(p.second));
+    }
+}
+
+// update or add new shift symbol to shift symbols
+typedef std::map<Symbol const *, Priority> ShiftSymbolMap;
+void UpdateShiftSymbol(ShiftSymbolMap &shift_symbols; ShiftRule const *shift_rule) const
+{
+    BaseRule const *base_rule = shift_rule->get_base_rule();
+    if (!base_rule->is_reduction()) {
+        Symbol const *symbol = base_rule->get_next_symbol();
+        if (!symbol->is_token()) {
+            Priority &priority = shift_symbols[symbol];
+            priority = max_priority(priority, shift_rule->get_shift_priority() + base_rule->get_shift_priority());
+        }
+    }
+}
+
+// update non kernel shift rule
+typedef std::map<BaseRule const *, ShiftRulePtr, BaseRuleLess> ShiftRuleMap; 
+void UpdateShiftRule(ShiftRuleMap &shift_rules, Priority const &shift_priority; ShiftRule const *first_shift_rule) const
+{
+    BaseRule const *base_rule = first_shift_rule->get_base_rule();
+    Priority priority = first_shift_rule->get_shift_priority() + shift_priority;
+    ShiftRulePtr &shift_rule = shift_rules[base_rule];
+    if (!shift_rule) {
+        shift_rule.reset(new ShiftRule(base_rule, priority));
+    }
+    else {
+        shift_rule->update(priority);
+    }
+}
+
+// update non kernel shift rules given shift symbol
+void UpdateShiftRules(ShiftRuleMap &shift_rules; ShiftSymbolMap::value_type const &shift_symbol) const
+{
+    ShiftRuleVector const &first_shift_rules = shift_symbol.first->get_first().get_shift_rules();
+    std::for_each(first_shift_rules.begin(), first_shift_rules.end(), UpdateShiftRule(shift_rules, shift_symbol.second));
+}
+
+} // unnamed
+} // basilcc
+
+#hdr
+#include <vector>
+#end
+
+#src
+#include <basilcc_base_rule.h>
+#include <basilcc_compiler.h>
+#include <basilcc_shift_rule.h>
+#include <basilcc_symbol.h>
+#include <algorithm>
+#include <map>
+#end

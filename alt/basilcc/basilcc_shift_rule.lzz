@@ -59,6 +59,12 @@ bool operator <(ShiftRule const &a, ShiftRule const &b)
     return a.get_shift_priority() < b.get_shift_priority();
 }
 
+// get base rule from shift rule
+BaseRule const *get_shift_base_rule(ShiftRule const *shift_rule)
+{
+    return shift_rule->get_base_rule();
+}
+
 /*
 // true if shift rule has base rule
 bool has_base_rule(BaseRule const *base_rule; ShiftRule const *shift_rule) const
@@ -66,11 +72,6 @@ bool has_base_rule(BaseRule const *base_rule; ShiftRule const *shift_rule) const
     return shift_rule->get_base_rule() == base_rule;
 }
 
-// get base rule from shift rule
-BaseRule const *get_shift_base_rule(ShiftRule const *shift_rule)
-{
-    return shift_rule->get_base_rule();
-}
 */
 
 } // basilcc

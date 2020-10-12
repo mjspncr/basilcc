@@ -1,0 +1,109 @@
+// basilcc lazy action
+//
+
+namespace basilcc {
+
+class Compiler;
+class Rule;
+class Shift;
+class Symbol;
+
+typedef std::vector<Shift> ShiftVector;
+
+class LazyAction
+{
+  public:
+    LazyAction() 
+    {}
+
+    virtual ~LazyAction ()
+    {}
+
+    // true if shift
+    virtual bool is_shift() const
+    {
+        return false;
+    }
+    // true if reduction
+    inline bool is_reduction() const
+    {
+      return !is_shift();
+    }
+
+    // get action
+    virtual Action const *get_action(Compiler &c, ShiftVector const &token_shifts, Symbol const *token) const = 0;
+};
+
+class ShiftLazyAction : public LazyAction
+{
+  public:
+    ShiftLazyAction() 
+    {}
+
+    ~ShiftLazyAction()
+    {}
+
+    // true if shift
+    bool is_shift() const
+    {
+        return true;
+    }
+
+    // get action
+    Action const *get_action(Compiler &c, ShiftVector const &token_shifts, Symbol const *token) const
+    {
+        // should always get a state
+        State const *state = get_shift_state(token_shifts, token->get_number());
+        return c.get_shift_action(state);
+    }
+};
+
+// reduce
+class ReduceLazyAction : public LazyAction
+{
+  public:
+    ReduceLazyAction(Rule const *rule, Symbol const *shortcut, bool accept)
+        : _rule(rule), _shortcut(shortcut), _accept(accept)
+    {}
+
+    ~ReduceLazyAction()
+    {}
+
+    // get rule
+    inline Rule const *get_rule() const
+    {
+        return _rule;
+    }
+
+    // get shortcut
+    inline Symbol const *get_shortcut() const
+    {
+        return _shortcut;
+    }
+
+    // true if has accept
+    inline bool has_accept() const
+    {
+        return _accept;
+    }
+
+    // get action
+    Action const *get_action(Compilier &c, ShiftVector const &token_shifts, Symbol const *token) const
+    {
+        return c.get_reduce_action(_rule, _shortcut, _accept);
+    }
+
+  private:
+    Rule const *_rule;
+    Symbol const *_shortcut;
+    bool _accept;
+};
+
+} // basilcc
+
+#hdr
+#end
+
+#src
+#include <basilcc_compiler.h>
+#end

@@ -1,0 +1,59 @@
+// basilcc lazy action sequence
+
+namespace basilcc {
+
+class Comipiler;
+class LazyAction;
+class Shift;
+
+typedef std::vector<LazyAction const *> LazyActionVector;
+typedef std::vector<Shift> ShiftVector;
+
+class LazyActionSeq
+{
+  public:
+    LazyActionSeq(LazyActionVector const &lazy_actions)
+        : _lazy_actions(lazy_actions)
+    {}
+    ~LazyActionSeq()
+    {}
+
+    // get lazy actions
+    inline LazyActionVector const &get_lazy_actions() const
+    {
+        return _lazy_actions;
+    }
+
+
+    // get action seq
+    ActionSeq const *get_action_seq(Compiler &c, ShiftVector const &token_shifts, Symbol const *token) const
+    {
+        ActionPtrVector actions;
+        actions.reserve(_lazy_actions.size());
+        std::transform(_lazy_actions.begin(), _lazy_actions.end(), std::back_inserter(actions), GetAction(c, token_shifts, token));
+        return c.get_action_seq(actions);
+    }
+
+  private:
+    LazyActionVector _lazy_actions;
+  };
+
+namespace {
+
+// get action from forward action
+inline Action const *GetAction(Compiler &c, ShiftVector const &token_shifts, Symbol const *token; LazyAction const *lazy_action) const
+{
+    return lazy_action->get_action(c, token_shifts, token);
+}
+
+} // namespace
+} // basilcc
+
+#hdr
+#include <vector>
+#end
+
+#src
+#include <basilcc_compiler.h>
+#include <algorithm>
+#end

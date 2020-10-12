@@ -40,7 +40,7 @@ else # no SUBDIRS
 include $(MAKETOOLS)/make.$(CONFIG)
 # vars
 BUILDDIR  := $(ROOT)/build.$(CONFIG)
-SRCDIR    := $(BUILDDIR)/src/$(DIR)
+SRCDIR    := $(BUILDDIR)/src
 OBJDIR    := $(BUILDDIR)/obj/$(DIR)$(OPTSUFFIX)
 LIBDIR    := $(BUILDDIR)/lib
 BINDIR    := $(BUILDDIR)/bin
@@ -51,7 +51,7 @@ SRCFILES  := $(addprefix $(SRCDIR)/,$(LZZFILES:%.lzz=%.cpp))
 OBJFILES  := $(addprefix $(OBJDIR)/,$(LZZFILES:%.lzz=%.o))
 INCFLAGS  := $(INCDIRS:%=-I%) -I$(BUILDDIR)/src
 DEFFLAGS  := $(DEFS:%=-D%) $(CONFIGDEFS:%=-D%)
-CPPFLAGS  := $(DEFFLAGS) $(INCFLAGS) $(DEBUGFLAG) -Wno-deprecated -Wall
+CPPFLAGS  := $(DEFFLAGS) $(INCFLAGS) $(DEBUGFLAG) -Wno-deprecated -Wall -std=c++11
 OUTDIRS   := $(SRCDIR) $(OBJDIR)
 # binary
 ifdef BIN

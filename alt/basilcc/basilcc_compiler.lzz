@@ -5,8 +5,12 @@
 
 namespace basilcc {
 
-class Compiler
-{
+class Action;
+class ActionSeq;
+class Move;
+typedef std::vector<Action const *> ActionVector;
+
+class Compiler {
   public:
     Compiler()
         : _symbols(*this), _rules(*this)
@@ -98,6 +102,12 @@ class Compiler
     inline BaseKernel const *get_base_kernel(BaseRuleVector &base_rules)
     {
         return _base_kernels.get_base_kernel(base_rules);
+    }
+
+
+    ActionSeq const *get_action_seq(ActionVector &actions)
+    {
+        return NULL; // TODO
     }
 
   private:

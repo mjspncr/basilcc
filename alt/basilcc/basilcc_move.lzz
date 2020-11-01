@@ -1,0 +1,79 @@
+// basilcc move, token to action seq
+//
+
+namespace basilcc {
+
+class Symbol;
+class ActionSeq;
+
+class Move {
+  public:
+    Move(int num, Symbol const &token, ActionSeq const *action_seq)
+        : _num(num), _token(token), _action_seq(action_seq)
+    {}
+
+    ~Move()
+    {}
+
+    // get move number
+    inline int get_number() const
+    {
+        return _num;
+    }
+
+    // get token
+    inline Symbol const *get_token() const
+    {
+        return _token;
+    }
+
+    // get action seq
+    inline ActionSeq const *get_action_seq() const
+    {
+        return _action_seq;
+    }
+
+    // to string
+    std::string to_string() const
+    {
+        // TODO
+        /* 
+        std::string str = _token->getName ();
+        str += " - ";
+        ActionPtrVector const & actions = m_action_seq->getActions ();
+        appendActions (str, actions);
+        */
+        return std::string();
+    }
+
+  private:
+    int _num;
+    Symbol const *_token;
+    ActionSeq const *_action_seq;
+};
+
+/*
+// less token number
+bool moveLessTokenNumber(MovePtr move, int token_num)
+{
+    return move->getToken ()->getNumber () <  token_num;
+}
+
+// true if move has same token number
+bool moveSameTokenNumber(MovePtr move, int token_num)
+{
+    return move->getToken ()->getNumber () == token_num;
+}
+*/
+
+} // basilcc
+
+#hdr
+#include <string>
+#end
+
+#src
+#include <basilcc_action.h>
+#include <basilcc_action_seq.h>
+#include <basilcc_symbol.h>
+#end

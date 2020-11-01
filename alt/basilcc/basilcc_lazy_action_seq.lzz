@@ -2,19 +2,20 @@
 
 namespace basilcc {
 
-class Comipiler;
+class Compiler;
 class LazyAction;
-class Shift;
+class State;
+class Symbol;
 
 typedef std::vector<LazyAction const *> LazyActionVector;
-typedef std::vector<Shift> ShiftVector;
+typedef std::map<Symbol const *, State const *> ShiftMap;
 
-class LazyActionSeq
-{
+class LazyActionSeq {
   public:
     LazyActionSeq(LazyActionVector const &lazy_actions)
         : _lazy_actions(lazy_actions)
     {}
+
     ~LazyActionSeq()
     {}
 
@@ -24,11 +25,10 @@ class LazyActionSeq
         return _lazy_actions;
     }
 
-
     // get action seq
-    ActionSeq const *get_action_seq(Compiler &c, ShiftVector const &token_shifts, Symbol const *token) const
+    ActionSeq const *get_action_seq(Compiler &c, ShiftMap const &token_shifts, Symbol const *token) const
     {
-        ActionPtrVector actions;
+        ActionVector actions;
         actions.reserve(_lazy_actions.size());
         std::transform(_lazy_actions.begin(), _lazy_actions.end(), std::back_inserter(actions), GetAction(c, token_shifts, token));
         return c.get_action_seq(actions);
@@ -36,21 +36,22 @@ class LazyActionSeq
 
   private:
     LazyActionVector _lazy_actions;
-  };
+};
 
 namespace {
 
 // get action from forward action
-inline Action const *GetAction(Compiler &c, ShiftVector const &token_shifts, Symbol const *token; LazyAction const *lazy_action) const
+inline Action const *GetAction(Compiler &c, ShiftMap const &token_shifts, Symbol const *token; LazyAction const *lazy_action) const
 {
     return lazy_action->get_action(c, token_shifts, token);
 }
 
-} // namespace
+} // unnamed
 } // basilcc
 
 #hdr
 #include <vector>
+#include <map>
 #end
 
 #src

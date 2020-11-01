@@ -1,0 +1,246 @@
+// basilcc temp move
+
+namespace basilcc {
+
+class Compiler;
+class Symbol;
+class TempAction;
+
+typedef std::vector<TempAction *> TempActionVector;
+
+class TempMove {
+  public:
+    TempMove(Symbol const *token)
+        : _token(token)
+    {}
+
+    ~TempMove()
+    {
+        delete_objects(_temp_actions);
+    }
+
+    // get token
+    inline Symbol const *get_token() const
+    {
+        return _token;
+    }
+
+    // get temp actions associated with token
+    inline TempActionVector const &get_temp_actions() const
+    {
+        return _temp_actions;
+    }
+
+    // add reduction action
+    void add_reduction(Rule const *rule, Symbol const *shortcut, Priority const &priority, bool sticky, bool accept)
+    {
+        // search priority action set for same rule and shortcut, if present just update it
+        for (TempAction *temp_action: _temp_actions) {
+            if (temp_action->is_reduction()) {
+                ReduceTempAction &r_temp_action = static_cast<ReduceTempAction &>(*temp_action);
+                if (r_temp_action.get_rule() == rule && r_temp_action.get_shortcut() == shortcut) {
+                    r_temp_action.update(priority, sticky, accept);
+                    return;
+                }
+            }
+        }
+        // otherwise new temp action
+        _temp_actions.push_back(new ReduceTempAction(rule, shortcut, priority, sticky, accept));
+    }
+
+    // add shift action
+    void add_shift(Priority const &priority)
+    {
+        // search for shift action, if present update it
+        for (TempAction *temp_action: _temp_actions) {
+            // only shift
+            if (temp_action->is_shift()) {
+                temp_action->update(priority);
+                return; 
+            }
+        }
+        // otherwise new shift
+        _temp_actions.push_back(new ShiftTempAction(priority));
+    }
+
+    // freeze temp move, no more changes
+    void freeze()
+    {
+        // sort and trim
+        sort();
+        trim();
+    }
+
+    // true if this move can be a default move
+    bool can_be_default() const
+    {
+        // only if all reductions and none are sticky
+        for (TempAction const *temp_action: _temp_actions) {
+            if (!(temp_action->is_reduction() && !static_cast<ReduceTempAction const &>(*temp_action).has_sticky())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // get lazy move
+    LazyMove const *get_lazy_move(Compiler &c) const
+    {
+        return c.get_lazy_move(_token, get_lazy_action_seq(c));
+    }
+
+    // get lazy action seq
+    LazyActionSeq const *get_lazy_action_seq(Compiler &c) const
+    {
+        LazyActionVector lazy_actions;
+        lazy_actions.reserve(_temp_actions.size());
+        for (TempAction const *temp_action: _temp_actions) {
+            lazy_actions.push_back(temp_action->get_lazy_action(c));
+        }
+        return c.get_lazy_action_seq(lazy_actions);
+    }
+
+    // get conflicts, will steal actions, so call after getLazyMove and getLazyActionSeq
+    void get_conflicts(ConflictVector &conflicts)
+    {
+        std::assert(!_temp_actions.empty());
+        TempActionVectorIter i = _temp_actions.begin (), j = i + 1;
+        for (; j != _temp_actions.end(); ++j) {
+            if (** i != ** j) {
+                if (j - i > 1) {
+                    j = create_conflict(i, j, conflicts);
+                }
+                i = j;
+            }
+        }
+        if (j - i > 1) {
+            j = create_conflict(i, j, conflicts);
+        }
+    }
+
+  private:
+    // sort actions
+    void sort()
+    {
+        std::sort(_temp_actions.begin(), _temp_actions.end(), TempActionLess());
+    }
+
+    // trim, discard actions that have lower bang count
+    void trim()
+    {
+        int bang = 0;
+        int count = 0;
+        for (TempActionVectorIter i = _temp_actions.begin (), endi = _temp_actions.end (); i != endi; ++i)
+        {
+            TempAction const *temp_action = *i;
+            int next_bang = temp_action->get_priority().get_bang();
+            int next_count = temp_action->get_priority().get_count();
+            if (bang > next_bang && count > next_count) {
+                delete_objects(i, endi);
+                _temp_actions.erase(i, endi);
+                break;
+            }
+            bang = next_bang;
+            count = next_count;
+        }
+    }
+
+    // create conflict, will steal/erase actions, return interator after last one erased 
+    TempActionVectorIter create_conflict(TempActionVectorIter i, TempActionVectorIter j, ConflictVector &conflicts)
+    {
+        conflicts.push_back(new Conflict(_token, TempActionVector(i, j)));
+        return _temp_actions.erase(i, j);
+    }
+
+  private:
+    // token associated with move
+    Symbol const *_token;
+    // temp actions on token
+    TempActionVector _temp_actions;
+};
+
+// true if temp move can not be default, for partition
+bool temp_move_can_not_be_default(TempMove const *temp_move)
+{
+    return !temp_move->can_be_default();
+}
+
+//
+// comparisons below used only for finding default action set in TempFollowMove,
+// only moves that can be default will be compared
+//
+
+// a == b, only for moves that can be default
+bool temp_move_default_same(TempMove const *a, TempMove const *b)
+{
+    TempActionVector const & a_temp_actions = a->get_temp_actions();
+    TempActionVector const & b_temp_actions = b->get_temp_actions();
+    if (a_temp_actions.size () != b_temp_actions.size ()) {
+        return false;
+    }
+    TempActionVector::const_iterator j = b_temp_actions.begin();
+    for (TempActionVector::const_iterator i = a_temp_actions.begin(), endi = a_temp_actions.end(); i != endi; ++i, ++j) {
+        // we know both are reductions
+        TempAction const *a = *i;
+        TempAction const *b = *j;
+        std::assert(a->is_reduction() && b->is_reduction());
+        // compare reductions
+        ReduceTempAction const &c = static_cast<ReduceTempAction const &>(*a);
+        ReduceTempAction const &d = static_cast<ReduceTempAction const &>(*b);
+        if (c != d) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// a < b, only for moves that can be default
+bool temp_move_default_less(TempMove const *a, TempMove const *b)
+{
+    TempActionVector const &a_temp_actions = a->get_temp_actions();
+    TempActionVector const &b_temp_actions = b->get_temp_actions();
+    if (a_temp_actions.size () != b_temp_actions.size ()) {
+        return a_temp_actions.size() < b_temp_actions.size();
+    }
+    // find first that's not same
+    TempActionVector::const_iterator j = b_temp_actions.begin();
+    for (TempActionVectorConstIter i = a_temp_actions.begin (), endi = a_temp_actions.end (); i != endi; ++i, ++j) {
+        // both are be reductions
+        TempAction const *a = *i;
+        TempAction const *b = *j;
+        std::assert(a->is_reduction() && b->is_reduction());
+        // find first that are not same 
+        ReduceTempAction const &c = static_cast <ReduceTempAction const &>(*a);
+        ReduceTempAction const &d = static_cast <ReduceTempAction const &>(*b);
+        if (c < d) {
+            return true;
+        }
+        if (d < c) {
+            return false;
+        }
+    }
+    return false;
+}
+
+// get conflicts from temp move, will steal take actions
+void GetConflicts(ConflictVector &conflicts; TempMove const *temp_move) const
+{
+    temp_move->get_conflicts(conflicts);
+}
+
+} // basilcc
+
+#hdr
+#include <basilcc_priority.h>
+#end
+
+#src
+#include <basilcc_compiler.h>
+#include <basilcc_conflict.h>
+#include <basilcc_rule.h>
+#include <basilcc_symbol.h>
+#include <basilcc_temp_action.h>
+#include <basilcc_util.h>
+#include <algorithm>
+#include <cassert>
+#end

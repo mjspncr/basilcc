@@ -10,12 +10,12 @@ class Follow;
 
 typedef std::unique_ptr<Follow> FollowPtr;
 
-class FollowRule
-{
+class FollowRule {
   public:
     FollowRule(ShiftRule const *shift_rule)
       : _shift_rule(shift_rule)
     {}
+
     FollowRule(ShiftRule const *shift_rule, Follow const &follow)
       : _shift_rule(shift_rule), _follow(follow)
     {}
@@ -87,6 +87,10 @@ bool operator <(FollowRule const &a, FollowRule const &b)
         return *a.get_shift_rule() < *b.get_shift_rule();
     }
     return a.get_follow() < b.get_follow();
+}
+inline bool FollowRuleLess(; FollowRule const *a, FollowRule const *b) const
+{
+    return *a < *b;
 }
 
 } // basilcc

@@ -1,0 +1,72 @@
+// basilcc state
+
+namespace basilcc {
+
+class FollowKernel;
+class ShiftSel;
+class StateMove;
+
+class State {
+  public:
+    State(size_t num, FollowKernel const *follow_kernel)
+      : _num(num), _follow_kernel(follow_kernel), _state_move(0), _nonterm_shift_sel(0) 
+    {}
+
+    ~State()
+    {}
+
+    // get number
+    int get_number() const
+    {
+        return _num;
+    }
+
+    // get follow kernel
+    inline FollowKernel const *get_follow_kernel() const
+    {
+        return _follow_kernel;
+    }
+
+    // get state move
+    inline StateMove const *get_state_move() const
+    {
+        return _state_move;
+    }
+
+    // get nonterm shift sel
+    inline ShiftSel const *get_nonterm_shift_sel() const
+    {
+        return _nonterm_shift_sel;
+    }
+
+    // get lex state
+    inline LexState const &get_lex_state() const
+    {
+      return _lex_state;
+    }
+
+    // closure, return number of conflicts
+    int closure(Compiler &c)
+    {
+        /*
+        // will be called more than once? 
+        return m_state_move ? 0 : stateClosure (cc, m_follow_kernel, m_state_move, m_nonterm_shift_sel, m_lex_state);
+        */
+    }
+
+  private:
+    int _num;
+    FollowKernel const *_follow_kernel;
+    StateMove const *_state_move;
+    ShiftSel const *_nonterm_shift_sel;
+    LexState _lex_state; 
+  }
+}
+
+#hdr
+#include <basilcc_lex_state.h>
+#end
+
+#src
+// #include <basilcc_state_closure.h>
+#end

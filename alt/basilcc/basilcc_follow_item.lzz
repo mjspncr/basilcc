@@ -68,8 +68,8 @@ class FollowItem
         }
         if (accept && !_accept)
         {
-          _accept = true;
-          changed = true;
+            _accept = true;
+            changed = true;
         }
         return changed;
     }

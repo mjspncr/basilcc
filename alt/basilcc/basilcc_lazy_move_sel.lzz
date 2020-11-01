@@ -1,0 +1,55 @@
+// basilcc lazy move sel
+//
+
+namespace basilcc {
+
+class Compiler;
+class LazyMove;
+class State;
+class Symbol;
+
+typedef std::map<Symbol const *, State const *> ShiftMap;
+typedef std::vector<LazyMove const *> LazyMoveVector;
+
+class LazyMoveSel {
+  public:
+    LazyMoveSel(LazyMoveVector const &lazy_moves)
+        : _lazy_moves(lazy_moves)
+    {}
+
+    ~LazyMoveSel()
+    {}
+
+    // get lazy moves
+    inline LazyMoveVector const &get_lazy_moves() const
+    {
+        return _lazy_moves;
+    }
+
+    // get move sel
+    MoveSel const *get_move_sel(Compiler &c, ShiftMap const &token_shifts)
+    {
+        /*
+        MoveVector moves;
+        moves.reserve(_lazy_moves.size());
+        for (LazyMove const *lazy_move: _lazy_moves) {
+            moves.push_back(lazy_move->get_move(c, token_shifts));
+        }
+        return c.get_move_sel(moves);
+        */
+    }
+
+  private:
+    LazyMoveVector _lazy_moves;
+};
+
+} // basilcc
+
+#hdr
+#include <vector>
+#end
+
+#src
+#include <basilcc_lazy_move.h>
+#include <basilcc_compiler.h>
+#end

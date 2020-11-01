@@ -5,8 +5,7 @@ namespace basilcc {
 class Action;
 typedef std::vector<Action const *> ActionVector;
 
-class ActionSeq
-{
+class ActionSeq {
   public:
     // steals actions
     ActionSeq(int num, ActionVector &actions)
@@ -14,6 +13,7 @@ class ActionSeq
     {
         _actions.swap(actions);
     }
+
     ~ActionSeq()
     {}
     

@@ -54,7 +54,7 @@ class Rule
     }
 
     // get left rule symbol
-    inline RuleSymbol const &get_left_rule_symbol() const
+    inline RuleSymbol const &get_let_rule_symbol() const
     {
         return _left_rule_symbol;
     }

@@ -1,0 +1,47 @@
+// basilcc state move
+
+namespace basilcc {
+
+class MoveSel;
+class ActionSeq;
+
+class StateMove {
+  public:
+    StateMove(int num, MoveSel const *move_sel, ActionSeq const *def_action_seq)
+        : _num(num), _move_sel(move_sel), _def_action_seq(def_action_seq)
+    {}
+
+    ~StateMove()
+    {}
+
+    // get number
+    inline int get_number() const
+    {
+        return _num;
+    }
+
+    // get move selection
+    inline MoveSel const *get_move_sel() const
+    {
+        return _move_sel;
+    }
+
+    // get default action sequence
+    inline ActionSeq const *get_default_action_seq() const
+    {
+        return _def_action_seq;
+    }
+
+  private:
+    int _num;
+    MoveSel const *_move_sel;
+    ActionSeq const *_def_action_seq;
+};
+
+} // basilcc
+
+#hdr
+#end
+
+#src
+#end

@@ -1,0 +1,68 @@
+// basilcc lazy move, symbol to lazy action seq
+//
+
+namespace basilcc {
+
+class Compiler;
+class State;
+class Symbol;
+
+typedef std::map<Symbol const *, State const *> ShiftMap;
+
+class LazyMove {
+  public:
+    LazyMove(Symbol const *token, LazyActionSeq const *lazy_action_seq)
+        : _token(token), _lazy_action_seq(lazy_action_seq)
+    {}
+
+    ~ LazyMove()
+    {}
+
+    // get token
+    inline Symbol const *get_token() const
+    {
+        return _token;
+    }
+
+    // get lazy action seq
+    inline LazyActionSeq const *get_lazy_action_seq() const
+    {
+        return _lazy_action_seq;
+    }
+
+    // get move
+    Move const *get_move(Compiler &c, ShiftMap const &token_shifts) const
+    {
+        ActionSeq const *action_seq = _lazy_action_seq->get_action_seq(c, token_shifts, _token);
+        /* TODO
+        return c.get_move(_token, action_seq)
+        */
+    } 
+  private:
+    Symbol const *_token;
+    LazyActionSeq const *_lazy_action_seq;
+};
+
+/*
+// a < b
+bool operator < (LazyMove const & a, LazyMove const & b)
+{
+    return symbolLess (a.getToken (), b.getToken ());
+}
+// a < b
+bool lazyMoveLess (LazyMovePtr a, LazyMovePtr  b)
+{
+    return * a < * b;
+}
+*/
+
+} // basilcc
+
+#hdr
+#include <map>
+#end
+
+#src
+#include <basilcc_compiler.h>
+#include <basilcc_lazy_action_seq.h>
+#end

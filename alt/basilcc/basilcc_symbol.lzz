@@ -148,6 +148,11 @@ inline bool symbol_less(Symbol const *a, Symbol const *b)
    return *a < *b;
 }
 
+inline bool SymbolLess(; Symbol const *a, Symbol const *b) const
+{
+    return *a < *b;
+}
+
 } // basilcc
 
 #hdr

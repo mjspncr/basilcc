@@ -1,0 +1,57 @@
+// basilcc follow move
+
+namespace basilcc {
+
+class Compiler;
+class LazyActionSeq;
+class LazyMoveSeq;
+class State;
+class StateMove;
+
+class Symbol;
+
+typedef std::map<Symbol const *, State const *> ShiftMap;
+
+class LazyFollowMove {
+  public:
+    LazyFollowMove(LazyMoveSel const *lazy_move_sel, LazyActionSeq const *def_lazy_action_seq)
+        : _lazy_move_sel(lazy_move_sel), _def_lazy_action_seq(def_lazy_action_seq)
+    {}
+
+    ~LazyFollowMove()
+    {}
+
+    // get lazy move selection
+    inline LazyMoveSel const *get_lazy_move_sel() const
+    {
+        return _lazy_move_sel;
+    }
+
+    // get default lazy action sequence
+    inline LazyActionSeq const *get_default_lazy_action_seq() const
+    {
+        return _def_lazy_action_seq;
+    }
+
+    // get state move
+    StateMove const *get_state_move(Compiler &c, ShiftMap const &token_shifts)
+    {
+        MoveSel const *move_sel = _lazy_move_sel->get_move_sel(c, token_shifts);
+        ActionSeq const *def_action_seq = _def_lazy_action_seq->get_action_seq(c, token_shifts, NULL);
+        // return c.get_state_move(move_sel, def_action_seq);
+    }
+    
+  private:
+    LazyMoveSel const *_lazy_move_sel;
+    LazyActionSeq const *_def_lazy_action_seq;
+};
+
+} // basilcc
+
+#hdr
+#include <map>
+#end
+
+#src
+#include <basilcc_compiler.h>
+#end

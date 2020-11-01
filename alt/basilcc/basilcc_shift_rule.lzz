@@ -29,6 +29,11 @@ class ShiftRule
       return _sp;
     }
 
+    Symbol *get_left_symbol() const
+    {
+        return _base_rule->get_left_symbol();
+    }
+
     // update shift priority, will keep max
     void update(Priority const &sp)
     {

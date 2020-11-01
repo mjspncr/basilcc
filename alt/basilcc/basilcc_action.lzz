@@ -7,12 +7,12 @@ class State;
 class Rule;
 class Symbol;
 
-class Action
-{
+class Action {
   public:
     inline Action(int num)
       : _num(num)
     {}
+
     virtual ~Action()
     {}
 
@@ -24,19 +24,20 @@ class Action
 
     // true if shift
     virtual bool is_shift() const = 0;
+
     // true if reduction
     inline  bool is_reduction() const { return ! is_shift(); }
+
   private:
-    // number
     int _num;
 };
 
-class ReduceAction : public Action
-{
+class ReduceAction : public Action {
   public:
     ReduceAction(int num, Rule const *rule, Symbol const *shortcut, bool accept)
         : Action(num), _rule(rule), _shortcut(shortcut), _accept(accept)
     {}
+
     ~ReduceAction()
     {}
 
@@ -92,10 +93,7 @@ bool operator <(ReduceAction const &a, ReduceAction const &b)
     if (a_shortcut != b_shortcut) {
         return *a_shortcut < *b_shortcut;
     }
-    if (!a.has_accept() && b.has_accept()) {
-        return true;
-    }
-    return false;
+    return !a.has_accept() && b.has_accept();
 }
 
 inline bool ReduceActionLess(; Action const *a, Action const *b) const
@@ -103,12 +101,12 @@ inline bool ReduceActionLess(; Action const *a, Action const *b) const
     return static_cast<ReduceAction const &>(*a) < static_cast<ReduceAction const &>(*b);
 }
 
-class ShiftAction : public Action
-{
+class ShiftAction : public Action {
   public:
     ShiftAction(int num, State const *state)
         : Action(num), _state(state)
     {}
+
     ~ ShiftAction()
     {}
 
@@ -123,6 +121,7 @@ class ShiftAction : public Action
     {
         return _state;
     }
+
   private:
     // state on shift
     State const *_state;

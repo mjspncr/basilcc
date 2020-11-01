@@ -1,0 +1,89 @@
+// basilcc follow base
+
+namespace basilcc {
+
+class Compiler;
+class FollowRule;
+typedef std::vector<FollowRule const *> FollowRuleVector;
+
+class FollowBase {
+  public:
+    // steals follow rules
+    FollowBase(ShiftBase const &shift_base, FollowRuleVector const &follow_rules)
+        : _shift_base(shift_base), _follow_rules(follow_rules)
+    {}
+
+    ~FollowBase()
+    {}
+
+    // get shift base
+    inline ShiftBase const &get_shift_base() const
+    {
+        return _shift_base;
+    }
+
+    // get follow rules
+    inline FollowRuleVector const &get_follow_rules() const
+    {
+        return _follow_rules;
+    }
+
+    // get follow shifts
+    inline FollowShiftList const &get_follow_shifts() const
+    {
+        return _follow_shifts;
+    }   
+
+    // get lazy follow move
+    inline LazyFollowMove const *get_lazy_follow_move() const
+    {
+        return _lazy_follow_move;
+    }
+
+    // get lex state
+    inline LexState const &get_lex_state() const
+    {
+        return _lex_state;
+    }
+
+    /*
+    // get conflicts
+    inline ConflictPtrVector const & getConflicts () const
+    {
+      return m_conflicts;
+    }
+    */
+
+    /*
+    // true if has conflicts
+    inline bool has_conflicts() const
+    {
+        return !_conflicts.empty ();
+    }
+    */
+
+    // closure on follow base
+    void closure(Compiler &c)
+    {
+        // followClosure (cc, m_shift_base, m_follow_rules, m_follow_shifts, m_lazy_follow_move, m_lex_state, m_conflicts);
+    }
+
+  private:
+    ShiftBase const &_shift_base;
+    FollowRuleVector _follow_rules;
+    FollowShiftList _follow_shifts;
+    LazyFollowMove const *_lazy_follow_move;
+    LexState _lex_state;
+    // ConflictPtrVector m_conflicts;
+};
+
+} // basilcc
+
+#hdr
+#include <basilcc_lex_state.h>
+#include <vector>
+#end
+
+#src
+// #include <basilcc_follow_closure.h>
+#end

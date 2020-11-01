@@ -1,0 +1,79 @@
+// basilcc follow kernel
+
+namespace basilcc {
+
+class FollowBase;
+class FollowRule;
+class ShiftKernel;
+typedef std::vector<FollowRule const *> FollowRuleVector;
+
+class FollowKernel {
+  public:
+    // steals follow rules
+    FollowKernel(int num, FollowRuleVector &follow_rules)
+        : _num(num), _shift_kernel(0), _follow_base(0)
+    {
+        _follow_rules.swap (follow_rules);
+    }
+    
+    ~FollowKernel()
+    {
+        delete _follow_base;
+    }
+
+    // get follow kernel number
+    inline int get_number() const
+    {
+        return _num;
+    }
+
+    // get shift kernel
+    ShiftKernel const *get_shift_kernel(Compiler &c)
+    {
+      // create on demand
+      if (!_shift_kernel) {
+          /*
+          _shift_kernel = basilcc::getShiftKernel (cc, m_follow_rules);
+          */
+      }
+      return _shift_kernel;
+    }
+
+    // get follow base
+    FollowBase const *get_follow_base(Compiler &c)
+    {
+        // create on demand
+        if (!_follow_base) {
+            _follow_base = new FollowBase(get_shift_kernel(c)->get_shift_base(c), _follow_rules);
+            _follow_base->closure(c);
+        }
+        return _follow_base;
+    }
+
+    // get follow base, must be set
+    FollowBase const *get_follow_base() const
+    {
+        std::assert(_follow_base != 0);
+        return _follow_base;
+    }
+
+  private:
+    int _num;
+    // follow rules, passed to follow base
+    FollowRuleVector _follow_rules;
+    ShiftKernel const *_shift_kernel;
+    FollowBase const *_follow_base;
+};
+
+} // basilcc
+
+#hdr
+#include <vector>
+#end
+
+#src
+#include <basilcc_compiler.h>
+#include <basilcc_follow_base.h>
+#include <basilcc_shift_kernel.h>
+#include <cassert>
+#end

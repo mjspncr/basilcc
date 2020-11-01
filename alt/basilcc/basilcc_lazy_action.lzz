@@ -5,18 +5,17 @@ namespace basilcc {
 
 class Compiler;
 class Rule;
-class Shift;
+class State;
 class Symbol;
 
-typedef std::vector<Shift> ShiftVector;
+typedef std::map<Symbol const *, State const *> ShiftMap;
 
-class LazyAction
-{
+class LazyAction {
   public:
     LazyAction() 
     {}
 
-    virtual ~LazyAction ()
+    virtual ~LazyAction()
     {}
 
     // true if shift
@@ -31,11 +30,10 @@ class LazyAction
     }
 
     // get action
-    virtual Action const *get_action(Compiler &c, ShiftVector const &token_shifts, Symbol const *token) const = 0;
+    virtual Action const *get_action(Compiler &c, ShiftMap const &token_shifts, Symbol const *token) const = 0;
 };
 
-class ShiftLazyAction : public LazyAction
-{
+class ShiftLazyAction : public LazyAction {
   public:
     ShiftLazyAction() 
     {}
@@ -50,17 +48,16 @@ class ShiftLazyAction : public LazyAction
     }
 
     // get action
-    Action const *get_action(Compiler &c, ShiftVector const &token_shifts, Symbol const *token) const
+    Action const *get_action(Compiler &c, ShiftMap const &token_shifts, Symbol const *token) const
     {
-        // should always get a state
-        State const *state = get_shift_state(token_shifts, token->get_number());
-        return c.get_shift_action(state);
+        ShiftMap::const_iterator p = token_shifts.find(token);
+        std::assert(p != token_shifts.end());
+        return c.get_shift_action(p->second);
     }
 };
 
 // reduce
-class ReduceLazyAction : public LazyAction
-{
+class ReduceLazyAction : public LazyAction {
   public:
     ReduceLazyAction(Rule const *rule, Symbol const *shortcut, bool accept)
         : _rule(rule), _shortcut(shortcut), _accept(accept)
@@ -88,7 +85,7 @@ class ReduceLazyAction : public LazyAction
     }
 
     // get action
-    Action const *get_action(Compilier &c, ShiftVector const &token_shifts, Symbol const *token) const
+    Action const *get_action(Compilier &c, ShiftMap const &token_shifts, Symbol const *token) const
     {
         return c.get_reduce_action(_rule, _shortcut, _accept);
     }
@@ -99,11 +96,13 @@ class ReduceLazyAction : public LazyAction
     bool _accept;
 };
 
-} // basilcc
+} // namespace basilcc
 
 #hdr
+#include <map>
 #end
 
 #src
 #include <basilcc_compiler.h>
+#include <cassert>
 #end

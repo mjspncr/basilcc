@@ -1,0 +1,42 @@
+// basilcc move sel
+
+namespace basilcc {
+
+class Move;
+
+typedef std::vector<Move const *> MoveVector;
+
+class MoveSel {
+  public:
+    // steals moves
+    MoveSel(int num, MoveVector &moves)
+        : _num(num)
+    {
+        _moves.swap(moves);
+    }
+
+    ~MoveSel()
+    {}
+
+    // get move sel number
+    inline int get_number() const
+    {
+        return _num;
+    }
+
+    // get moves
+    inline MoveVector const &get_moves() const
+    {
+        return _moves;
+    }
+
+  private:
+    int _num;
+    MoveVector _moves;
+};
+
+} // basilccc
+
+#hdr
+#include <vector>
+#end

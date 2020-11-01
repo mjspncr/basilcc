@@ -50,7 +50,7 @@ State const *get_shift_state(ShiftVector const &shifts, int symbol_num)
 {
     ShiftVector::const_iterator p = std::lower_bound(shifts.begin(), shifts.end(), symbol_num, shift_less_symbol_number);
     if (p != shifts.end()) {
-        ShiftPtr shift = *p;
+        Shift const &shift = *p;
         if (shift_same_symbol_number(shift, symbol_num)) {
             return shift.get_state();
         }

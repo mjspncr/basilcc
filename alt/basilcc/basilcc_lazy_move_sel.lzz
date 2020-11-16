@@ -6,29 +6,26 @@ namespace basilcc {
 class Compiler;
 class LazyMove;
 class MoveSel;
-class State;
-class Symbol;
-
-typedef std::map<Symbol const *, State const *> ShiftMap;
+class Shift;
 typedef std::vector<LazyMove const *> LazyMoveVector;
+typedef std::vector<Shift> ShiftVector;
 
 class LazyMoveSel {
   public:
-    LazyMoveSel(LazyMoveVector const &lazy_moves)
-        : _lazy_moves(lazy_moves)
-    {}
+    LazyMoveSel(LazyMoveVector &lazy_moves)
+    {
+        _lazy_moves.swap(lazy_moves); // steals moves
+    }
 
     ~LazyMoveSel()
     {}
 
-    // get lazy moves
     inline LazyMoveVector const &get_lazy_moves() const
     {
         return _lazy_moves;
     }
 
-    // get move sel
-    MoveSel const *get_move_sel(Compiler &c, ShiftMap const &token_shifts)
+    MoveSel const *get_move_sel(Compiler &c, ShiftVector const &token_shifts) const
     {
         MoveVector moves;
         moves.reserve(_lazy_moves.size());
@@ -42,11 +39,16 @@ class LazyMoveSel {
     LazyMoveVector _lazy_moves;
 };
 
+// a < b, compares pointers
+bool operator<(LazyMoveSel const &a, LazyMoveSel const &b)
+{
+    return a.get_lazy_moves() < b.get_lazy_moves();
+}
+
 } // basilcc
 
 #hdr
 #include <vector>
-#include <map>
 #end
 
 #src

@@ -6,7 +6,9 @@
 namespace basilcc {
 
 class Node;
-typedef std::shared_ptr<Node> NodePtr;
+
+bool NodeLess(; Node const *a, Node const *b) const { return *a < *b; }
+typedef std::set<Node *, NodeLess> NodeSet;
 
 class NodeTable
 {
@@ -15,32 +17,53 @@ class NodeTable
     {}
 
     ~NodeTable()
-    {}
+    {
+        delete_objects(_nodes); 
+    }
 
-    // get node with name, create new if doesn't exist
+    // get node with name, create new node if doesn't exist
     Node *get_node(char const *name)
     {
-        NodePtr node_ptr = _nodes[name];
-        if (!node_ptr)
-        {
-            node_ptr.reset(new Node(name));
+        std::unique_ptr<Node> node_ptr(new Node(name));
+        std::pair<NodeSet::iterator, bool> r = _nodes.insert(node_ptr.get());
+        if (r.second) {
+            node_ptr.release();
         }
-        return node_ptr.get();
+        return *r.first;
+    }
+
+    // freeze nodes, no more
+    void freeze_nodes()
+    {
+        // order by name, just nice for generated code
+        std::vector<Node *> nodes(_nodes.begin(), _nodes.end());
+        std::sort(nodes.begin(), nodes.end(), NodeNameLess());
+        // make sure each is defined and assign number
+        int k = 0;
+        for (Node *node: nodes) {
+            if (!node->is_defined()) {
+                std::ostringstream ss;
+                ss << "node " << node->get_name() << " does not have a defining rule";
+                throw std::runtime_error(ss.str());
+            }
+            const_cast<int &>(node->_num) = k ++;
+        }
     }
 
   private:
-    typedef std::map<char const *, NodePtr> NodePtrMap;
-    NodePtrMap _nodes;
+    NodeSet _nodes;
 };
 
 } // basilcc
 
 #hdr
-#include <map>
-#include <memory>
+#include <set>
 #end
 
 #src
 #include <basilcc_node.h>
+#include <basilcc_util.h>
+#include <algorithm>
+#include <memory>
+#include <sstream>
 #end
-

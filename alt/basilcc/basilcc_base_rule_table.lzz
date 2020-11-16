@@ -6,12 +6,11 @@
 namespace basilcc {
 
 class Rule;
+class BaseRule;
 
-class BaseRuleTable
-{
+class BaseRuleTable {
   public:
     BaseRuleTable()
-        : _base_rules(BaseRuleLess())
     {}
 
     ~BaseRuleTable()
@@ -20,23 +19,19 @@ class BaseRuleTable
     }
     
     // get base rule
-    BaseRule *get_base_rule(Rule *rule, int pos)
+    BaseRule const *get_base_rule(Rule const *rule, int pos)
     {
         std::unique_ptr<BaseRule> base_rule_ptr(new BaseRule(rule, pos));
         std::pair<BaseRuleSet::iterator, bool> r = _base_rules.insert(base_rule_ptr.get());
         if (r.second) {
-            // new base rule
-            base_rule_ptr.get()->set_number(int(_base_rules.size()) - 1);
+            const_cast<int &>(base_rule_ptr->_num) = _base_rules.size() - 1;
             base_rule_ptr.release();
         }
         return *r.first;
     }
 
   private:
-    inline bool BaseRuleLess(; BaseRule const *a, BaseRule const *b) const
-    {
-        return *a < *b;
-    }
+    bool BaseRuleLess(; BaseRule const *a, BaseRule const *b) const { return *a < *b; }
     typedef std::set<BaseRule *, BaseRuleLess> BaseRuleSet;
     BaseRuleSet _base_rules;
 };
@@ -45,10 +40,10 @@ class BaseRuleTable
 
 #hdr
 #include <set>
-#include <basilcc_base_rule.h>
 #end
 
 #src
+#include <basilcc_base_rule.h>
 #include <basilcc_util.h>
 #include <memory>
 #end

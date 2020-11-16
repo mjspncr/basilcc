@@ -3,6 +3,13 @@
 namespace basilcc {
 
 class Compiler;
+class Conflict;
+class Follow;
+class LazyFollowMove;
+class Rule;
+class Symbol;
+class TempMove;
+typedef std::vector<Conflict *> ConflictVector;
 
 class TempFollowMove {
   public:
@@ -11,20 +18,16 @@ class TempFollowMove {
 
     ~TempFollowMove()
     {
-        delete_objects(_temp_moves);
-    }
-
-    // get temp moves
-    inline TempMoveVector const &get_temp_moves() const
-    {
-        return _temp_moves;
+        for (TempMoveMap::value_type &p: _temp_moves) {
+            delete p.second;
+        }
     }
 
     // add reduction
     void add_reduction(Rule const *rule, Follow const &follow, Priority const &priority, bool sticky, bool accept)
     {
-        for (FollowItem const &follow_item: follow.get_follow_items()) { 
-            TempMove const *temp_move = get_temp_move(follow_item.get_token());
+        for (FollowItem const &follow_item: follow.get_follow_items()) {
+            TempMove *temp_move = get_temp_move(follow_item.get_token());
             temp_move->add_reduction(
                 rule,
                 follow_item.get_shortcut(),
@@ -38,121 +41,103 @@ class TempFollowMove {
     void add_shift(Symbol const *term, Priority const &priority)
     {
         // add shift to priority action
-        TempMove const *temp_move = get_temp_move(term);
+        TempMove *temp_move = get_temp_move(term);
         temp_move->add_shift(priority);
     }
 
-    // freeze, no more changes to moves
-    void freeze()
-    {
-        // freeze temp moves (sort and trim)
-        for (TempMove *temp_move: _temp_moves) {
-            temp_move->freeze();
-        }
-    }
-
-    // return lazy follow move
-    LazyFollowMove const *get_lazy_follow_move(Compiler &c) const
+    // get conflicts and return lazy follow move
+    LazyFollowMove const *get_lazy_follow_move(Compiler &c, ConflictVector &conflicts) const
     {
         // get the default move
-        TempMove const *def_temp_move = 0;
-        TempMoveVector local_temp_moves(_temp_moves);
-        // todo: option for no default action
-        /*
-          if (!c.no_default_actions())
-        */
-        {
-            // partition so that ones that can be default are at end
-            TempMoveVector::iterator p = std::partition(local_temp_moves.begin(), local_temp_moves.end(), temp_move_cannot_be_default);
-            if (p != local_temp_moves.end()) {
-                // got some, sort just those and find one that occurs the most
-                std::sort(p, local_temp_moves.end(), temp_move_default_less);
-                pair<TempMoveVector::iterator, TempMoveVector::iterator> r = most(p, local_temp_moves.end(), temp_move_default_same);
-                def_temp_move = *r.first;
-                // and discard them
-                local_temp_moves.erase(r.first, r.second);
-            }
+        typedef std::vector<TempMove *> TempMoveVector;
+        TempMoveVector temp_moves;
+        temp_moves.reserve(_temp_moves.size());
+        for (TempMoveMap::value_type const &p: _temp_moves) {
+            TempMove *temp_move = p.second;
+            temp_move->freeze();
+            temp_moves.push_back(temp_move);
+        }
+        // partition so that ones that can be default are at end
+        TempMove *def_temp_move = NULL;
+        TempMoveVector::iterator p = std::partition(temp_moves.begin(), temp_moves.end(), temp_move_can_not_be_default);
+        if (p != temp_moves.end()) {
+            // got some, sort just those and find one that occurs the most
+            std::sort(p, temp_moves.end(), temp_move_default_less);
+            std::pair<TempMoveVector::iterator, TempMoveVector::iterator> r = most(p, temp_moves.end(), temp_move_default_same);
+            def_temp_move = *r.first;
+            temp_moves.erase(r.first, r.second);
         }
         // get lazy moves
         LazyMoveVector lazy_moves;
-        for (TempMove const *temp_move: local_temp_moves) {
-            lazy_moves.push_back (temp_move->get_lazy_move(c));
+        lazy_moves.reserve(temp_moves.size());
+        for (TempMove const *temp_move: temp_moves) {
+            lazy_moves.push_back(temp_move->get_lazy_move(c));
         }
-        // sort lazy moves then get lazy move sel
-        std::sort(lazy_moves.begin(), lazy_moves.end(), lazy_move_less);
+        // sort lazy moves by token then get lazy move sel
+        std::sort(lazy_moves.begin(), lazy_moves.end(), LazyMoveTokenLess());
         LazyMoveSel const *lazy_move_sel = c.get_lazy_move_sel(lazy_moves);
         // get default lazy action seq
-        LazyActionSeq const *def_lazy_action_seq = NULL;
+        LazyActionSeq const *def_lazy_action_seq = 0;
         if (def_temp_move) {
-            // get lazy action seq from default priority move
             def_lazy_action_seq = def_temp_move->get_lazy_action_seq(c);
         }
         else {
-            // get empty saction list
             LazyActionVector lazy_actions;
-            def_lazy_action_seq = getLazyActionSeq (cc, lazy_actions);
+            def_lazy_action_seq = c.get_lazy_action_seq(lazy_actions);
         }
-        // return lazy follow move from table
-        return basilcc::getLazyFollowMove (cc, lazy_move_sel, def_lazy_action_seq);
-    }
 
-    /*
-    // get conflicts, may take actions, so make sure is called after getLazyFollowMove
-    void getConflicts (ConflictPtrVector & conflicts)
-    {
-        for_each (m_temp_moves.begin (), m_temp_moves.end (), GetConflicts (conflicts));
+        // get conflicts will steal actions, so must be after getting lazy moves
+        for (TempMove *temp_move: temp_moves) {
+            temp_move->get_conflicts(conflicts);
+        }
+        if (def_temp_move) {
+            def_temp_move->get_conflicts(conflicts);
+        }
+
+        return c.get_lazy_follow_move(lazy_move_sel, def_lazy_action_seq);
     }
-    */
 
   private:
     // get temp_move for token, create if doesn't exist
-    TempMovePtr get_temp_move(Symbol const *token)
+    TempMove *get_temp_move(Symbol const *token)
     {
-      // search for term move
-      for (TempMovePtrVectorConstIter i = m_temp_moves.begin (); i != m_temp_moves.end (); ++ i)
-      {
-        TempMovePtr temp_move = * i;
-        if (temp_move->getToken () == token)
-        {
-          return temp_move;
+        std::pair<TempMoveMap::iterator, bool> r = _temp_moves.emplace(token, (TempMove *)NULL);
+        if (r.second) {
+            r.first->second = new TempMove(token);
         }
-      }
-      TempMovePtr temp_move = new TempMove (token);
-      m_temp_moves.push_back (temp_move);
-      return temp_move;
+        return r.first->second;
     }
 
   private:
-    // priority move set
-    TempMovePtrVector m_temp_moves;
+    typedef std::map<Symbol const *, TempMove *> TempMoveMap;
+    TempMoveMap _temp_moves;
+};
+
+namespace {
+
+// true if token less in lazy move, used to sort lazy moves, does NOT compare pointers
+bool LazyMoveTokenLess(; LazyMove const *a, LazyMove const *b) const
+{
+    return *a->get_token() < *b->get_token();
 }
 
+} // unnamed
 } // basilcc
 
-using namespace std;
-
 #hdr
-//#include <basilcc/conflict_ptr_vector.h>
-
-#include <basilcc/follow_ptr.h>
-#include <basilcc/lazy_follow_move_ptr.h>
-#include <basilcc/priority.h>
-#include <basilcc/rule_ptr.h>
-#include <basilcc/symbol_ptr.h>
-#include <basilcc/temp_follow_move_ptr.h>
-#include <basilcc/temp_move_ptr_vector.h>
+#include <basilcc_priority.h>
+#include <map>
+#include <vector>
 #end
 
 #src
-#include <basilcc/first.h>
-#include <basilcc/follow.h>
-#include <basilcc/follow_item.h>
-#include <basilcc/lazy_action_seq_api.h>
-#include <basilcc/lazy_follow_move_api.h>
-#include <basilcc/lazy_move.h>
-#include <basilcc/lazy_move_sel_api.h>
-#include <basilcc/symbol.h>
-#include <basilcc/temp_move.h>
-#include <basilcc/util.h>
+#include <basilcc_compiler.h>
+#include <basilcc_first.h>
+#include <basilcc_follow.h>
+#include <basilcc_follow_item.h>
+#include <basilcc_lazy_move.h>
+#include <basilcc_symbol.h>
+#include <basilcc_temp_move.h>
+#include <basilcc_util.h>
 #include <algorithm>
 #end

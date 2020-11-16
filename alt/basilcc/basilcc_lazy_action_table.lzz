@@ -4,10 +4,9 @@
 namespace basilcc {
 
 class Action;
+class LazyAction;
 class Rule;
 class Symbol;
-
-typedef std::set<LazyAction const *, LazyActionLess> LazyActionSet;
 
 class LazyActionTable
 {
@@ -32,13 +31,8 @@ class LazyActionTable
         return get_lazy_action(LazyActionPtr(new ReduceLazyAction(rule, shortcut, accept)));
     }
 
-    // get all actions
-    inline LazyActionSet const &get_lazy_actions() const
-    {
-        return _lazy_actions;
-    }
-
   private:
+    // helper function, get lazy action
     typedef std::unique_ptr<LazyAction> LazyActionPtr;
     LazyAction const *get_lazy_action(LazyActionPtr action_ptr)
     {
@@ -50,6 +44,8 @@ class LazyActionTable
     }
 
   private:
+    bool LazyActionLess(; LazyAction const *a, LazyAction const *b) const { return *a < *b; }
+    typedef std::set<LazyAction const *, LazyActionLess> LazyActionSet;
     LazyActionSet _lazy_actions;
     LazyAction const *_shift_lazy_action; // only one lazy shift action
 };
@@ -57,11 +53,11 @@ class LazyActionTable
 } // namespace basilcc
 
 #hdr
-#include <basilcc_lazy_action.h>
 #include <set>
 #include <memory>
 #end
 
 #src
+#include <basilcc_lazy_action.h>
 #include <basilcc_util.h>
 #end

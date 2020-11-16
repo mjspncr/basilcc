@@ -6,30 +6,31 @@
 namespace basilcc {
 
 class BaseRule;
+class Compiler;
+class Symbol;
 
-class ShiftRule
-{
+class ShiftRule {
   public:
     ShiftRule(BaseRule const *base_rule, Priority const &sp)
       : _base_rule(base_rule), _sp(sp)
     {}
 
-    ~ ShiftRule()
+    ~ShiftRule()
     {}
 
     // get base rule
     inline BaseRule const *get_base_rule() const
     {
-      return _base_rule;
+        return _base_rule;
     }
 
-    // additional shift priority
+    // get shift priority on rule
     Priority get_shift_priority() const
     {
-      return _sp;
+        return _sp;
     }
 
-    Symbol *get_left_symbol() const
+    Symbol const *get_left_symbol() const
     {
         return _base_rule->get_left_symbol();
     }
@@ -37,7 +38,13 @@ class ShiftRule
     // update shift priority, will keep max
     void update(Priority const &sp)
     {
-      _sp = max_priority(_sp, sp);
+        _sp = max_priority(_sp, sp);
+    }
+
+    // get shift rule at next pos
+    ShiftRule const *get_next_shift_rule(Compiler &c) const
+    {
+        return c.get_shift_rule(_base_rule->get_next_base_rule(c), _sp);
     }
 
     // to string
@@ -55,11 +62,11 @@ class ShiftRule
     Priority _sp;
 };
 
-// a < b
+// a < b, compares pointers
 bool operator <(ShiftRule const &a, ShiftRule const &b)
 {
     if (a.get_base_rule() != b.get_base_rule()) {
-        return *a.get_base_rule() < *b.get_base_rule();
+        return a.get_base_rule() < b.get_base_rule();
     }
     return a.get_shift_priority() < b.get_shift_priority();
 }
@@ -88,5 +95,6 @@ bool has_base_rule(BaseRule const *base_rule; ShiftRule const *shift_rule) const
 
 #src
 #include <basilcc_base_rule.h>
+#include <basilcc_compiler.h>
 #include <basilcc_util.h>
 #end

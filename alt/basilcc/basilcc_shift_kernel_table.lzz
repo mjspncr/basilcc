@@ -3,19 +3,18 @@
 
 namespace basilcc {
 
-class ShiftKernelTable
-{
+class ShiftKernelTable {
   public:
     ShiftKernelTable()
     {}
 
     ~ShiftKernelTable()
     {
-        delete_objects<ShiftKernelSet>(_shift_kernels);
+        delete_objects(_shift_kernels);
     }
 
     // get shift kernel from kernel shift rules, steals rules
-    ShiftKernel const *get_shift_kernel(ShiftRuleVector &shift_rules)
+    ShiftKernel *get_shift_kernel(ShiftRuleVector &shift_rules)
     {
         std::unique_ptr<ShiftKernel> shift_kernel(new ShiftKernel(shift_rules));
         std::pair<ShiftKernelSet::iterator, bool> r = _shift_kernels.insert(shift_kernel.get());
@@ -26,7 +25,7 @@ class ShiftKernelTable
     }
 
   private:
-    typedef std::set<ShiftKernel const *, ShiftKernelLess> ShiftKernelSet;
+    typedef std::set<ShiftKernel *, ShiftKernelLess> ShiftKernelSet;
     ShiftKernelSet _shift_kernels;
 };
 

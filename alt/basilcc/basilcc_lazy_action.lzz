@@ -6,10 +6,9 @@ namespace basilcc {
 class Action;
 class Compiler;
 class Rule;
-class State;
+class Shift;
 class Symbol;
-
-typedef std::map<Symbol const *, State const *> ShiftMap;
+typedef std::vector<Shift> ShiftVector;
 
 class LazyAction {
   public:
@@ -29,7 +28,7 @@ class LazyAction {
     }
 
     // get action
-    virtual Action const *get_action(Compiler &c, ShiftMap const &token_shifts, Symbol const *token) const = 0;
+    virtual Action const *get_action(Compiler &c, ShiftVector const &token_shifts, Symbol const *token) const = 0;
 };
 
 // shift
@@ -48,11 +47,11 @@ class ShiftLazyAction : public LazyAction {
     }
 
     // get action
-    Action const *get_action(Compiler &c, ShiftMap const &token_shifts, Symbol const *token) const
+    Action const *get_action(Compiler &c, ShiftVector const &token_shifts, Symbol const *token) const
     {
-        ShiftMap::const_iterator p = token_shifts.find(token);
-        assert(p != token_shifts.end());
-        return c.get_shift_action(p->second);
+        State const *state = get_shift_state(token_shifts, token);
+        assert(state != NULL);
+        return c.get_shift_action(state);
     }
 };
 
@@ -92,7 +91,7 @@ class ReduceLazyAction : public LazyAction {
 
 
     // get action
-    Action const *get_action(Compiler &c, ShiftMap const &token_shifts, Symbol const *token) const
+    Action const *get_action(Compiler &c, ShiftVector const &token_shifts, Symbol const *token) const
     {
         return c.get_reduce_action(_rule, _shortcut, _accept);
     }
@@ -103,18 +102,18 @@ class ReduceLazyAction : public LazyAction {
     bool _accept;
 };
 
-// true if a < b 
+// if a < b, compares pointers 
 bool operator <(ReduceLazyAction const &a, ReduceLazyAction const &b)
 {
     Rule const *a_rule = a.get_rule();
     Rule const *b_rule = b.get_rule();
     if (a_rule != b_rule) {
-        return *a_rule < *b_rule;
+        return a_rule < b_rule;
     }
     Symbol const *a_shortcut = a.get_shortcut();
     Symbol const *b_shortcut = b.get_shortcut();
     if (a_shortcut != b_shortcut) {
-        return *a_shortcut < *b_shortcut;
+        return a_shortcut < b_shortcut;
     }
     return !a.has_accept() && b.has_accept();
 }
@@ -131,20 +130,15 @@ bool operator <(LazyAction const &a, LazyAction const &b)
     return static_cast<ReduceLazyAction const &>(a) < static_cast<ReduceLazyAction const &>(b);
 }
 
-inline bool LazyActionLess(; LazyAction const *a, LazyAction const *b) const
-{
-    return *a < *b;
-}
-
-} // namespace basilcc
+} // basilcc
 
 #hdr
 #include <map>
+#include <vector>
 #end
 
 #src
 #include <basilcc_compiler.h>
-#include <basilcc_rule.h>
-#include <basilcc_symbol.h>
+#include <basilcc_shift.h>
 #include <assert.h>
 #end

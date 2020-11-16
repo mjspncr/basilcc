@@ -4,7 +4,7 @@ namespace basilcc {
 
 class Symbol;
 class LazyActionSeq;
-typedef std::set<LazyMove const *, LazyMoveLess> LazyMoveSet;
+class LazyMove;
 
 class LazyMoveTable
 {
@@ -28,12 +28,9 @@ class LazyMoveTable
         return *r.first;
     }
 
-    inline LazyMoveSet const &get_lazy_moves() const
-    {
-        return _lazy_moves;
-    }
-
 private:
+    bool LazyMoveLess(; LazyMove const *a, LazyMove const *b) const { return *a < *b; }
+    typedef std::set<LazyMove const *, LazyMoveLess> LazyMoveSet;
     LazyMoveSet _lazy_moves;
 };
 
@@ -41,10 +38,10 @@ private:
 
 #hdr
 #include <set>
-#include <basilcc_lazy_move.h>
 #end
 
 #src
+#include <basilcc_lazy_move.h>
 #include <basilcc_util.h>
 #include <memory>
 #end

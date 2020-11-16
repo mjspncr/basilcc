@@ -80,25 +80,25 @@ class Priority
   };
 
   // a == b
-  inline bool operator ==(Priority const &a, Priority const &b)
+  inline bool operator==(Priority const &a, Priority const &b)
   {
     return a.get_count() == b.get_count() && a.get_bang() == b.get_bang();
   }
 
   // a != b
-  inline bool operator !=(Priority const &a, Priority const &b)
+  inline bool operator!=(Priority const &a, Priority const &b)
   {
     return !(a == b);
   }
     
   // a < b
-  inline bool operator <(Priority const &a, Priority const &b)
+  inline bool operator<(Priority const &a, Priority const &b)
   {
     return a.get_count() < b.get_count() || a.get_bang() < b.get_bang();
   }
     
   // a + b
-  inline Priority operator +(Priority const &a, Priority const &b)
+  inline Priority operator+(Priority const &a, Priority const &b)
   {
     return Priority(a.get_count() + b.get_count(), a.get_bang() + b.get_bang());
   }

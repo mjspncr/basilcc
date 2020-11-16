@@ -1,0 +1,48 @@
+// basilcc lazy move sel table 
+
+namespace basilcc {
+
+class LazyMove;
+class LazyMoveSel;
+typedef std::vector<LazyMove const *> LazyMoveVector;
+
+class LazyMoveSelTable
+{
+  public:
+    LazyMoveSelTable()
+    {}
+
+    ~LazyMoveSelTable()
+    {
+        delete_objects(_lazy_move_sels);
+    }
+
+    LazyMoveSel const *get_lazy_move_sel(LazyMoveVector &lazy_moves)
+    {
+        std::unique_ptr<LazyMoveSel> lazy_move_sel_ptr(new LazyMoveSel(lazy_moves));
+        std::pair<LazyMoveSelSet::iterator, bool> r = _lazy_move_sels.insert(lazy_move_sel_ptr.get());
+        if (r.second) {
+            lazy_move_sel_ptr.release();
+        }
+        return *r.first;
+    }
+
+private:
+    bool LazyMoveSelLess(; LazyMoveSel const *a, LazyMoveSel const *b) const { return *a < *b; }
+    typedef std::set<LazyMoveSel const *, LazyMoveSelLess> LazyMoveSelSet;
+    LazyMoveSelSet _lazy_move_sels;
+};
+
+} // basilcc
+
+
+#hdr
+#include <set>
+#include <vector>
+#end
+
+#src
+#include <basilcc_lazy_move_sel.h>
+#include <basilcc_util.h>
+#include <memory>
+#end

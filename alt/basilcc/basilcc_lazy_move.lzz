@@ -1,4 +1,4 @@
-// basilcc lazy move, symbol to lazy action seq
+// basilcc lazy move
 //
 
 namespace basilcc {
@@ -6,10 +6,9 @@ namespace basilcc {
 class Compiler;
 class LazyActionSeq;
 class Move;
-class State;
+class Shift;
 class Symbol;
-
-typedef std::map<Symbol const *, State const *> ShiftMap;
+typedef std::vector<Shift> ShiftVector;
 
 class LazyMove {
   public:
@@ -33,7 +32,7 @@ class LazyMove {
     }
 
     // get move
-    Move const *get_move(Compiler &c, ShiftMap const &token_shifts) const
+    Move const *get_move(Compiler &c, ShiftVector const &token_shifts) const
     {
         ActionSeq const *action_seq = _lazy_action_seq->get_action_seq(c, token_shifts, _token);
         return c.get_move(_token, action_seq);
@@ -44,25 +43,20 @@ class LazyMove {
     LazyActionSeq const *_lazy_action_seq;
 };
 
+// a < b, compares pointers
 bool operator<(LazyMove const &a, LazyMove const &b)
 {
-    // OK to compare pointers
     if (a.get_token() != b.get_token()) {
         return a.get_token() < b.get_token();
     }
     return a.get_lazy_action_seq() < b.get_lazy_action_seq();
 }
 
-
-inline bool LazyMoveLess(; LazyMove const *a, LazyMove const *b) const
-{
-    return *a < *b;
-}
-
 } // basilcc
 
 #hdr
 #include <map>
+#include <vector>
 #end
 
 #src

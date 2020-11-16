@@ -3,10 +3,15 @@
 namespace basilcc {
 
 class Compiler;
+class LazyActionSeq;
+class LazyMove;
+class Rule;
 class Symbol;
 class TempAction;
+class Conflict;
 
 typedef std::vector<TempAction *> TempActionVector;
+typedef std::vector<Conflict *> ConflictVector;
 
 class TempMove {
   public:
@@ -100,10 +105,10 @@ class TempMove {
         return c.get_lazy_action_seq(lazy_actions);
     }
 
-    // get conflicts, will steal actions, so call after getLazyMove and getLazyActionSeq
+    // get parsing conflicts, steals actions so call after get_lazy_move and get_lazy_action_seq
     void get_conflicts(ConflictVector &conflicts)
     {
-        std::assert(!_temp_actions.empty());
+        assert(!_temp_actions.empty());
         TempActionVectorIter i = _temp_actions.begin (), j = i + 1;
         for (; j != _temp_actions.end(); ++j) {
             if (** i != ** j) {
@@ -145,8 +150,8 @@ class TempMove {
         }
     }
 
-    // create conflict, will steal/erase actions, return interator after last one erased 
-
+    // create conflict, will steal/erase actions, return interator after last one erased
+    typedef TempActionVector::iterator TempActionVectorIter;
     TempActionVectorIter create_conflict(TempActionVectorIter i, TempActionVectorIter j, ConflictVector &conflicts)
     {
         conflicts.push_back(new Conflict(_token, TempActionVector(i, j)));
@@ -184,7 +189,7 @@ bool temp_move_default_same(TempMove const *a, TempMove const *b)
         // we know both are reductions
         TempAction const *a = *i;
         TempAction const *b = *j;
-        std::assert(a->is_reduction() && b->is_reduction());
+        assert(a->is_reduction() && b->is_reduction());
         // compare reductions
         ReduceTempAction const &c = static_cast<ReduceTempAction const &>(*a);
         ReduceTempAction const &d = static_cast<ReduceTempAction const &>(*b);
@@ -205,11 +210,11 @@ bool temp_move_default_less(TempMove const *a, TempMove const *b)
     }
     // find first that's not same
     TempActionVector::const_iterator j = b_temp_actions.begin();
-    for (TempActionVectorConstIter i = a_temp_actions.begin (), endi = a_temp_actions.end (); i != endi; ++i, ++j) {
+    for (TempActionVector::const_iterator i = a_temp_actions.begin (), endi = a_temp_actions.end (); i != endi; ++i, ++j) {
         // both are be reductions
         TempAction const *a = *i;
         TempAction const *b = *j;
-        std::assert(a->is_reduction() && b->is_reduction());
+        assert(a->is_reduction() && b->is_reduction());
         // find first that are not same 
         ReduceTempAction const &c = static_cast <ReduceTempAction const &>(*a);
         ReduceTempAction const &d = static_cast <ReduceTempAction const &>(*b);
@@ -223,8 +228,8 @@ bool temp_move_default_less(TempMove const *a, TempMove const *b)
     return false;
 }
 
-// get conflicts from temp move, will steal take actions
-void GetConflicts(ConflictVector &conflicts; TempMove const *temp_move) const
+// get conflicts from temp move, will steal actions
+void GetConflicts(ConflictVector &conflicts; TempMove *temp_move) const
 {
     temp_move->get_conflicts(conflicts);
 }
@@ -243,6 +248,6 @@ void GetConflicts(ConflictVector &conflicts; TempMove const *temp_move) const
 #include <basilcc_symbol.h>
 #include <basilcc_temp_action.h>
 #include <basilcc_util.h>
+#include <assert.h>
 #include <algorithm>
-#include <cassert>
 #end

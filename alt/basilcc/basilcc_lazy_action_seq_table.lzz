@@ -1,0 +1,48 @@
+// basilcc lazy action seq table
+
+namespace basilcc {
+
+class LazyAction;
+class LazyActionSeq;
+typedef std::vector<LazyAction const *> LazyActionVector;
+
+class LazyActionSeqTable
+{
+  public:
+    LazyActionSeqTable()
+    {}
+
+    ~LazyActionSeqTable()
+    {
+        delete_objects(_lazy_action_seqs);
+    }
+
+    // get lazy action seq from actions, actions will be stolen if new action seq
+    LazyActionSeq const *get_lazy_action_seq(LazyActionVector &lazy_actions)
+    {
+        std::unique_ptr<LazyActionSeq> lazy_action_seq_ptr(new LazyActionSeq(lazy_actions));
+        std::pair<LazyActionSeqSet::iterator, bool> r = _lazy_action_seqs.insert(lazy_action_seq_ptr.get());
+        if (r.second) {
+            lazy_action_seq_ptr.release();
+        }
+        return *r.first;
+    }
+
+  private:
+    bool LazyActionSeqLess(; LazyActionSeq const *a, LazyActionSeq const *b) const { return *a < *b; }
+    typedef std::set<LazyActionSeq const *, LazyActionSeqLess> LazyActionSeqSet;
+    LazyActionSeqSet _lazy_action_seqs;
+};
+
+} // namespace basilcc
+
+#hdr
+#include <set>
+#include <vector>
+#end
+
+#src
+#include <basilcc_lazy_action_seq.h>
+#include <basilcc_util.h>
+#include <memory>
+#end

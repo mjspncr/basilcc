@@ -1,0 +1,156 @@
+// basilcc state table
+
+namespace basilcc {
+
+class BaseKernel;
+class Compiler;
+class FollowKernel;
+class State;
+
+typedef std::vector<State *> StateVector;
+
+class StateTable {
+  public:
+    StateTable()
+    {}
+
+    ~StateTable ()
+    {
+        delete_objects(_states);
+    }
+
+    State const *get_state(Compiler &c, FollowKernel *follow_kernel)
+    {
+        BaseKernel const &base_kernel = follow_kernel->get_shift_kernel(c).get_base_kernel(c);
+        StateVector &base_states = _kernel_states[&base_kernel];
+        for (State const *state: base_states) {
+            if (state->get_follow_kernel() == follow_kernel || is_kernel_equiv(c, state->get_follow_kernel(), follow_kernel)) {
+                return state;
+            }
+        }
+        State *state = *_states.insert(_states.end(), new State(_states.size(), follow_kernel));
+        base_states.push_back(state);
+        return state;
+    }
+
+    // get all states
+    StateVector const &get_states() const
+    {
+        return _states;
+    }
+
+    // get all states
+    int closure(Compiler &c, int &num_lex_state_conflicts)
+    {
+        num_lex_state_conflicts = 0;
+        int num_conflicts = 0;
+        create_start_states(c);
+        for (size_t i = 0; i < _states.size(); ++i) {
+            State *state = _states[i];
+            num_conflicts += state->closure(c);
+            if (state->get_lex_state().is_conflict()) {
+                ++num_lex_state_conflicts;
+            }
+        }
+        return num_conflicts;
+    }
+        
+  private:
+    // create all start states
+    void create_start_states(Compiler &c)
+    {
+        for (Rule const *rule: c.get_start_rules()) {
+            BaseRule const *base_rule = c.get_base_rule(rule, 0);
+            ShiftRule const *shift_rule = c.get_shift_rule(base_rule, Priority());
+            FollowRuleVector follow_rules(1, c.get_follow_rule(shift_rule, get_start_follow(c, rule)));
+            FollowKernel *follow_kernel = c.get_follow_kernel(follow_rules);
+            get_state(c, follow_kernel);
+        }
+    }
+
+  private:
+    std::map<BaseKernel const *, StateVector> _kernel_states;
+    StateVector _states;
+};
+
+namespace {
+
+// true if kernels equivalent, produces the same moves
+bool is_kernel_equiv(Compiler &c, FollowKernel *a_kernel, FollowKernel *b_kernel)
+{
+    // to avoid infinite loop
+    std::set<BaseKernel const *> history;
+    // initialize pending
+    typedef std::pair<FollowKernel *, FollowKernel *> FollowKernelPair;
+    std::deque<FollowKernelPair> pending;
+    pending.push_back(FollowKernelPair(a_kernel, b_kernel));
+    while (!pending.empty()) {
+        FollowKernelPair const &p = pending.front();
+        FollowBase const &a_follow_base = p.first->get_follow_base(c);
+        FollowBase const &b_follow_base = p.second->get_follow_base(c);
+        pending.pop_front();
+        if (a_follow_base.get_lazy_follow_move() != b_follow_base.get_lazy_follow_move() ||
+                a_follow_base.get_lex_state() != b_follow_base.get_lex_state()) {
+            return false;
+        }
+        if (history.insert(&a_follow_base.get_shift_base().get_base_kernel()).second) {
+            FollowShiftMap const &a_shifts = a_follow_base.get_follow_shifts();
+            FollowShiftMap const &b_shifts = b_follow_base.get_follow_shifts();
+            for (FollowShiftMap::const_iterator i = a_shifts.begin(), endi = a_shifts.end(), j = b_shifts.begin(); i != endi; ++i, ++j) {
+                if (i->second != j->second) {
+                    pending.push_back(FollowKernelPair(i->second, j->second));
+                }
+            }
+        }
+    }
+    return true;
+}
+
+// return follow for start rule
+Follow get_start_follow(Compiler &c, Rule const *rule)
+{
+    Follow follow;
+    bool sticky = true, accept = true;
+    Symbol const *shortcut = c.get_start_symbol();
+    bool null = true;
+    RuleSymbolVector const &explicit_follow = rule->get_explicit_follow();
+    if (!explicit_follow.empty ()) {
+        null = false;
+        for (RuleSymbol const &rule_symbol: explicit_follow) {
+            Symbol const *symbol = rule_symbol.get_symbol();
+            First const &first = symbol->get_first();
+            follow.add_first(first, rule_symbol.get_lex_state(), shortcut, rule_symbol.get_first_priority(), sticky, accept);
+            if (first.has_null()) {
+                null = true;
+            }
+        }
+    }
+    if (null) {
+        First const& first = c.get_eot_symbol()->get_first();
+        follow.add_first(first, LexState(), shortcut, Priority(), sticky, accept);
+    }
+    return follow;
+}
+
+} // unamed
+} // basilcc
+
+#hdr
+#include <map>
+#include <vector>
+#end
+
+#src
+#include <basilcc_compiler.h>
+#include <basilcc_follow.h>
+#include <basilcc_follow_base.h>
+#include <basilcc_follow_kernel.h>
+#include <basilcc_rule.h>
+#include <basilcc_shift_base.h>
+#include <basilcc_shift_kernel.h>
+#include <basilcc_state.h>
+#include <basilcc_symbol.h>
+#include <basilcc_util.h>
+#include <deque>
+#include <set>
+#end

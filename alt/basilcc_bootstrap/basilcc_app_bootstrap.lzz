@@ -1,0 +1,142 @@
+// basilcc_app_bootstrap
+//
+
+int main(int argc, char **argv)
+{
+    Compiler c;
+    grammar(c);
+}
+
+using namespace basilcc;
+
+namespace
+{
+
+// load grammar
+void grammar(Compiler &c)
+{
+    // start -> rule-seq-opt
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("rule-seq-opt"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("start"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_followb
+            false  // no_bypass
+        );
+    }
+    // rule-seq-opt ->
+    {
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("rule-seq-opt"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbolVector(), // right_rule_symbols
+            RuleSymbolVector(), // explicit_followb
+            false // no_bypass
+        );
+    }
+    // rule-seq-opt -> rule-seq
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("rule-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("rule-seq-opt"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_followb
+            false  // no_bypass
+        );
+    }
+    // rule [rule] -> symbol node-type-opt ARROW symbol-seq-opt >
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("symbol"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("node-type-opt"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("ARROW"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("symbol-seq-opt"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(1, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+        };
+    }
+}
+
+}
+
+#src
+#include <basilcc_compiler.h>
+#include <basilcc_rule.h>
+#end

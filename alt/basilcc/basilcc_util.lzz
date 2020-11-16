@@ -35,17 +35,27 @@ inline void delete_object(PTR &p)
     p = 0;
 }
 // functor
-template <class PTR>
-inline void DeleteObject (; PTR &p)
+template <class T>
+inline void DeleteObject(; T* &p)
 {
     delete_object(p);
 }
+/*
+// functor
+template <class K, class T>
+inline void DeleteObject(; std::pair<K, T> &p)
+{
+    delete_object(p.second);
+}
+*/
 
 // delete objects over iterators
 template <class ITER>
 inline void delete_objects(ITER beg, ITER end)
 {
-    std::for_each(beg, end, DeleteObject<typename ITER::value_type>());
+    for (; beg != end; ++beg) {
+        delete *beg;
+    }
 }
 template <class PTR>
 inline void delete_objects(PTR *beg, PTR *end)
@@ -59,6 +69,39 @@ inline void delete_objects(T &t)
     for (typename T::value_type x: t) {
         delete x;
     }
+}
+
+// find element that occurs most
+template <class In, class Cmp>
+std::pair <In, In> most (In first, In last, Cmp cmp)
+{
+    In most_p = first, most_q = most_p, p = most_p, q = most_q;
+    unsigned int most_c = 0, c = most_c;
+    for (;; ++ first)
+    {
+        if (first == last || ! cmp (* first, * p))
+        {
+            if (c > most_c)
+            {
+                most_p = p;
+                most_q = q;
+                most_c = c;
+            }
+            if (first == last)
+            {
+                break;
+            }
+            p = first;
+            q = p;
+            c = 0;
+        }
+        else
+        {
+            ++ q;
+            ++ c;
+        }
+    }
+    return std::make_pair (most_p, most_q);
 }
 
 } // basilcc

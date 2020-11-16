@@ -1,0 +1,48 @@
+// basilcc lazy follow move table
+//
+
+namespace basilcc {
+
+class LazyMoveSel;
+class LazyActionSeq;
+class LazyFollowMove;
+
+class LazyFollowMoveTable
+{
+  public:
+    LazyFollowMoveTable()
+    {}
+    
+    ~LazyFollowMoveTable ()
+    {
+      delete_objects(_lazy_follow_moves);
+    }
+
+    // get lazy follow move from components
+    LazyFollowMove const *get_lazy_follow_move(LazyMoveSel const *lazy_move_sel, LazyActionSeq const *def_lazy_action_seq)
+    {
+        std::unique_ptr<LazyFollowMove> lazy_follow_move_ptr(new LazyFollowMove(lazy_move_sel, def_lazy_action_seq));
+        std::pair<LazyFollowMoveSet::iterator, bool> r = _lazy_follow_moves.insert(lazy_follow_move_ptr.get());
+        if (r.second) {
+            lazy_follow_move_ptr.release();
+        }
+        return *r.first;
+    }
+
+  private:
+    bool LazyFollowMoveLess(; LazyFollowMove const *a, LazyFollowMove const *b) const { return *a < *b; }
+    typedef std::set<LazyFollowMove const *, LazyFollowMoveLess> LazyFollowMoveSet;
+    LazyFollowMoveSet _lazy_follow_moves;
+};
+
+} // basilcc
+
+#hdr
+#include <set>
+#end
+
+#src
+#include <basilcc_lazy_follow_move.h>
+#include <basilcc_util.h>
+#include <memory>
+#end

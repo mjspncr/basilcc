@@ -9,21 +9,15 @@ class StateMove;
 
 class State {
   public:
-    State(size_t num, FollowKernel const *follow_kernel)
+    State(int num, FollowKernel *follow_kernel)
       : _num(num), _follow_kernel(follow_kernel), _state_move(0), _nonterm_shift_sel(0) 
     {}
 
     ~State()
     {}
 
-    // get number
-    int get_number() const
-    {
-        return _num;
-    }
-
     // get follow kernel
-    inline FollowKernel const *get_follow_kernel() const
+    inline FollowKernel *get_follow_kernel() const
     {
         return _follow_kernel;
     }
@@ -49,30 +43,42 @@ class State {
     // closure, return number of conflicts
     int closure(Compiler &c)
     {
-        /*
-        // will be called more than once? 
-        return m_state_move ? 0 : stateClosure (cc, m_follow_kernel, m_state_move, m_nonterm_shift_sel, m_lex_state);
-        */
-
-        return 0;
+        FollowBase const &follow_base = _follow_kernel->get_follow_base(c);
+        FollowShiftMap const &follow_shifts = follow_base.get_follow_shifts();
+        ShiftVector token_shifts, nonterm_shifts;
+        for (FollowShiftMap::value_type const &p: follow_shifts) {
+            Symbol const *symbol = p.first;
+            Shift shift(symbol, c.get_state(p.second));
+            if (symbol->is_token()) {
+                token_shifts.push_back(shift);
+            }
+            else {
+                nonterm_shifts.push_back(shift);
+            }
+        }
+        _state_move = follow_base.get_lazy_follow_move()->get_state_move(c, token_shifts);
+        _nonterm_shift_sel = c.get_shift_sel(nonterm_shifts);
+        return follow_base.get_conflicts().size();
     }
 
+    int const _num;
   private:
-    int _num;
-    FollowKernel const *_follow_kernel;
+    FollowKernel *_follow_kernel;
     StateMove const *_state_move;
     ShiftSel const *_nonterm_shift_sel;
     LexState _lex_state; 
 };
 
-bool operator <(State const &a, State const &b); // TODO
-
-} // namespace basilcc
+} // basilcc
 
 #hdr
 #include <basilcc_lex_state.h>
 #end
 
 #src
-// #include <basilcc_state_closure.h>
+#include <basilcc_compiler.h>
+#include <basilcc_follow_base.h>
+#include <basilcc_follow_kernel.h>
+#include <basilcc_lazy_follow_move.h>
+#include <basilcc_symbol.h>
 #end

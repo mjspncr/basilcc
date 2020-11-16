@@ -11,7 +11,7 @@ class RuleSymbol
 {
   public:
     RuleSymbol(
-        Symbol *symbol,
+        Symbol const *symbol,
         Priority const &reduce_priority,
         Priority const &first_priority,
         Priority const &shift_priority,
@@ -32,7 +32,7 @@ class RuleSymbol
     {}
 
     // get symbol
-    inline Symbol *get_symbol() const
+    inline Symbol const *get_symbol() const
     {
         return _symbol;
     }
@@ -107,7 +107,7 @@ class RuleSymbol
     }
 
   private:
-    Symbol *_symbol;
+    Symbol const *_symbol;
     Priority _reduce_priority;
     Priority _first_priority;
     Priority _shift_priority;

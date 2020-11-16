@@ -125,7 +125,7 @@ class ReduceTempAction : public TempAction {
 };
 
 // a < b
-bool operator <(TempAction const &a, TempAction const &b)
+bool operator<(TempAction const &a, TempAction const &b)
 {
     int count_a = a.get_priority().get_count();
     int count_b = b.get_priority().get_count();
@@ -141,10 +141,10 @@ bool operator <(TempAction const &a, TempAction const &b)
     ReduceTempAction const &c = static_cast<ReduceTempAction const &>(a);
     ReduceTempAction const &d = static_cast<ReduceTempAction const &>(b);
     if (c.get_rule() != d.get_rule()) {
-        return *c.get_rule() < *d.get_rule();
+        return c.get_rule() < d.get_rule();
     }
     // sort by shortcut
-    return *c.get_shortcut() < *d.get_shortcut();
+    return c.get_shortcut() < d.get_shortcut();
 }
 inline bool TempActionLess(; TempAction const *a, TempAction const *b) const
 {
@@ -152,19 +152,19 @@ inline bool TempActionLess(; TempAction const *a, TempAction const *b) const
 }
 
 // action a == b, compares priority only!
-bool operator ==(TempAction const &a, TempAction const &b)
+bool operator==(TempAction const &a, TempAction const &b)
 {
     // equal if priority count is equal
     return a.get_priority().get_count() == b.get_priority().get_count();
 }
-inline bool operator !=(TempAction const &a, TempAction const &b)
+inline bool operator!=(TempAction const &a, TempAction const &b)
 {
     return !(a == b);
 }
 
 // reduce action a == b
 // or: can a replace b?
-bool operator ==(ReduceTempAction const &a, ReduceTempAction const &b)
+bool operator==(ReduceTempAction const &a, ReduceTempAction const &b)
 {
     // same if only rule and shortcut are same
     bool result = false;
@@ -180,13 +180,13 @@ bool operator ==(ReduceTempAction const &a, ReduceTempAction const &b)
 }
 
 // a < b
-bool operator <(ReduceTempAction const &a, ReduceTempAction const &b)
+bool operator<(ReduceTempAction const &a, ReduceTempAction const &b)
 {
     if (a.get_rule() != b.get_rule()) {
-        return *a.get_rule() < *b.get_rule();
+        return a.get_rule() < b.get_rule();
     }
     if (a.get_shortcut() != b.get_shortcut()) {
-        return *a.get_shortcut() < *b.get_shortcut();
+        return a.get_shortcut() < b.get_shortcut();
     }
     return a.has_accept() && !b.has_accept();
 }
@@ -250,6 +250,7 @@ void appendTempActions (std::string & str, TempActionPtrVector const & temp_acti
 } // basilcc
 
 #hdr
+#include <memory>
 #include <basilcc_priority.h>
 #end
 

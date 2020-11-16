@@ -8,6 +8,7 @@ namespace basilcc {
 class Action;
 class ActionSeq;
 class Move;
+
 typedef std::vector<Action const *> ActionVector;
 
 class Compiler {
@@ -16,41 +17,65 @@ class Compiler {
         : _symbols(*this), _rules(*this)
     {}
 
+    // compile grammmar, generate all states, set number of lex state conflicts and
+    // return number of parser conflicts
+    int compile(int &num_lex_state_conflicts)
+    {
+        _nodes.freeze_nodes();
+        _rules.freeze_rules();
+        set_first(*this);
+        int num_conflicts = _states.closure(*this, num_lex_state_conflicts);
+        if (num_conflicts == 0) {
+            // set_goto(*this);
+        }
+        return num_conflicts;
+    }
+
     // intern std::string, return shared char const *
     inline char const *intern(std::string const &str)
     {
       return _strings.insert(str).first->c_str ();
     }
 
-    //
     // symbols
-    //
-
-    // get symbol from name, new symbol if doesn't exist
-    inline Symbol *get_symbol(std::string const &name)
+    inline Symbol const *get_symbol(std::string const &name)
     {
         return _symbols.get_symbol(intern(name));
     }
 
-    // get special symbols
     inline Symbol const *get_eot_symbol() const
     {
         return _symbols.get_eot_symbol();
     }
+
     inline Symbol const *get_start_symbol() const
     {
         return _symbols.get_start_symbol();
     }
+
     inline bool is_start_symbol(Symbol const *symbol) const
     {
-        return symbol == get_start_symbol();
+        return get_start_symbol() == symbol;
     }
 
-    //
-    // rules
-    //
+    inline SymbolVector const &get_tokens() const
+    {
+        return _symbols.get_tokens();
+    }
 
-    // add new rule
+    inline SymbolVector const &get_nonterminals() const
+    {
+        return _symbols.get_nonterminals();
+    }
+
+    // nodes
+    inline Node *get_node(std::string const &name)
+    {
+        return _nodes.get_node(intern(name));
+    }
+
+    // rules
+    // TODO: need to return rule so that can define node
     inline void add_rule(
         Node const *node,
         RuleSymbol const &left_rule_symbol,
@@ -73,6 +98,11 @@ class Compiler {
     {
         return _rules.get_rules();
     }
+    // get start rules
+    inline RuleVector const &get_start_rules() const
+    {
+        return _rules.get_rules(get_start_symbol());
+    }
     // get rules with left hand symbol
     inline RuleVector const &get_rules(Symbol const *left_symbol) const
     {
@@ -80,7 +110,7 @@ class Compiler {
     }
 
     // get base rule
-    inline BaseRule const *get_base_rule(Rule *rule, int pos)
+    inline BaseRule const *get_base_rule(Rule const *rule, int pos = 0)
     {
         return _base_rules.get_base_rule(rule, pos);
     }
@@ -96,14 +126,33 @@ class Compiler {
         return _shift_rules.get_shift_rule(base_rule, sp);
     }
 
-    // kernels
+    // follow rules
+    FollowRule const *freeze_follow_rule(FollowRulePtr &follow_rule)
+    {
+        return _follow_rules.freeze_follow_rule(follow_rule);
+    }
+    FollowRule const *get_follow_rule(ShiftRule const *shift_rule, Follow const &follow)
+    {
+        return _follow_rules.get_follow_rule(shift_rule, follow);
+    }
 
-    // get base kernel from kernel shift rules, steals rules
-    inline BaseKernel const *get_base_kernel(BaseRuleVector &base_rules)
+    // base kernels
+    inline BaseKernel const *get_base_kernel(BaseRuleVector &base_rules) // steals rules
     {
         return _base_kernels.get_base_kernel(base_rules);
     }
 
+    // shift kernels
+    inline ShiftKernel *get_shift_kernel(ShiftRuleVector &shift_rules) // steals rules
+    {
+        return _shift_kernels.get_shift_kernel(shift_rules);
+    }        
+
+    // follow kernel
+    FollowKernel *get_follow_kernel(FollowRuleVector &follow_rules) // steals rules
+    {
+        return _follow_kernels.get_follow_kernel(follow_rules);
+    }
 
     // actions
     inline Action const *get_shift_action(State const *state)
@@ -143,10 +192,46 @@ class Compiler {
         return _lazy_actions.get_reduce_lazy_action(rule, shortcut, accept);
     }
 
+    // lazy action seqs
+    inline LazyActionSeq const *get_lazy_action_seq(LazyActionVector &lazy_actions) // steals lazy actions
+    {
+        return _lazy_action_seqs.get_lazy_action_seq(lazy_actions);
+    }
+
     // lazy moves
     inline LazyMove const *get_lazy_move(Symbol const *token, LazyActionSeq const *lazy_action_seq)
     {
         return _lazy_moves.get_lazy_move(token, lazy_action_seq);
+    }
+
+    // lazy move sels
+    LazyMoveSel const *get_lazy_move_sel(LazyMoveVector &lazy_moves)
+    {
+        return _lazy_move_sels.get_lazy_move_sel(lazy_moves); // steals lazy moves
+    }
+
+    // lazy follow moves
+    LazyFollowMove const *get_lazy_follow_move(LazyMoveSel const *lazy_move_sel, LazyActionSeq const *def_lazy_action_seq)
+    {
+        return _lazy_follow_moves.get_lazy_follow_move(lazy_move_sel, def_lazy_action_seq);
+    }
+
+    // shift sel
+    ShiftSel const *get_shift_sel(ShiftVector &shifts)
+    {
+        return _shift_sels.get_shift_sel(shifts);
+    }
+
+    // state move
+    StateMove const *get_state_move(MoveSel const *move_sel, ActionSeq const *def_action_seq)
+    {
+        return _state_moves.get_state_move(move_sel, def_action_seq);
+    }
+
+    // state
+    State const *get_state(FollowKernel *follow_kernel)
+    {
+        return _states.get_state(*this, follow_kernel);
     }
 
   private:
@@ -161,15 +246,25 @@ class Compiler {
     FollowRuleTable _follow_rules;
     BaseKernelTable _base_kernels;
     ShiftKernelTable _shift_kernels;
-
+    FollowKernelTable _follow_kernels;
     ActionTable _actions;
     ActionSeqTable _action_seqs;
     MoveTable _moves;
     MoveSelTable _move_sels;
     LazyActionTable _lazy_actions;
+    LazyActionSeqTable _lazy_action_seqs;
     LazyMoveTable _lazy_moves;
+    LazyMoveSelTable _lazy_move_sels;
+    LazyFollowMoveTable _lazy_follow_moves;
+    ShiftSelTable _shift_sels;
+    StateMoveTable _state_moves;
+    StateTable _states;
 };
 
+namespace {
+
+
+} // unmamed
 } // basilcc
 
 #hdr
@@ -177,16 +272,24 @@ class Compiler {
 #include <basilcc_action_table.h>
 #include <basilcc_base_kernel_table.h>
 #include <basilcc_base_rule_table.h>
+#include <basilcc_follow_kernel_table.h>
 #include <basilcc_follow_rule_table.h>
+#include <basilcc_lazy_action_seq_table.h>
 #include <basilcc_lazy_action_table.h>
-#include <basilcc_lazymove_table.h>
+#include <basilcc_lazy_follow_move_table.h>
+#include <basilcc_lazy_move_sel_table.h>
+#include <basilcc_lazy_move_table.h>
 #include <basilcc_move_sel_table.h>
 #include <basilcc_move_table.h>
 #include <basilcc_node_table.h>
 #include <basilcc_rule_table.h>
+#include <basilcc_set_first.h>
 #include <basilcc_shift_kernel_table.h>
 #include <basilcc_shift_rule_table.h>
+#include <basilcc_shift_sel_table.h>
+#include <basilcc_state_move_table.h>
+#include <basilcc_state_table.h>
 #include <basilcc_symbol_table.h>
-#include <string>
 #include <set>
+#include <string>
 #end

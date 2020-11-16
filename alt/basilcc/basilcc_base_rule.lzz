@@ -5,6 +5,7 @@
 
 namespace basilcc {
 
+class Compiler;
 class Priority;
 class Rule;
 class RuleSymbol;
@@ -17,18 +18,8 @@ class BaseRule
         : _num(-1), _rule(rule), _pos(pos)
     {}
 
-    ~ BaseRule()
+    ~BaseRule()
     {}
-
-    // set/get number
-    inline void set_number(int num)
-    {
-        _num = num;
-    }
-    inline int get_number() const
-    {
-        return _num;
-    }
 
     // get rule
     inline Rule const *get_rule() const
@@ -53,7 +44,7 @@ class BaseRule
     {
         return _rule->get_left_rule_symbol();
     }
-    inline Symbol *get_left_symbol() const
+    inline Symbol const *get_left_symbol() const
     {
         return get_left_rule_symbol().get_symbol();
     }
@@ -63,7 +54,7 @@ class BaseRule
     {
         return _rule->get_right_rule_symbol(_pos);
     }
-    Symbol *get_next_symbol() const
+    Symbol const *get_next_symbol() const
     {
         return get_next_rule_symbol().get_symbol();
     }
@@ -80,22 +71,31 @@ class BaseRule
         return get_left_rule_symbol().get_shift_priority() + get_next_rule_symbol().get_shift_priority();
     }
 
+    // get base rule at next pos
+    BaseRule const *get_next_base_rule(Compiler &c) const
+    {
+        return c.get_base_rule(_rule, _pos + 1);
+    }
+
     // to string
     std::string to_string() const
     {
       return _rule->to_string(_pos);
     }
 
+    int const _num;
   private:
-    int _num;
     Rule const *_rule;
     int _pos;
   };
 
 // true if a < b
-inline bool operator <(BaseRule const &a, BaseRule const &b)
+inline bool operator<(BaseRule const &a, BaseRule const &b)
 {
-    return *a.get_rule() < *b.get_rule() || (a.get_rule() == b.get_rule() && a.get_pos() < b.get_pos());
+    if (a.get_rule() != b.get_rule()) {
+        return a.get_rule() < b.get_rule();
+    }
+    return a.get_pos() < b.get_pos();
 }
 
 inline bool BaseRuleLess(; BaseRule const *a, BaseRule const *b) const
@@ -110,6 +110,7 @@ inline bool BaseRuleLess(; BaseRule const *a, BaseRule const *b) const
 #end
 
 #inl
+#include <basilcc_compiler.h>
 #include <basilcc_rule.h>
 #include <basilcc_rule_symbol.h>
 #end

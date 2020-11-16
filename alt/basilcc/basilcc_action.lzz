@@ -54,7 +54,7 @@ bool operator <(ShiftAction const &a, ShiftAction const &b)
     State const *a_state = a.get_state();
     State const *b_state = b.get_state();
     if (a_state != b_state) {
-        return *a_state < *b_state;
+        return a_state < b_state;
     }
     return false;
 }
@@ -113,12 +113,12 @@ bool operator <(ReduceAction const &a, ReduceAction const &b)
     Rule const *a_rule = a.get_rule();
     Rule const *b_rule = b.get_rule();
     if (a_rule != b_rule) {
-        return *a_rule < *b_rule;
+        return a_rule < b_rule;
     }
     Symbol const *a_shortcut = a.get_shortcut();
     Symbol const *b_shortcut = b.get_shortcut();
     if (a_shortcut != b_shortcut) {
-        return *a_shortcut < *b_shortcut;
+        return a_shortcut < b_shortcut;
     }
     return !a.has_accept() && b.has_accept();
 }

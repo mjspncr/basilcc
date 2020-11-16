@@ -23,7 +23,7 @@ class RuleTable
 
     ~RuleTable()
     {
-        delete_objects(_rules.begin(), _rules.end());
+        delete_objects(_rules);
     }
 
     // add new rule
@@ -73,10 +73,41 @@ class RuleTable
     RuleVector const &get_rules(Symbol const *left_symbol) const
     {
         SymbolRuleVectorMap::const_iterator p = _left_symbol_rules.find(left_symbol);
-        if (p == _left_symbol_rules.end()) {
-            throw std::runtime_error("unexpected: no rule with left hand symbol");
-        }
+        assert(p != _left_symbol_rules.end());
         return p->second;
+    }
+
+    // true if left symbol
+    bool is_left_symbol(Symbol const *symbol) const
+    {
+      return _left_symbol_rules.find(symbol) != _left_symbol_rules.end();
+    }
+
+    // freeze rules, no more
+    void freeze_rules()
+    {
+        // make sure at least one start rule
+        if (is_left_symbol(_c.get_start_symbol())) {
+            throw std::runtime_error("missing at least one start rule");
+        }
+        // make sure each right hand nonterminal is defined
+        for (SymbolRuleVectorMap::value_type const &p: _left_symbol_rules) {
+            for (Rule const *rule: p.second) {
+                for (RuleSymbol const &rule_symbol: rule->get_right_rule_symbols()) {
+                    Symbol const *symbol = rule_symbol.get_symbol();
+                    if (!symbol->is_token()) {
+                        if (_c.is_start_symbol(symbol)) {
+                            throw std::runtime_error("start symbol on right hand side of rule");
+                        }
+                        if (!is_left_symbol(symbol)) {
+                            std::ostringstream ss;
+                            ss << "nonterminal " << symbol->get_name() << " is not defined";
+                            throw std::runtime_error(ss.str()); 
+                        }
+                    }
+                }
+            }
+        }
     }
 
   private:
@@ -87,8 +118,6 @@ class RuleTable
     SymbolRuleVectorMap _left_symbol_rules; // rules indexed by left hand symbol
 };
 
-namespace {
-} // unnamed
 } // basilcc
 
 #hdr
@@ -102,5 +131,6 @@ namespace {
 #include <basilcc_rule.h>
 #include <basilcc_symbol.h>
 #include <basilcc_util.h>
+#include <cassert>
 #include <sstream>
 #end

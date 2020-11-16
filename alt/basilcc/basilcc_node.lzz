@@ -1,19 +1,16 @@
 // basilcc_node
 //
-// parse tree node  
-//
 
 namespace basilcc {
 
 class Rule;
 
-class Node
-{
+class Node {
   public:
     Node(char const *name)
-      : _name(name), _num(0), _rule(0), _has_code(false)
+      : _num(-1), _name(name), _rule(0)
     {}
-    
+
     ~Node ()
     {}
     
@@ -23,44 +20,39 @@ class Node
         return _name;
     }
 
-    // set/get number
-    void set_number(int num)
-    {
-        _num = num;
-    }
-    
-    int get_number() const
-    {
-        return _num;
-    }
-    
-    // set rule that defines this node, has_code true if node has user code on reduce
-    void set_rule(Rule const *rule, bool has_code)
+    // set rule that defines this node
+    void set_rule(Rule const *rule)
     {
         _rule = rule;
-        _has_code = has_code;
     }
 
-    // true if node has associated rule
+    // true if node has a defining rule
     bool is_defined() const
     {
-        return _rule != 0;
+        return _rule != NULL;
     }
 
+    int const _num;
   private:
     char const *_name;
-    int _num;
-    // rule that defines node
     Rule const *_rule;
-    // true if node has user code on reduce, if true will generate a node on_node
-    // method declaration
-    bool _has_code;
+    // Type ? 
 };
 
-// true if a->name < b->name
-bool node_name_less(Node const *a, Node const *b)
+// true if a < b
+bool operator<(Node const &a, Node const &b)
+{
+    return a.get_name() < b.get_name();
+}
+
+inline bool NodeNameLess(; Node const *a, Node const *b) const
 {
     return strcmp(a->get_name(), b->get_name()) < 0;
+}
+
+inline bool NodeNumberLess(; Node const *a, Node const *b) const
+{
+    return a->_num < b->_num;
 }
 
 } // basilcc

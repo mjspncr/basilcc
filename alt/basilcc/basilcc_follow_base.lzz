@@ -3,87 +3,223 @@
 namespace basilcc {
 
 class Compiler;
+class Conflict;
+class FollowKernel;
 class FollowRule;
+class LazyFollowMove;
+class ShiftBase;
+class Symbol;
+
+typedef std::map<Symbol const *, FollowKernel *> FollowShiftMap;
 typedef std::vector<FollowRule const *> FollowRuleVector;
+typedef std::vector<Conflict *> ConflictVector;
 
 class FollowBase {
   public:
-    // steals follow rules
-    FollowBase(ShiftBase const &shift_base, FollowRuleVector const &follow_rules)
-        : _shift_base(shift_base), _follow_rules(follow_rules)
-    {}
+    FollowBase(Compiler &c, ShiftBase const &shift_base, FollowRuleVector const &kernel_rules)
+        : _shift_base(shift_base)
+    {
+        _get_follow_rules(c, shift_base, kernel_rules, _follow_rules);
+        _get_follow_shifts(c, _follow_rules, _follow_shifts);
+        _lazy_follow_move = _get_lazy_follow_move(c, _follow_rules, _conflicts);
+        _lex_state = _get_lex_state(kernel_rules);
+    }
 
     ~FollowBase()
-    {}
+    {
+        delete_objects(_conflicts);
+    }
 
-    // get shift base
     inline ShiftBase const &get_shift_base() const
     {
         return _shift_base;
     }
 
-    // get follow rules
     inline FollowRuleVector const &get_follow_rules() const
     {
         return _follow_rules;
     }
 
-    // get follow shifts
-    inline FollowShiftList const &get_follow_shifts() const
+    inline FollowShiftMap const &get_follow_shifts() const
     {
         return _follow_shifts;
     }   
 
-    // get lazy follow move
     inline LazyFollowMove const *get_lazy_follow_move() const
     {
         return _lazy_follow_move;
     }
 
-    // get lex state
     inline LexState const &get_lex_state() const
     {
         return _lex_state;
     }
 
-    /*
-    // get conflicts
-    inline ConflictPtrVector const & getConflicts () const
+    inline ConflictVector const &get_conflicts() const
     {
-      return m_conflicts;
+        return _conflicts;
     }
-    */
 
-    /*
-    // true if has conflicts
     inline bool has_conflicts() const
     {
         return !_conflicts.empty ();
-    }
-    */
-
-    // closure on follow base
-    void closure(Compiler &c)
-    {
-        // followClosure (cc, m_shift_base, m_follow_rules, m_follow_shifts, m_lazy_follow_move, m_lex_state, m_conflicts);
     }
 
   private:
     ShiftBase const &_shift_base;
     FollowRuleVector _follow_rules;
-    FollowShiftList _follow_shifts;
+    FollowShiftMap _follow_shifts;
     LazyFollowMove const *_lazy_follow_move;
     LexState _lex_state;
-    // ConflictPtrVector m_conflicts;
+    ConflictVector _conflicts;
 };
 
+namespace {
+
+// get all follow rules from kernel rules
+void _get_follow_rules(Compiler &c, ShiftBase const &shift_base, FollowRuleVector const &kernel_rules, FollowRuleVector &follow_rules)
+{
+    int kernel_size = kernel_rules.size();
+    ShiftRuleVector const &shift_rules = shift_base.get_shift_rules();
+    FollowRuleMap non_kernel_follow_rules;
+    for (ShiftRuleVector::const_iterator i = shift_rules.begin() + kernel_size, endi = shift_rules.end(); i != endi; ++i) {
+        ShiftRule const *shift_rule = *i;
+        non_kernel_follow_rules.emplace(shift_rule->get_left_symbol(), FollowRulePtr(new FollowRule(shift_rule)));
+    }
+    FollowBaseClosure(kernel_rules, non_kernel_follow_rules).run();
+    follow_rules.reserve(shift_rules.size());
+    follow_rules = kernel_rules;
+    for (FollowRuleMap::value_type &p: non_kernel_follow_rules) {
+        follow_rules.push_back(c.freeze_follow_rule(p.second));
+    }
+}
+    
+// follow base closure
+typedef std::unique_ptr<FollowRule> FollowRulePtr;
+typedef std::multimap<Symbol const *, FollowRulePtr> FollowRuleMap;
+typedef FollowRuleMap::const_iterator FollowRuleMapConstIter;
+
+class FollowBaseClosure(FollowRuleVector const &kernel_rules, FollowRuleMap const &non_kernel_rules)
+{
+  public:
+    void run()
+    {
+        for (FollowRule const *kernel_rule: kernel_rules) {
+            helper(kernel_rule);
+        }
+    }
+
+  private:
+    void helper(FollowRule const *follow_rule)
+    {
+        BaseRule const *base_rule = follow_rule->get_shift_rule()->get_base_rule();
+        if (!base_rule->is_reduction()) {
+            Symbol const *symbol = base_rule->get_next_symbol();
+            if (!symbol->is_token()) {
+                Follow follow;
+                follow_rule->get_next_follow(follow);
+                std::pair<FollowRuleMapConstIter, FollowRuleMapConstIter> r = non_kernel_rules.equal_range(symbol);
+                for (FollowRuleMapConstIter i = r.first; i != r.second; ++i) {
+                    FollowRule *follow_rule = i->second.get();
+                    if (follow_rule->update(follow)) {
+                        helper(follow_rule);
+                    }
+                }
+            }
+        }
+    }
+};
+
+// get follow shifts
+void _get_follow_shifts(Compiler &c, FollowRuleVector const &follow_rules, FollowShiftMap &follow_shifts)
+{
+    for (FollowRuleVector::const_iterator i = follow_rules.begin(), endi = follow_rules.end(); i != endi; ++i) {
+        FollowRule const *follow_rule = *i; 
+        BaseRule const *base_rule = follow_rule->get_shift_rule()->get_base_rule();
+        if (!(base_rule->is_reduction() || base_rule->get_rule()->can_bypass())) {
+            Symbol const *symbol = base_rule->get_next_symbol();
+            std::pair<FollowShiftMap::iterator, bool> r = follow_shifts.emplace(symbol, (FollowKernel *)NULL);
+            if (r.second) {
+                // only need to search for kernel rules from i
+                FollowRuleVector kernel_rules;
+                std::for_each(i, endi, GetFollowKernelRules(c, symbol, kernel_rules));
+                std::sort(kernel_rules.begin(), kernel_rules.end(), FollowRuleLess());
+                r.first->second = c.get_follow_kernel(kernel_rules);
+            }
+        }
+    }
+}
+
+// add follow rule to kernel rules if symbol is next symbol
+void GetFollowKernelRules(Compiler &c, Symbol const *symbol, FollowRuleVector &kernel_rules; FollowRule const *follow_rule) const
+{
+    BaseRule const *base_rule = follow_rule->get_shift_rule()->get_base_rule();
+    if (!(base_rule->is_reduction() || base_rule->get_rule()->can_bypass()) && base_rule->get_next_symbol() == symbol) {
+        kernel_rules.push_back(follow_rule->get_next_follow_rule(c));
+    }
+}
+
+// get lazy follow move
+LazyFollowMove const *_get_lazy_follow_move(Compiler &c, FollowRuleVector const &follow_rules, ConflictVector &conflicts)
+{
+    TempFollowMove temp_follow_move;
+    for (FollowRule const *follow_rule: follow_rules) {
+      ShiftRule const *shift_rule = follow_rule->get_shift_rule();
+      BaseRule const *base_rule = shift_rule->get_base_rule();
+      if (base_rule->is_reduction()) {
+          // add reduction (except if rule is bypassed)
+          Rule const *rule = base_rule->get_rule();
+          if (!rule->can_bypass()) {
+              RuleSymbol const &left_rule_symbol = rule->get_left_rule_symbol();
+              Priority priority = left_rule_symbol.get_reduce_priority();
+              bool sticky = left_rule_symbol.has_sticky();
+              bool accept = left_rule_symbol.has_accept();
+              Follow const &follow = follow_rule->get_follow();
+              temp_follow_move.add_reduction(rule, follow, priority, sticky, accept);
+          }
+      }
+      else
+      {
+          // add shift if next symbol is a token
+          Symbol const *symbol = base_rule->get_next_symbol();
+          if (symbol->is_token()) {
+              Priority priority = base_rule->get_shift_priority() + shift_rule->get_shift_priority();
+              temp_follow_move.add_shift(symbol, priority);
+          }
+      }
+    }
+    return temp_follow_move.get_lazy_follow_move(c, conflicts);
+}
+
+// get lex state from kernel follow rules
+LexState _get_lex_state(FollowRuleVector const &kernel_rules)
+{
+    LexState lex_state;
+    for (FollowRule const *follow_rule: kernel_rules) {
+        lex_state.update(follow_rule->get_lex_state());
+    }
+    return lex_state;
+}
+
+} // unnamed
 } // basilcc
 
 #hdr
 #include <basilcc_lex_state.h>
+#include <map>
 #include <vector>
 #end
 
 #src
-// #include <basilcc_follow_closure.h>
+#include <basilcc_base_rule.h>
+#include <basilcc_compiler.h>
+#include <basilcc_conflict.h>
+#include <basilcc_follow_rule.h>
+#include <basilcc_rule.h>
+#include <basilcc_shift_base.h>
+#include <basilcc_shift_rule.h>
+#include <basilcc_symbol.h>
+#include <basilcc_temp_follow_move.h>
+#include <basilcc_util.h>
+#include <algorithm>
 #end

@@ -1,6 +1,4 @@
-// basilcc_symbol_table
-//
-// maintains all symbols
+// basilcc symbol table
 //
 
 namespace basilcc {
@@ -8,61 +6,76 @@ namespace basilcc {
 class Symbol;
 class Compiler;
 
+typedef std::vector<Symbol const *> SymbolVector;
+
 class SymbolTable
 {
   public:
     SymbolTable(Compiler &c)
     {
+        _start = get_symbol(c.intern("start")); // first nonterminal
         _eot = get_symbol(c.intern("EOT"));
-        _start = get_symbol(c.intern("start"));
     }
 
     ~SymbolTable()
     {
-        delete_objects(_tokens.begin(), _tokens.end());
-        delete_objects(_nonterminals.begin(), _nonterminals.end());
+        delete_objects(_tokens);
+        delete_objects(_nonterminals);
     }
 
     // get EOT symbol
-    Symbol *get_eot_symbol() const
+    Symbol const *get_eot_symbol() const
     {
         return _eot;
     }
 
     // get start symbol
-    Symbol *get_start_symbol() const
+    Symbol const *get_start_symbol() const
     {
         return _start;
     }
 
     // get symbol from name, new symbol if doesn't exist
-    Symbol *get_symbol(char const *name)
+    Symbol const *get_symbol(char const *name)
     {
-        Symbol *&symbol = _symbols[name];
-        if (!symbol) {
+        std::pair<SymbolMap::iterator, bool> r = _symbols.insert(SymbolMap::value_type(name, NULL));
+        if (r.second) {
+            Symbol const *symbol;
             if (is_token(name)) {
                 symbol = *_tokens.insert(_tokens.end(), new Token(name));
             }
             else {
                 symbol = *_nonterminals.insert(_tokens.end(), new Nonterminal(name));
             }
+            r.first->second = symbol;
         }
-        return symbol;
+        return r.first->second;
+    }
+
+    SymbolVector const &get_tokens() const
+    {
+        return _tokens;
+    }
+
+    SymbolVector const &get_nonterminals() const
+    {
+        return _nonterminals;
     }
 
   private:
     // tokens and nonterminals, owns the symbols
-    std::vector<Symbol *> _tokens;
-    std::vector<Symbol *> _nonterminals;
+    SymbolVector _tokens;
+    SymbolVector _nonterminals;
     // index of symbols by name
-    typedef std::map<char const *, Symbol *> SymbolMap;
+    typedef std::map<char const *, Symbol const *> SymbolMap;
     SymbolMap _symbols;
     // special symbols EOT and start
-    Symbol *_eot;
-    Symbol *_start;
+    Symbol const *_eot;
+    Symbol const *_start;
 };
 
 namespace {
+
 // true if name is a token, if no lower case characters
 bool is_token(char const *name)
 {
@@ -75,6 +88,7 @@ bool is_token(char const *name)
     }
     return true;
 }
+
 } // unnamed
 } // basilcc
 

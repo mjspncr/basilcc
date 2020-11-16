@@ -47,8 +47,8 @@ class Symbol
         : _num(-1), _name(name)
     {}
 
-  private:
     int _num;
+  private:
     char const *_name;
     First _first;
 };

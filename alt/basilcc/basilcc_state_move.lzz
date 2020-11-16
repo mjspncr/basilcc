@@ -7,18 +7,12 @@ class ActionSeq;
 
 class StateMove {
   public:
-    StateMove(int num, MoveSel const *move_sel, ActionSeq const *def_action_seq)
-        : _num(num), _move_sel(move_sel), _def_action_seq(def_action_seq)
+    StateMove(MoveSel const *move_sel, ActionSeq const *def_action_seq)
+        : _num(-1), _move_sel(move_sel), _def_action_seq(def_action_seq)
     {}
 
     ~StateMove()
     {}
-
-    // get number
-    inline int get_number() const
-    {
-        return _num;
-    }
 
     // get move selection
     inline MoveSel const *get_move_sel() const
@@ -32,11 +26,20 @@ class StateMove {
         return _def_action_seq;
     }
 
-  private:
     int _num;
+  private:
     MoveSel const *_move_sel;
     ActionSeq const *_def_action_seq;
 };
+
+// a < b, compares pointers 
+bool operator <(StateMove const &a, StateMove const &b)
+{
+    if (a.get_move_sel() != b.get_move_sel()) {
+        return a.get_move_sel() < b.get_move_sel();
+    }
+    return a.get_default_action_seq() < b.get_default_action_seq();
+}
 
 } // basilcc
 
@@ -44,4 +47,6 @@ class StateMove {
 #end
 
 #src
+#include <basilcc_move_sel.h>
+#include <basilcc_action_seq.h>
 #end

@@ -21,8 +21,7 @@ class Rule
         RuleSymbol const &left_rule_symbol,
         RuleSymbolVector const &right_rule_symbols,
         RuleSymbolVector const &explicit_follow,
-        bool can_bypass
-    )
+        bool can_bypass)
       : _num(num),
         _node(node),
         _is_start(is_start),
@@ -34,12 +33,6 @@ class Rule
 
     ~Rule ()
     {}
-
-    // get rule number
-    inline int get_number() const
-    {
-        return _num;
-    }
 
     // get rule node, NULL if rule has no node
     Node const *get_node() const
@@ -54,11 +47,11 @@ class Rule
     }
 
     // get left rule symbol
-    inline RuleSymbol const &get_let_rule_symbol() const
+    inline RuleSymbol const &get_left_rule_symbol() const
     {
         return _left_rule_symbol;
     }
-    inline Symbol *get_left_symbol() const
+    inline Symbol const *get_left_symbol() const
     {
         return _left_rule_symbol.get_symbol();
     }
@@ -76,7 +69,7 @@ class Rule
     }
 
     // get right symbol
-    inline Symbol *get_right_symbol(int pos) const
+    inline Symbol const *get_right_symbol(int pos) const
     {
         return get_right_rule_symbol(pos).get_symbol();
     }
@@ -130,8 +123,8 @@ class Rule
       return ss.str();
     }
     
+    int const _num;
   private:
-    int _num;
     Node const *_node;
     bool _is_start;
     RuleSymbol _left_rule_symbol;
@@ -140,15 +133,22 @@ class Rule
     bool _can_bypass;
 };
 
+/*
 // a < b
 inline bool operator <(Rule const &a, Rule const &b)
 {
-    return a.get_number() < b.get_number();
+    return a._num < b._num;
 }
 
-inline bool rule_less(Rule const *a, Rule const *b)
+inline bool RuleLess(; Rule const *a, Rule const *b)
 {
     return *a < *b;
+}
+*/
+
+inline bool RuleNumberLess(; Rule const *a, Rule const *b) const
+{
+    return a->_num < b->_num;
 }
 
 } // basilcc

@@ -4,8 +4,7 @@ namespace basilcc {
 
 class TempAction;
 class Symbol;
-
-typedef std::vector<TempAction const *> TempActionVector;
+typedef std::vector<TempAction *> TempActionVector;
 
 class Conflict {
   public:
@@ -56,5 +55,6 @@ class Conflict {
 #end
 
 #src
+#include <basilcc_temp_action.h>
 #include <basilcc_util.h>
 #end

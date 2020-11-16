@@ -6,6 +6,7 @@
 namespace basilcc {
 
 class ShiftRule;
+
 typedef std::vector<FirstItem> FirstItemVector;
 typedef std::vector<ShiftRule const *> ShiftRuleVector;
 typedef std::set<FirstItem> FirstItemSet;
@@ -79,8 +80,7 @@ class First
 
   private:
     FirstItemSet _first_items;
-    // true if first has null
-    bool _null;
+    bool _null; // true if first set has null
     LexState _lex_state;
     ShiftRuleVector _shift_rules;
 };
@@ -95,5 +95,4 @@ class First
 #end
 
 #src
-//#include <algorithm>
 #end

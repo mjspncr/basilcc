@@ -1,0 +1,47 @@
+// basilcc shift selection
+
+namespace basilcc {
+
+class ShiftSel
+{
+  public:
+    // steals shifts
+    ShiftSel(ShiftVector &shifts)
+        : _num(-1)
+    {
+        _shifts.swap(shifts); // steals shifts
+    }
+
+    ~ShiftSel ()
+    {}
+    
+    inline ShiftVector const &get_shifts() const
+    {
+        return _shifts;
+    }
+
+    // get shift state from symbol number
+    State const *get_shift_state(Symbol const *symbol) const
+    {
+        return basilcc::get_shift_state(_shifts, symbol);
+    }
+
+    int const _num;
+  private:
+    ShiftVector _shifts; // ordered
+};
+
+
+bool operator<(ShiftSel const &a, ShiftSel const &b)
+{
+    return a.get_shifts() < b.get_shifts();
+}
+
+} // basilcc
+
+#hdr
+#include <basilcc_shift.h>
+#end
+
+#src
+#end

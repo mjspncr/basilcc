@@ -9,10 +9,9 @@ typedef std::vector<BaseRule const *> BaseRuleVector;
 class BaseKernel
 {
 public:
-    // steals base rules
     BaseKernel(BaseRuleVector &base_rules)
     {
-        _base_rules.swap(base_rules);
+        _base_rules.swap(base_rules); // steals rules
     }
 
     ~BaseKernel()
@@ -31,7 +30,7 @@ public:
     }
 
 private:
-    // kernel rules
+    // kernel rules only
     BaseRuleVector _base_rules;
 };
 

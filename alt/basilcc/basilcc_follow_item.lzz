@@ -7,8 +7,7 @@ namespace basilcc {
 
 class Symbol;
 
-class FollowItem
-{
+class FollowItem {
   public:
     FollowItem(Symbol const *token, Symbol const *shortcut)
         : _token(token), _shortcut(shortcut), _sticky(false), _accept(false)

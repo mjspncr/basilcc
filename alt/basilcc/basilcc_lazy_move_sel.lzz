@@ -5,6 +5,7 @@ namespace basilcc {
 
 class Compiler;
 class LazyMove;
+class MoveSel;
 class State;
 class Symbol;
 
@@ -29,14 +30,12 @@ class LazyMoveSel {
     // get move sel
     MoveSel const *get_move_sel(Compiler &c, ShiftMap const &token_shifts)
     {
-        /*
         MoveVector moves;
         moves.reserve(_lazy_moves.size());
         for (LazyMove const *lazy_move: _lazy_moves) {
             moves.push_back(lazy_move->get_move(c, token_shifts));
         }
         return c.get_move_sel(moves);
-        */
     }
 
   private:
@@ -47,6 +46,7 @@ class LazyMoveSel {
 
 #hdr
 #include <vector>
+#include <map>
 #end
 
 #src

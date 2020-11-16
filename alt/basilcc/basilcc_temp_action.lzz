@@ -17,10 +17,8 @@ class TempAction {
     virtual ~TempAction()
     {}
 
-    // true if shift
     virtual bool is_shift() const = 0;
 
-    // true if reduction
     inline bool is_reduction () const
     {
         return !is_shift();
@@ -61,7 +59,7 @@ class ShiftTempAction : public TempAction {
     }
 
     // get lazy action
-    LazyActionPtr get_lazy_action(Compiler &c) const
+    LazyAction const *get_lazy_action(Compiler &c) const
     {
         return c.get_shift_lazy_action();
     }
@@ -76,7 +74,6 @@ class ReduceTempAction : public TempAction {
     ~ReduceTempAction()
     {}
 
-    // true if shift
     bool is_shift () const
     {
         return false;
@@ -117,8 +114,7 @@ class ReduceTempAction : public TempAction {
     // get lazy action
     LazyAction const *get_lazy_action(Compiler &c) const
     {
-        // TODO
-        //return c.get_reduce_lazy_action(_rule, _shortcut, _accept);
+        return c.get_reduce_lazy_action(_rule, _shortcut, _accept);
     }
 
   private:
@@ -131,10 +127,10 @@ class ReduceTempAction : public TempAction {
 // a < b
 bool operator <(TempAction const &a, TempAction const &b)
 {
-    bool result = false;
     int count_a = a.get_priority().get_count();
     int count_b = b.get_priority().get_count();
     if (count_a != count_b) {
+        // less if count is greater
         return count_a > count_b;
     }
     // conflict: just sort consistently then
@@ -148,14 +144,14 @@ bool operator <(TempAction const &a, TempAction const &b)
         return *c.get_rule() < *d.get_rule();
     }
     // sort by shortcut
-    return *c.get_shortcut() < d.get_shortcut();
+    return *c.get_shortcut() < *d.get_shortcut();
 }
 inline bool TempActionLess(; TempAction const *a, TempAction const *b) const
 {
     return *a < *b;
 }
 
-// a == b
+// action a == b, compares priority only!
 bool operator ==(TempAction const &a, TempAction const &b)
 {
     // equal if priority count is equal
@@ -166,13 +162,13 @@ inline bool operator !=(TempAction const &a, TempAction const &b)
     return !(a == b);
 }
 
-// a == b
+// reduce action a == b
 // or: can a replace b?
 bool operator ==(ReduceTempAction const &a, ReduceTempAction const &b)
 {
     // same if only rule and shortcut are same
     bool result = false;
-    if (a.getRule () == b.getRule () && a.getShortcut () == b.getShortcut ()) {
+    if (a.get_rule() == b.get_rule() && a.get_shortcut() == b.get_shortcut()) {
       result = true;
       // if accepting on b but not on a, then a can't replace b
       // this will happen if b is sticky--b won't be considered in default set

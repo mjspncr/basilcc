@@ -9,8 +9,8 @@ typedef std::vector<Move const *> MoveVector;
 class MoveSel {
   public:
     // steals moves
-    MoveSel(int num, MoveVector &moves)
-        : _num(num)
+    MoveSel(MoveVector &moves)
+        : _num(-1)
     {
         _moves.swap(moves);
     }
@@ -18,22 +18,32 @@ class MoveSel {
     ~MoveSel()
     {}
 
-    // get move sel number
-    inline int get_number() const
-    {
-        return _num;
-    }
-
     // get moves
     inline MoveVector const &get_moves() const
     {
         return _moves;
     }
 
-  private:
     int _num;
+
+  private:
     MoveVector _moves;
 };
+
+bool operator<(MoveSel const &a, MoveSel const &b)
+{
+    MoveVector const &a_moves = a.get_moves();
+    MoveVector const &b_moves = b.get_moves();
+    if (a_moves.size() != b_moves.size()) {
+        return a_moves.size() < b_moves.size();
+    }
+    return a_moves < b_moves; // OK to compare pointers
+}
+
+inline bool MoveSelLess(; MoveSel const *a, MoveSel const *b) const
+{
+    return *a < *b;
+}
 
 } // basilccc
 

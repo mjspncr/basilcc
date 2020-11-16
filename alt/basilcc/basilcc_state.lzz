@@ -2,6 +2,7 @@
 
 namespace basilcc {
 
+class Compiler;
 class FollowKernel;
 class ShiftSel;
 class StateMove;
@@ -52,6 +53,8 @@ class State {
         // will be called more than once? 
         return m_state_move ? 0 : stateClosure (cc, m_follow_kernel, m_state_move, m_nonterm_shift_sel, m_lex_state);
         */
+
+        return 0;
     }
 
   private:
@@ -60,8 +63,11 @@ class State {
     StateMove const *_state_move;
     ShiftSel const *_nonterm_shift_sel;
     LexState _lex_state; 
-  }
-}
+};
+
+bool operator <(State const &a, State const &b); // TODO
+
+} // namespace basilcc
 
 #hdr
 #include <basilcc_lex_state.h>

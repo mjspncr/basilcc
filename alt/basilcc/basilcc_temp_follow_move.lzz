@@ -59,7 +59,7 @@ class TempFollowMove {
         TempMoveVector local_temp_moves(_temp_moves);
         // todo: option for no default action
         /*
-        if (!c.no_default_actions())
+          if (!c.no_default_actions())
         */
         {
             // partition so that ones that can be default are at end
@@ -90,21 +90,23 @@ class TempFollowMove {
         else {
             // get empty saction list
             LazyActionVector lazy_actions;
-        def_lazy_action_seq = getLazyActionSeq (cc, lazy_actions);
-      }
-      // return lazy follow move from table
-      return basilcc::getLazyFollowMove (cc, lazy_move_sel, def_lazy_action_seq);
+            def_lazy_action_seq = getLazyActionSeq (cc, lazy_actions);
+        }
+        // return lazy follow move from table
+        return basilcc::getLazyFollowMove (cc, lazy_move_sel, def_lazy_action_seq);
     }
 
+    /*
     // get conflicts, may take actions, so make sure is called after getLazyFollowMove
     void getConflicts (ConflictPtrVector & conflicts)
     {
-      for_each (m_temp_moves.begin (), m_temp_moves.end (), GetConflicts (conflicts));
+        for_each (m_temp_moves.begin (), m_temp_moves.end (), GetConflicts (conflicts));
     }
+    */
 
   private:
     // get temp_move for token, create if doesn't exist
-    TempMovePtr getTempMove (SymbolPtr token)
+    TempMovePtr get_temp_move(Symbol const *token)
     {
       // search for term move
       for (TempMovePtrVectorConstIter i = m_temp_moves.begin (); i != m_temp_moves.end (); ++ i)
@@ -123,13 +125,15 @@ class TempFollowMove {
   private:
     // priority move set
     TempMovePtrVector m_temp_moves;
-  }
 }
+
+} // basilcc
 
 using namespace std;
 
 #hdr
-#include <basilcc/conflict_ptr_vector.h>
+//#include <basilcc/conflict_ptr_vector.h>
+
 #include <basilcc/follow_ptr.h>
 #include <basilcc/lazy_follow_move_ptr.h>
 #include <basilcc/priority.h>

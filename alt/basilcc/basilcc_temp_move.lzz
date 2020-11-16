@@ -44,7 +44,7 @@ class TempMove {
                 }
             }
         }
-        // otherwise new temp action
+        // otherwise new reduce
         _temp_actions.push_back(new ReduceTempAction(rule, shortcut, priority, sticky, accept));
     }
 
@@ -76,7 +76,7 @@ class TempMove {
     {
         // only if all reductions and none are sticky
         for (TempAction const *temp_action: _temp_actions) {
-            if (!(temp_action->is_reduction() && !static_cast<ReduceTempAction const &>(*temp_action).has_sticky())) {
+            if (!temp_action->is_reduction() || static_cast<ReduceTempAction const &>(*temp_action).has_sticky()) {
                 return false;
             }
         }
@@ -146,6 +146,7 @@ class TempMove {
     }
 
     // create conflict, will steal/erase actions, return interator after last one erased 
+
     TempActionVectorIter create_conflict(TempActionVectorIter i, TempActionVectorIter j, ConflictVector &conflicts)
     {
         conflicts.push_back(new Conflict(_token, TempActionVector(i, j)));
@@ -232,6 +233,7 @@ void GetConflicts(ConflictVector &conflicts; TempMove const *temp_move) const
 
 #hdr
 #include <basilcc_priority.h>
+#include <vector>
 #end
 
 #src

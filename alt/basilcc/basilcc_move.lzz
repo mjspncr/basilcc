@@ -8,18 +8,13 @@ class ActionSeq;
 
 class Move {
   public:
-    Move(int num, Symbol const &token, ActionSeq const *action_seq)
-        : _num(num), _token(token), _action_seq(action_seq)
+    Move(Symbol const *token, ActionSeq const *action_seq)
+        : _num(-1), _token(token), _action_seq(action_seq)
     {}
 
     ~Move()
     {}
 
-    // get move number
-    inline int get_number() const
-    {
-        return _num;
-    }
 
     // get token
     inline Symbol const *get_token() const
@@ -33,21 +28,20 @@ class Move {
         return _action_seq;
     }
 
+    /* TODO
     // to string
     std::string to_string() const
     {
-        // TODO
-        /* 
         std::string str = _token->getName ();
         str += " - ";
         ActionPtrVector const & actions = m_action_seq->getActions ();
         appendActions (str, actions);
-        */
-        return std::string();
     }
+    */
+
+    int _num;
 
   private:
-    int _num;
     Symbol const *_token;
     ActionSeq const *_action_seq;
 };
@@ -66,7 +60,20 @@ bool moveSameTokenNumber(MovePtr move, int token_num)
 }
 */
 
-} // basilcc
+bool operator<(Move const &a, Move const &b)
+{
+    if (a.get_token() != b.get_token()) {
+        return a.get_token() < b.get_token();
+    }
+    return a.get_action_seq() < b.get_action_seq();
+}
+
+bool MoveLess(; Move const *a, Move const *b) const
+{
+    return *a < *b; 
+}
+
+} // namespace basilcc
 
 #hdr
 #include <string>

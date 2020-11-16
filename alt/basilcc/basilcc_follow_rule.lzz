@@ -47,7 +47,7 @@ class FollowRule {
         BaseRule const *base_rule = _shift_rule->get_base_rule();
         Rule const *rule = base_rule->get_rule();
         RuleSymbol const &next_rule_symbol = base_rule->get_next_rule_symbol();
-        RuleSymbol const &left_rule_symbol = rule->get_left_rule_symbol();
+        RuleSymbol const &left_rule_symbol = base_rule->get_left_rule_symbol();
         Symbol const *shortcut = next_rule_symbol.get_symbol();
         Priority rp = _shift_rule->get_shift_priority() + left_rule_symbol.get_shift_priority() + next_rule_symbol.get_reduce_priority();
         bool sticky = next_rule_symbol.has_sticky();

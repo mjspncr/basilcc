@@ -2,6 +2,7 @@
 
 namespace basilcc {
 
+class ActionSeq;
 class Compiler;
 class LazyAction;
 class State;
@@ -30,7 +31,9 @@ class LazyActionSeq {
     {
         ActionVector actions;
         actions.reserve(_lazy_actions.size());
-        std::transform(_lazy_actions.begin(), _lazy_actions.end(), std::back_inserter(actions), GetAction(c, token_shifts, token));
+        for (LazyAction const *lazy_action: _lazy_actions) {
+            actions.push_back(lazy_action->get_action(c, token_shifts, token));
+        }
         return c.get_action_seq(actions);
     }
 
@@ -38,16 +41,7 @@ class LazyActionSeq {
     LazyActionVector _lazy_actions;
 };
 
-namespace {
-
-// get action from forward action
-inline Action const *GetAction(Compiler &c, ShiftMap const &token_shifts, Symbol const *token; LazyAction const *lazy_action) const
-{
-    return lazy_action->get_action(c, token_shifts, token);
-}
-
-} // unnamed
-} // basilcc
+} // namespace basilcc
 
 #hdr
 #include <vector>
@@ -56,5 +50,6 @@ inline Action const *GetAction(Compiler &c, ShiftMap const &token_shifts, Symbol
 
 #src
 #include <basilcc_compiler.h>
+#include <basilcc_lazy_action.h>
 #include <algorithm>
 #end

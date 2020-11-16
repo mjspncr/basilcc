@@ -1,0 +1,48 @@
+// basilcc move table
+
+namespace basilcc {
+
+typedef std::set<Move const *, MoveLess> MoveSet;
+
+class MoveTable
+{
+  public:
+    MoveTable()
+    {}
+
+    ~MoveTable ()
+    {
+        delete_objects(_moves);
+    }
+    
+    Move const *get_move(Symbol const *token, ActionSeq const *action_seq)
+    {
+        std::unique_ptr<Move> move_ptr(new Move(token, action_seq));
+        std::pair<MoveSet::iterator, bool> r = _moves.insert(move_ptr.get());
+        if (r.second) {
+            move_ptr->_num = _moves.size() - 1;
+            move_ptr.release();
+        }
+        return *r.first;
+    }
+    
+    inline MoveSet const &get_moves() const
+    {
+        return _moves;
+    }
+
+  private:
+    MoveSet _moves;
+};
+
+} // basilcc
+
+#hdr
+#include <basilcc_move.h>
+#include <set>
+#end
+
+#src
+#include <basilcc_util.h>
+#include <memory>
+#end

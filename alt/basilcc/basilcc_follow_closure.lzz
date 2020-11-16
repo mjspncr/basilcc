@@ -126,19 +126,20 @@ LazyFollowMove const *get_lazy_follow_move(Compiler &c, FollowRuleVector const &
               Priority priority = left_rule_symbol.get_reduce_priority();
               bool sticky = left_rule_symbol.has_sticky();
               bool accept = left_rule_symbol.has_accept();
+
               FollowPtr follow = follow_rule->getFollow ();
-          temp_follow_move.addReduction (rule, follow, priority, sticky, accept);
-        }
+              temp_follow_move.addReduction (rule, follow, priority, sticky, accept);
+          }
       }
       else
       {
-        // add shift if next symbol is a token
-        SymbolPtr symbol = base_rule->getNextSymbol ();
-        if (symbol->isToken ())
-        {
-          Priority priority = base_rule->getShiftPriority () + shift_rule->getShiftPriority ();
-          temp_follow_move.addShift (symbol, priority);
-        }
+          // add shift if next symbol is a token
+          SymbolPtr symbol = base_rule->getNextSymbol ();
+          if (symbol->isToken ())
+          {
+              Priority priority = base_rule->getShiftPriority () + shift_rule->getShiftPriority ();
+              temp_follow_move.addShift (symbol, priority);
+          }
       }
     }
     temp_follow_move.freeze ();
@@ -146,23 +147,25 @@ LazyFollowMove const *get_lazy_follow_move(Compiler &c, FollowRuleVector const &
     // getConflicts may take actions so call after getLazyFollowMove
     temp_follow_move.getConflicts (conflicts);
     return lazy_follow_move;
-  }
+}
 
-  // update follow lex state
-  void UpdateLexState (LexState & lex_state; FollowRulePtr follow_rule) const
-  {
+// update follow lex state
+void UpdateLexState (LexState & lex_state; FollowRulePtr follow_rule) const
+{
     lex_state.update (follow_rule->getLexState ());
-  }
+}
 
-  // get follow lex state
-  LexState getLexState (FollowRulePtrVector const & follow_rules, int kernel_size)
-  {
+// get follow lex state
+LexState getLexState (FollowRulePtrVector const & follow_rules, int kernel_size)
+{
     // only need to pull lex state from kernel rules
     LexState lex_state;
     for_each (follow_rules.begin (), follow_rules.begin () + kernel_size, UpdateLexState (lex_state));
     return lex_state;
-  }
 }
+
+} // unnamed
+} // basilcc
 
 #hdr
 #include <basilcc/conflict_ptr_vector.h>
@@ -189,6 +192,7 @@ LazyFollowMove const *get_lazy_follow_move(Compiler &c, FollowRuleVector const &
 #include <basilcc/temp_follow_move.h>
 #include <basilcc/temp_follow_move_ptr.h>
 #include <basilcc/temp_move.h>
+
 #include <algorithm>
 #include <memory>
 #end

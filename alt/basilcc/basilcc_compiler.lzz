@@ -105,9 +105,48 @@ class Compiler {
     }
 
 
-    ActionSeq const *get_action_seq(ActionVector &actions)
+    // actions
+    inline Action const *get_shift_action(State const *state)
     {
-        return NULL; // TODO
+        return _actions.get_shift_action(state);
+    }
+    inline Action const *get_reduce_action(Rule const *rule, Symbol const *shortcut, bool accept)
+    {
+        return _actions.get_reduce_action(rule, shortcut, accept);
+    }
+
+    // action seqs
+    inline ActionSeq const *get_action_seq(ActionVector &actions) // steals actions
+    {
+        return _action_seqs.get_action_seq(actions);
+    }
+
+    // moves
+    inline Move const *get_move(Symbol const *token, ActionSeq const *action_seq)
+    {
+        return _moves.get_move(token, action_seq);
+    }
+    
+    // move sels
+    inline MoveSel const *get_move_sel(MoveVector &moves) // steals moves
+    {
+        return _move_sels.get_move_sel(moves);
+    }
+
+    // lazy actions
+    inline LazyAction const *get_shift_lazy_action()
+    {
+        return _lazy_actions.get_shift_lazy_action();
+    }
+    inline LazyAction const *get_reduce_lazy_action(Rule const *rule, Symbol const *shortcut, bool accept)
+    {
+        return _lazy_actions.get_reduce_lazy_action(rule, shortcut, accept);
+    }
+
+    // lazy moves
+    inline LazyMove const *get_lazy_move(Symbol const *token, LazyActionSeq const *lazy_action_seq)
+    {
+        return _lazy_moves.get_lazy_move(token, lazy_action_seq);
     }
 
   private:
@@ -122,18 +161,31 @@ class Compiler {
     FollowRuleTable _follow_rules;
     BaseKernelTable _base_kernels;
     ShiftKernelTable _shift_kernels;
+
+    ActionTable _actions;
+    ActionSeqTable _action_seqs;
+    MoveTable _moves;
+    MoveSelTable _move_sels;
+    LazyActionTable _lazy_actions;
+    LazyMoveTable _lazy_moves;
 };
 
 } // basilcc
 
 #hdr
+#include <basilcc_action_seq_table.h>
+#include <basilcc_action_table.h>
 #include <basilcc_base_kernel_table.h>
 #include <basilcc_base_rule_table.h>
 #include <basilcc_follow_rule_table.h>
+#include <basilcc_lazy_action_table.h>
+#include <basilcc_lazymove_table.h>
+#include <basilcc_move_sel_table.h>
+#include <basilcc_move_table.h>
 #include <basilcc_node_table.h>
 #include <basilcc_rule_table.h>
-#include <basilcc_shift_rule_table.h>
 #include <basilcc_shift_kernel_table.h>
+#include <basilcc_shift_rule_table.h>
 #include <basilcc_symbol_table.h>
 #include <string>
 #include <set>

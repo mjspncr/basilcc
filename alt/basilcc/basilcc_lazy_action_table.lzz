@@ -1,0 +1,67 @@
+// basilcc lazy action table
+//
+
+namespace basilcc {
+
+class Action;
+class Rule;
+class Symbol;
+
+typedef std::set<LazyAction const *, LazyActionLess> LazyActionSet;
+
+class LazyActionTable
+{
+  public:
+    LazyActionTable()
+    {
+        _shift_lazy_action = get_lazy_action(LazyActionPtr(new ShiftLazyAction));
+    }
+
+    ~LazyActionTable()
+    {
+        delete_objects(_lazy_actions);
+    }
+
+    LazyAction const *get_shift_lazy_action()
+    {
+        return _shift_lazy_action;
+    }
+
+    LazyAction const *get_reduce_lazy_action(Rule const *rule, Symbol const *shortcut, bool accept)
+    {
+        return get_lazy_action(LazyActionPtr(new ReduceLazyAction(rule, shortcut, accept)));
+    }
+
+    // get all actions
+    inline LazyActionSet const &get_lazy_actions() const
+    {
+        return _lazy_actions;
+    }
+
+  private:
+    typedef std::unique_ptr<LazyAction> LazyActionPtr;
+    LazyAction const *get_lazy_action(LazyActionPtr action_ptr)
+    {
+        std::pair<LazyActionSet::iterator, bool> r = _lazy_actions.insert(action_ptr.get());
+        if (r.second) {
+            action_ptr.release();
+        }
+        return *r.first;
+    }
+
+  private:
+    LazyActionSet _lazy_actions;
+    LazyAction const *_shift_lazy_action; // only one lazy shift action
+};
+
+} // namespace basilcc
+
+#hdr
+#include <basilcc_lazy_action.h>
+#include <set>
+#include <memory>
+#end
+
+#src
+#include <basilcc_util.h>
+#end

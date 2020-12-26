@@ -5,23 +5,15 @@
 
 namespace basilcc {
 
+class ShiftRule;
+
+typedef std::vector<ShiftRule const *> ShiftRuleVector;
+
 class Symbol
 {
   public:
     virtual ~Symbol()
     {}
-
-    // symbol numbers are assigned when symbol table is frozen, once all symbols are known
-    void set_number(int num)
-    {
-        _num = num;
-    }
-
-    // get symbol number
-    inline int get_number() const
-    {
-        return _num;
-    }
 
     // get symbol name
     inline char const *get_name() const
@@ -37,17 +29,19 @@ class Symbol
     {
         return _first;
     }
+
     inline First const &get_first() const
     {
         return _first;
     }
+
+    int const _num;
 
   protected:
     Symbol(char const *name)
         : _num(-1), _name(name)
     {}
 
-    int _num;
   private:
     char const *_name;
     First _first;
@@ -60,7 +54,6 @@ class Symbol
 class Token : public Symbol
 {
   public:
-    // lexeme for keyword only
     inline Token(char const *name)
         : Symbol(name)
     {}
@@ -72,38 +65,14 @@ class Token : public Symbol
     {
       return true;
     }
-
-    // true if token is a keyword
-    inline bool is_keyword() const
-    {
-        return !_keyword_lexeme.empty();
-    }
-
-    // token is a keyword, set string as it is spelled in the source
-    void set_keyword(std::string const &lexeme)
-    {
-        _keyword_lexeme = lexeme;
-    }
-
-    // return keyword lexeme
-    std::string const &get_keyword() const
-    {
-      return _keyword_lexeme;
-    }
-
-  private:
-    // keyword lexeme 
-    std::string _keyword_lexeme;
 };
 
 //
 // Nonterminal
 //
 
-class Goto;
-class Type;
-typedef std::shared_ptr<Goto> GotoPtr;
-typedef std::shared_ptr<Type> TypePtr;
+//class Type;
+//typedef std::shared_ptr<Type> TypePtr;
  
 class Nonterminal : public Symbol
 {
@@ -118,31 +87,34 @@ class Nonterminal : public Symbol
         return false;
     }
 
-    // set goto
-    void set_goto(GotoPtr const &go2)
+    // set shift rules, steals rules
+    inline void set_shift_rules(ShiftRuleVector &shift_rules)
     {
-        _go2 = go2;
+        _shift_rules.swap(shift_rules);
     }
 
-    // get goto
-    inline Goto *get_goto() const
+    // get shift rules
+    inline ShiftRuleVector const &get_shift_rules() const
     {
-        return _go2.get();
+        return _shift_rules;
     }
 
   private:
-    GotoPtr _go2;
+    ShiftRuleVector _shift_rules;
     // return type of user defined on_node function for rule with this left
     // hand symbol
-    TypePtr _type;
+    //TypePtr _type;
 };
 
 // true if a < b, tokens first, otherwise order by number
-bool operator <(Symbol const &a, Symbol const &b)
+bool operator<(Symbol const &a, Symbol const &b)
 {
-    bool a_is_token = a.is_token(), b_is_token = b.is_token();
-    return (a_is_token && !b_is_token) || (a_is_token == b_is_token && a.get_number() < b.get_number());
+    if (a.is_token() != b.is_token()) {
+        return a.is_token();
+    }
+    return a._num < b._num;
 }
+/*
 inline bool symbol_less(Symbol const *a, Symbol const *b)
 {
    return *a < *b;
@@ -152,14 +124,24 @@ inline bool SymbolLess(; Symbol const *a, Symbol const *b) const
 {
     return *a < *b;
 }
+*/
+
+
+// for debuggging
+void print_first(Symbol const *symbol)
+{
+    std::cout << symbol->get_name() << ": " << symbol->get_first().to_string() << std::endl; 
+}
 
 } // basilcc
 
 #hdr
 #include <basilcc_first.h>
+#include <basilcc_goto.h>
 #include <string>
 #include <memory>
 #end
 
 #src
+#include <iostream>
 #end

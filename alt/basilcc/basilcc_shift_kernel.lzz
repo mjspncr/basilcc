@@ -46,8 +46,8 @@ class ShiftKernel
     ShiftBase const &get_shift_base(Compiler &c)
     {
         if (!_shift_base) {
-            _shift_base.reset(new ShiftBase(get_base_kernel(c), _shift_rules));
-            _shift_base->closure(c);
+            BaseKernel const &base_kernel = get_base_kernel(c);
+            _shift_base.reset(new ShiftBase(c, base_kernel, _shift_rules));
         }
         return *_shift_base;
     }
@@ -70,7 +70,7 @@ bool operator <(ShiftKernel const &a, ShiftKernel const &b)
         ShiftRule const *a_rule = *i;
         ShiftRule const *b_rule = *j;
         if (a_rule != b_rule) {
-            return *a_rule < *b_rule;
+            return a_rule < b_rule; // compare pointers
         }
     }
     return false;

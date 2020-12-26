@@ -45,11 +45,27 @@ class SymbolTable
                 symbol = *_tokens.insert(_tokens.end(), new Token(name));
             }
             else {
-                symbol = *_nonterminals.insert(_tokens.end(), new Nonterminal(name));
+                symbol = *_nonterminals.insert(_nonterminals.end(), new Nonterminal(name));
             }
             r.first->second = symbol;
         }
         return r.first->second;
+    }
+
+    // freeze symbols, no more
+    void freeze_symbols()
+    {
+        // assign numbers
+        std::sort(_tokens.begin() + 1, _tokens.end(), SymbolNameLess()); // EOT=0
+        int num = 0;
+        for (Symbol const *symbol: _tokens) {
+            const_cast<int &>(symbol->_num) = num++;
+        }
+        std::sort(_nonterminals.begin() + 1, _nonterminals.end(), SymbolNameLess()); // start=0
+        num = 0;
+        for (Symbol const *symbol: _nonterminals) {
+            const_cast<int &>(symbol->_num) = num++;
+        }
     }
 
     SymbolVector const &get_tokens() const
@@ -89,6 +105,11 @@ bool is_token(char const *name)
     return true;
 }
 
+bool SymbolNameLess(; Symbol const *a, Symbol const *b) const
+{
+    return strcmp(a->get_name(), b->get_name()) < 0;
+}
+
 } // unnamed
 } // basilcc
 
@@ -101,5 +122,5 @@ bool is_token(char const *name)
 #include <basilcc_compiler.h>
 #include <basilcc_symbol.h>
 #include <basilcc_util.h>
-#include <ctype.h>
+#include <string.h>
 #end

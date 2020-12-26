@@ -5,10 +5,8 @@
 
 namespace basilcc {
 
-class ShiftRule;
 
 typedef std::vector<FirstItem> FirstItemVector;
-typedef std::vector<ShiftRule const *> ShiftRuleVector;
 typedef std::set<FirstItem> FirstItemSet;
 
 class First
@@ -66,23 +64,29 @@ class First
         return _first_items;
     }
 
-    // set shift rules, steals rules
-    inline void set_shift_rules(ShiftRuleVector &shift_rules)
+    std::string to_string() const
     {
-        _shift_rules.swap(shift_rules);
-    }
-
-    // get shift rules
-    inline ShiftRuleVector const &get_shift_rules() const
-    {
-        return _shift_rules;
+        std::ostringstream ss;
+        if (_lex_state.is_set()) {
+            ss << _lex_state.to_string() << ' ';
+        }
+        if (_null) {
+            ss << "null ";
+        }
+        for (FirstItemSet::const_iterator i = _first_items.begin(), endi = _first_items.end();;) {
+            ss << (*i).to_string();
+            if (++i == endi) {
+                break;
+            }
+            ss << ' ';
+        }
+        return ss.str();
     }
 
   private:
     FirstItemSet _first_items;
     bool _null; // true if first set has null
     LexState _lex_state;
-    ShiftRuleVector _shift_rules;
 };
 
 } // basilcc
@@ -95,4 +99,5 @@ class First
 #end
 
 #src
+#include <sstream>
 #end

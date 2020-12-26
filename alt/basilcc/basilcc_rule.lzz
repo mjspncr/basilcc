@@ -17,14 +17,12 @@ class Rule
     Rule(
         int num,
         Node const *node,
-        bool is_start,
         RuleSymbol const &left_rule_symbol,
         RuleSymbolVector const &right_rule_symbols,
         RuleSymbolVector const &explicit_follow,
         bool can_bypass)
       : _num(num),
         _node(node),
-        _is_start(is_start),
         _left_rule_symbol(left_rule_symbol),
         _right_rule_symbols(right_rule_symbols),
         _explicit_follow(explicit_follow),
@@ -38,12 +36,6 @@ class Rule
     Node const *get_node() const
     {
       return _node;
-    }
-
-    // true if a start rule
-    inline bool is_start() const
-    {
-        return _is_start;
     }
 
     // get left rule symbol
@@ -74,7 +66,7 @@ class Rule
         return get_right_rule_symbol(pos).get_symbol();
     }
 
-    // true if rule has nonempty explicit follow set
+    // true if rule has an explicit follow set (start rules only)
     inline bool has_explicit_follow() const
     {
         return !_explicit_follow.empty();
@@ -86,7 +78,7 @@ class Rule
         return _explicit_follow;
     }
 
-    // get size of rule, number of right hand side symbols
+    // get rule size, number of right hand side symbols
     int get_size() const
     {
         return _right_rule_symbols.size();
@@ -126,7 +118,6 @@ class Rule
     int const _num;
   private:
     Node const *_node;
-    bool _is_start;
     RuleSymbol _left_rule_symbol;
     RuleSymbolVector _right_rule_symbols;
     RuleSymbolVector _explicit_follow;

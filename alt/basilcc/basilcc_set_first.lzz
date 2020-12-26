@@ -1,20 +1,24 @@
-// basilcc_set_first
+// basilcc set first
 //
 
 namespace basilcc {
 
 class Compiler;
 
-// set first sets
+// set symbol first sets and non terminal shift rules
 void set_first(Compiler &c)
 {
     set_token_first(c);
     set_nonterminal_first(c);
+    // DEBUG
+    //print_first_sets(c);
+    //print_shift_rules(c);
+    // DEBUG
 }
 
 namespace {
 
-// set first set for all tokens
+// set first set for tokens
 void set_token_first(Compiler &c)
 {
     // token simply has itself in its the first set
@@ -23,14 +27,13 @@ void set_token_first(Compiler &c)
     }
 }
 
-
-// get first set for all nonterminals
+// set first set and shift rules for nonterminals
 void set_nonterminal_first(Compiler &c)
 {
     set_nonterminal_first_null(c);
     for (Symbol const *symbol: c.get_nonterminals()) {
-        FirstClosure().submit(c, symbol);
-        FirstShiftClosure().submit(c, symbol);
+        FirstHelper().set_first(c, symbol);
+        ShiftHelper().set_shift_rules(c, symbol);
     }
 }
 
@@ -47,7 +50,9 @@ void set_nonterminal_first_null(Compiler &c)
         symbols.swap(next_symbols);
         for (Symbol const *symbol: symbols) {
             bool null = false;
-            for (Rule const *rule: c.get_rules(symbol)) {
+            RuleMapRange const &r = c.get_rules(symbol);
+            for (RuleMap::const_iterator i = r.first; i != r.second; ++i) {
+                Rule const *rule = i->second;
                 null = true;
                 for (RuleSymbol const &rule_symbol: rule->get_right_rule_symbols()) {
                     null = rule_symbol.get_symbol()->get_first().has_null();
@@ -123,7 +128,7 @@ class ForwardRule
     {
         return _base_rule;
     }
-    // add path, return true if added, false if a path already contains it 
+    // add path, return true if added, false if a path already contains it
     bool update(BaseRuleSet const &base_rules)
     {
         ForwardPathVector::iterator i = std::find_if(_paths.begin(), _paths.end(), ForwardPathIncludes(base_rules));
@@ -162,20 +167,84 @@ class ForwardRule
     ForwardPathVector _paths;
 };
 
-class FirstClosure
+// base class for first and shift helpers, maintains a map of forward rules
+class ForwardHelper
 {
   public:
-    FirstClosure() {}
-    ~FirstClosure()
+    ForwardHelper() {}
+    ~ForwardHelper()
     {
-        delete_objects(forward_rules);
+        for (ForwardRuleMap::value_type &p: forward_rules) {
+            delete p.second;
+        }
     }
+
+  protected:
+    // forward rules indexed by left symbol
+    typedef std::multimap<Symbol const *, ForwardRule *> ForwardRuleMap;
+    ForwardRuleMap forward_rules;
+};
+
+// helper to set first set
+class FirstHelper : public ForwardHelper
+{
+  public:
     // set symbol first
-    void submit(Compiler &c, Symbol const *symbol)
+    void set_first(Compiler &c, Symbol const *symbol)
     {
-        init_rules(c, symbol);
-        // udpate paths
-        for (ForwardRule *forward_rule: forward_rules) {
+        setup(c, symbol);
+        closure();
+        // set first items
+        First &first = const_cast<Symbol &>(*symbol).get_first(); // why not add shift rules to non-terminals?
+        for (ForwardRuleMap::value_type &p: forward_rules) {
+            ForwardRule const *forward_rule = p.second;
+            BaseRule const *base_rule = forward_rule->get_base_rule();
+            RuleSymbol const &next_rule_symbol = base_rule->get_next_rule_symbol();
+            Symbol const *next_symbol = next_rule_symbol.get_symbol();
+            if (next_symbol->is_token()) {
+                Priority fp = forward_rule->get_first_priority();
+                fp += base_rule->get_first_priority();
+                first.update(next_symbol, fp);
+            }
+            first.update(base_rule->get_rule()->get_left_rule_symbol().get_lex_state());
+            first.update(next_rule_symbol.get_lex_state());
+        }
+    }
+
+  private:
+    // setup, create forward rules
+    void setup(Compiler &c, Symbol const *symbol)
+    {
+        typedef std::set<Symbol const *> SymbolSet;
+        SymbolSet history {symbol};
+        SymbolVector stack;
+        for (;;) {
+            RuleMapRange const &r = c.get_rules(symbol);
+            for (RuleMap::const_iterator i = r.first; i != r.second; ++i) {
+                Rule const *rule = i->second;
+                BaseRule const *base_rule = c.get_base_rule(rule);
+                for (bool null = true; null && !base_rule->is_reduction(); base_rule = base_rule->get_next_base_rule(c)) {
+                    forward_rules.emplace(symbol, new ForwardRule(base_rule)); // base_rule not a reduction
+                    Symbol const *next_symbol = base_rule->get_next_symbol();
+                    if (!next_symbol->is_token() && history.insert(next_symbol).second) {
+                        stack.push_back(next_symbol);
+                    }
+                    null = next_symbol->get_first().has_null();
+                }
+            }
+            if (stack.empty()) {
+                break;
+            }
+            symbol = stack.back();
+            stack.pop_back();
+        }
+    }
+
+    // update all forward rules
+    void closure()
+    {
+        for (ForwardRuleMap::value_type &p: forward_rules) {
+            ForwardRule const *forward_rule = p.second;
             BaseRule const *base_rule = forward_rule->get_base_rule();
             Symbol const *next_symbol = base_rule->get_next_symbol();
             if (!next_symbol->is_token() && base_rule->get_first_priority() != Priority()) {
@@ -183,57 +252,18 @@ class FirstClosure
                 update(next_symbol, base_rules);
             }
         }
-        // update first
-        First &first = const_cast<Symbol &>(*symbol).get_first();
-        for (ForwardRule *forward_rule: forward_rules) {
-            BaseRule const *base_rule = forward_rule->get_base_rule();
-            RuleSymbol const &next_rule_symbol = base_rule->get_next_rule_symbol();
-            Symbol const *next_symbol = next_rule_symbol.get_symbol();
-            if (next_symbol->is_token()) {
-                // add first priority from left rule symbol and next rule symbol
-                Priority fp = forward_rule->get_first_priority();
-                fp += base_rule->get_first_priority();
-                first.update(next_symbol, fp);
-            }
-            // also take lex state from left rule symbol
-            first.update(base_rule->get_rule()->get_left_rule_symbol().get_lex_state());
-            first.update(next_rule_symbol.get_lex_state());
-        }
-    }
-private:
-    void init_rules(Compiler &c, Symbol const *symbol)
-    {
-        typedef std::set<Symbol const *> SymbolSet;
-        SymbolSet history;
-        SymbolVector stack(1, symbol);
-        do {
-            symbol = stack.back();
-            stack.pop_back();
-            for (Rule const *rule: c.get_rules(symbol)) {
-                bool null = true;
-                BaseRule const *base_rule = c.get_base_rule(rule);
-                for (; null && !base_rule->is_reduction(); base_rule = base_rule->get_next_base_rule(c)) {
-                    forward_rules.push_back(new ForwardRule(base_rule));
-                    symbol = base_rule->get_next_symbol();
-                    if (!symbol->is_token() && history.insert(symbol).second) {
-                        stack.push_back(symbol);
-                    }
-                    null = symbol->get_first().has_null();
-                }
-            }
-        } while (!stack.empty());
     }
 
-    // update paths
+    // update rules with left hand symbol, recursive
     void update(Symbol const *symbol, BaseRuleSet const &base_rules) const
     {
-        for (ForwardRule *forward_rule: forward_rules) {
-            BaseRule const *base_rule = forward_rule->get_base_rule();
-            Rule const *rule = base_rule->get_rule();
-            if (rule->get_left_symbol() == symbol && forward_rule->update(base_rules))
-            {
-                Symbol const *symbol = base_rule->get_next_symbol();
-                if (!symbol->is_token()) {
+        std::pair<ForwardRuleMap::const_iterator, ForwardRuleMap::const_iterator> p = forward_rules.equal_range(symbol);
+        for (ForwardRuleMap::const_iterator i = p.first, endi = p.second; i != endi; ++i) {
+            ForwardRule *forward_rule = i->second;
+            if (forward_rule->update(base_rules)) {
+                BaseRule const *base_rule = forward_rule->get_base_rule();
+                Symbol const *next_symbol = base_rule->get_next_symbol(); // we know base_rule is not a reduction
+                if (!next_symbol->is_token()) {
                     if (base_rule->get_first_priority() == Priority() || base_rules.find(base_rule) != base_rules.end()) {
                         update(symbol, base_rules);
                     }
@@ -246,37 +276,17 @@ private:
             }
         }
     }
-private:
-    typedef std::vector<ForwardRule *> ForwardRuleVector;
-    ForwardRuleVector forward_rules;
 };
 
-
-class FirstShiftClosure
+// set symbol shift rules helper
+class ShiftHelper : public ForwardHelper
 {
-public:
-    FirstShiftClosure () {}
-    ~FirstShiftClosure ()
+  public:
+    // set shift rules for nonterminal
+    void set_shift_rules(Compiler &c, Symbol const *symbol)
     {
-        for (ForwardRuleMap::value_type &p: forward_rules) {
-            delete p.second;
-        }
-    }
-
-    void submit(Compiler &c, Symbol const *symbol)
-    {
-        init_rules(c, symbol);
-        for (ForwardRuleMap::value_type &p: forward_rules) {
-            ForwardRule const *forward_rule = p.second;
-            BaseRule const *base_rule = forward_rule->get_base_rule();
-            if (!base_rule->is_reduction()) {
-                Symbol const *next_symbol = base_rule->get_next_symbol();
-                if (!next_symbol->is_token() && base_rule->get_shift_priority() != Priority ()) {
-                    BaseRuleSet base_rules {base_rule};
-                    update(next_symbol, base_rules);
-                }
-            }
-        }
+        setup(c, symbol);
+        closure();
         ShiftRuleVector shift_rules;
         shift_rules.reserve(forward_rules.size());
         for (ForwardRuleMap::value_type &p: forward_rules) {
@@ -284,23 +294,28 @@ public:
             BaseRule const *base_rule = forward_rule->get_base_rule();
             Priority sp = forward_rule->get_shift_priority();
             shift_rules.push_back(c.get_shift_rule(base_rule, sp));
-        }            
-        const_cast<Symbol &>(*symbol).get_first().set_shift_rules(shift_rules);
+        }
+        Nonterminal const &nonterm = static_cast<Nonterminal const &>(*symbol);
+        const_cast<Nonterminal &>(nonterm).set_shift_rules(shift_rules); // steals rules
     }
-private:
-    void init_rules(Compiler &c, Symbol const *symbol) 
+
+  private:
+    // setup, create forward rules
+    void setup(Compiler &c, Symbol const *symbol)
     {
         typedef std::set<Symbol const *> SymbolSet;
         SymbolSet history {symbol};
         SymbolVector stack;
         for (;;) {
-            for (Rule const *rule: c.get_rules(symbol)) {
+            RuleMapRange const &r = c.get_rules(symbol);
+            for (RuleMap::const_iterator i = r.first; i != r.second; ++i) {
+                Rule const *rule = i->second;
                 BaseRule const *base_rule = c.get_base_rule(rule);
                 forward_rules.emplace(symbol, new ForwardRule(base_rule));
                 if (!base_rule->is_reduction()) {
                     Symbol const *next_symbol = base_rule->get_next_symbol();
-                    if (!next_symbol->is_token() && history.insert(symbol).second) {
-                        stack.push_back(symbol);
+                    if (!next_symbol->is_token() && history.insert(next_symbol).second) {
+                        stack.push_back(next_symbol);
                     }
                 }
             }
@@ -312,6 +327,23 @@ private:
         }
     }
 
+    // update all forward rules
+    void closure()
+    {
+        for (ForwardRuleMap::value_type &p: forward_rules) {
+            ForwardRule const *forward_rule = p.second;
+            BaseRule const *base_rule = forward_rule->get_base_rule();
+            if (!base_rule->is_reduction()) {
+                Symbol const *next_symbol = base_rule->get_next_symbol();
+                if (!next_symbol->is_token() && base_rule->get_shift_priority() != Priority ()) {
+                    BaseRuleSet base_rules {base_rule};
+                    update(next_symbol, base_rules);
+                }
+            }
+        }
+    }
+
+    // update rules with left hand symbol, recursive
     void update(Symbol const *symbol, BaseRuleSet const &base_rules) const
     {
         std::pair<ForwardRuleMap::const_iterator, ForwardRuleMap::const_iterator> p = forward_rules.equal_range(symbol);
@@ -335,11 +367,29 @@ private:
             }
         }
     }
-private:
-    typedef std::multimap<Symbol const *, ForwardRule *> ForwardRuleMap;
-    ForwardRuleMap forward_rules;
-
 };
+
+/*
+// DEBUGGING
+void print_first_sets(Compiler const &c)
+{
+    for (Symbol const *symbol: c.get_nonterminals()) {
+        print_first(symbol);
+    }
+    std::cout << std::endl;
+}
+
+void print_shift_rules(Compiler const &c)
+{
+    for (Symbol const *symbol: c.get_nonterminals()) {
+        std::cout << symbol->get_name() << "\n---" << std::endl;
+        for (ShiftRule const *shift_rule: static_cast<Nonterminal const &>(*symbol).get_shift_rules()) {
+            std::cout << shift_rule->to_string() << std::endl;
+        }
+        std::cout << std::endl;
+    }
+}
+*/
 
 } // unnamed
 } // basilcc
@@ -353,4 +403,9 @@ private:
 #include <basilcc_util.h>
 #include <algorithm>
 #include <set>
+
+// DEBUGGING
+//#include <basilcc_shift_rule.h>
+//#include <iostream>
+// DEBUGGING
 #end

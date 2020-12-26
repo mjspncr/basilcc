@@ -9,8 +9,10 @@ class Node;
 class Compiler;
 class Symbol;
 class Rule;
+
 typedef std::vector<RuleSymbol> RuleSymbolVector;
-typedef std::vector<Rule *> RuleVector;
+typedef std::multimap<Symbol const *, Rule *> RuleMap;
+typedef std::pair<RuleMap::const_iterator, RuleMap::const_iterator> RuleMapRange;
 
 class RuleTable
 {
@@ -23,11 +25,11 @@ class RuleTable
 
     ~RuleTable()
     {
-        delete_objects(_rules);
+        delete_values(_rules);
     }
 
     // add new rule
-    void add_rule(
+    Rule *add_rule(
         Node const *node,
         RuleSymbol const &left_rule_symbol,
         RuleSymbolVector const &right_rule_symbols,
@@ -36,12 +38,11 @@ class RuleTable
     )
     {
         Symbol const *left_symbol = left_rule_symbol.get_symbol();
-        if (!left_symbol->is_token()) {
+        if (left_symbol->is_token()) {
             std::ostringstream ss;
             ss << "left hand symbol '" << left_symbol->get_name() << "' is a token";
             throw std::runtime_error(ss.str());
         }
-        bool is_start = _c.is_start_symbol(left_symbol);
         bool can_bypass = false;
         // can bypass rule on reduction if only one nonterminal on right hand side and no node
         if (_enable_bypass && !no_bypass && !node) {
@@ -49,61 +50,48 @@ class RuleTable
                 can_bypass = true;
             }
         }
-        Rule *rule = *_rules.insert(_rules.end(),
-            new Rule(
-                _rules.size(),
-                node,
-                is_start,
-                left_rule_symbol,
-                right_rule_symbols,
-                explicit_follow,
-                can_bypass
-            )
-        );
-        _left_symbol_rules[left_symbol].push_back(rule);
+        return _rules.emplace_hint(_rules.end(), left_symbol,
+            new Rule(_rules.size(), node, left_rule_symbol, right_rule_symbols, explicit_follow, can_bypass))->second;
     }
 
     // get all rules
-    inline RuleVector const &get_rules() const
+    inline RuleMap const &get_rules() const
     {
         return _rules;
     }
 
     // get rules with left hand symbol
-    RuleVector const &get_rules(Symbol const *left_symbol) const
+    RuleMapRange get_rules(Symbol const *left_symbol) const
     {
-        SymbolRuleVectorMap::const_iterator p = _left_symbol_rules.find(left_symbol);
-        assert(p != _left_symbol_rules.end());
-        return p->second;
+        return _rules.equal_range(left_symbol);
     }
 
     // true if left symbol
     bool is_left_symbol(Symbol const *symbol) const
     {
-      return _left_symbol_rules.find(symbol) != _left_symbol_rules.end();
+        return _rules.find(symbol) != _rules.end();
     }
 
-    // freeze rules, no more
-    void freeze_rules()
+    // freeze rules, check for errors
+    void freeze_rules() const
     {
         // make sure at least one start rule
-        if (is_left_symbol(_c.get_start_symbol())) {
+        if (!is_left_symbol(_c.get_start_symbol())) {
             throw std::runtime_error("missing at least one start rule");
         }
         // make sure each right hand nonterminal is defined
-        for (SymbolRuleVectorMap::value_type const &p: _left_symbol_rules) {
-            for (Rule const *rule: p.second) {
-                for (RuleSymbol const &rule_symbol: rule->get_right_rule_symbols()) {
-                    Symbol const *symbol = rule_symbol.get_symbol();
-                    if (!symbol->is_token()) {
-                        if (_c.is_start_symbol(symbol)) {
-                            throw std::runtime_error("start symbol on right hand side of rule");
-                        }
-                        if (!is_left_symbol(symbol)) {
-                            std::ostringstream ss;
-                            ss << "nonterminal " << symbol->get_name() << " is not defined";
-                            throw std::runtime_error(ss.str()); 
-                        }
+        for (RuleMap::value_type const &p: _rules) {
+            Rule const *rule = p.second;
+            for (RuleSymbol const &rule_symbol: rule->get_right_rule_symbols()) {
+                Symbol const *symbol = rule_symbol.get_symbol();
+                if (!symbol->is_token()) {
+                    if (_c.is_start_symbol(symbol)) {
+                        throw std::runtime_error("start symbol on right hand side of rule");
+                    }
+                    if (!is_left_symbol(symbol)) {
+                        std::ostringstream ss;
+                        ss << "nonterminal " << symbol->get_name() << " is not defined";
+                        throw std::runtime_error(ss.str()); 
                     }
                 }
             }
@@ -113,9 +101,7 @@ class RuleTable
   private:
     Compiler &_c;
     bool _enable_bypass; // true if option to bypass rules is enabled
-    RuleVector _rules; // all rules ordered by number
-    typedef std::map<Symbol const *, RuleVector> SymbolRuleVectorMap;
-    SymbolRuleVectorMap _left_symbol_rules; // rules indexed by left hand symbol
+    RuleMap _rules; // rules indexed by left hand symbol
 };
 
 } // basilcc
@@ -131,6 +117,5 @@ class RuleTable
 #include <basilcc_rule.h>
 #include <basilcc_symbol.h>
 #include <basilcc_util.h>
-#include <cassert>
 #include <sstream>
 #end

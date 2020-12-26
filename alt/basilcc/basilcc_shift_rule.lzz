@@ -18,6 +18,12 @@ class ShiftRule {
     ~ShiftRule()
     {}
 
+    // get left hand symbol
+    Symbol const *get_left_symbol() const
+    {
+        return _base_rule->get_left_symbol();
+    }
+
     // get base rule
     inline BaseRule const *get_base_rule() const
     {
@@ -29,12 +35,7 @@ class ShiftRule {
     {
         return _sp;
     }
-
-    Symbol const *get_left_symbol() const
-    {
-        return _base_rule->get_left_symbol();
-    }
-
+    
     // update shift priority, will keep max
     void update(Priority const &sp)
     {
@@ -63,7 +64,7 @@ class ShiftRule {
 };
 
 // a < b, compares pointers
-bool operator <(ShiftRule const &a, ShiftRule const &b)
+bool operator<(ShiftRule const &a, ShiftRule const &b)
 {
     if (a.get_base_rule() != b.get_base_rule()) {
         return a.get_base_rule() < b.get_base_rule();

@@ -3,17 +3,28 @@
 
 int main(int argc, char **argv)
 {
-    Compiler c;
-    grammar(c);
+    try {
+        Compiler c;
+        bootstrap_grammar(c);
+        int num_conflicts = 0;
+        int num_lex_state_conflicts = 0;
+        int num_states = c.compile(num_conflicts, num_lex_state_conflicts);
+        std::cout << "num states: " << num_states << std::endl;
+        std::cout << "num conflicts: " << num_conflicts << std::endl;
+        std::cout << "num lex state conflicts: " << num_lex_state_conflicts << std::endl;
+    }
+    catch (std::exception const &e) {
+        std::cerr << e.what() << std::endl;
+        return 1;
+    }
+    return 0;
 }
 
 using namespace basilcc;
 
 namespace
 {
-
-// load grammar
-void grammar(Compiler &c)
+void bootstrap_grammar(Compiler &c)
 {
     // start -> rule-seq-opt
     {
@@ -40,7 +51,7 @@ void grammar(Compiler &c)
                 false  // accept
             ),
             right_rule_symbols,
-            RuleSymbolVector(), // explicit_followb
+            RuleSymbolVector(), // explicit_follow
             false  // no_bypass
         );
     }
@@ -58,7 +69,7 @@ void grammar(Compiler &c)
                 false  // accept
             ),
             RuleSymbolVector(), // right_rule_symbols
-            RuleSymbolVector(), // explicit_followb
+            RuleSymbolVector(), // explicit_follow
             false // no_bypass
         );
     }
@@ -87,7 +98,74 @@ void grammar(Compiler &c)
                 false  // accept
             ),
             right_rule_symbols,
-            RuleSymbolVector(), // explicit_followb
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // rule-seq -> rule
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("rule"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("rule-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // rule-seq -> rule-seq rule
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("rule-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("rule"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("rule-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
             false  // no_bypass
         );
     }
@@ -131,6 +209,654 @@ void grammar(Compiler &c)
                 false  // accept
             ),
         };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("rule"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // node-type-opt ->
+    {
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("node-type-opt"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbolVector(), // right_rule_symbols
+            RuleSymbolVector(), // explicit_follow
+            false // no_bypass
+        );
+    }
+    // node-type-opt -> node-type
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("node-type"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("node-type-opt"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // node-type [node_type] -> LBRACK IDENT RBRACK
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("LBRACK"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("IDENT"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("RBRACK"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("node-type"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // symbol-seq-opt ->
+    {
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("symbol-seq-opt"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbolVector(), // right_rule_symbols
+            RuleSymbolVector(), // explicit_follow
+            false // no_bypass
+        );
+    }
+    // symbol-seq-opt -> symbol-seq
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("symbol-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("symbol-seq-opt"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // symbol-seq [symbol_seq_1] -> symbol
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("symbol"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("symbol-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // symbol-seq [symbol_seq_2] -> symbol-seq symbol
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("symbol-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("symbol"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("symbol-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // symbol <* [symbol] -> IDENT attrib-seq
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("IDENT"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("attrib-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("symbol"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                true, // sticky
+                true  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // attrib-seq [attrib_seq_1] ->
+    {
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("attrib-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbolVector(), // right_rule_symbols
+            RuleSymbolVector(), // explicit_follow
+            false // no_bypass
+        );
+    }        
+    // attrib-seq [attrib_seq_2] -> attrib-seq NUMBER
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("attrib-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("NUMBER"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("attrib-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // attrib-seq [attrib_seq_3] -> attrib-seq LT
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("attrib-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("LT"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("attrib-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // attrib-seq [attrib_seq_4] -> attrib-seq STAR
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("attrib-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("STAR"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("attrib-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // attrib-seq [attrib_seq_5] -> attrib-seq PLUS  bang-seq-opt
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("attrib-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("PLUS"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("bang-seq-opt"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("attrib-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // attrib-seq [attrib_seq_6] -> attrib-seq CARET bang-seq-opt
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("attrib-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("CARET"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("bang-seq-opt"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("attrib-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // attrib-seq [attrib_seq_7] -> attrib-seq GT    bang-seq-opt
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("attrib-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("GT"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("bang-seq-opt"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("attrib-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // bang-seq-opt ->
+    {
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("bang-seq-opt"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbolVector(), // right_rule_symbols
+            RuleSymbolVector(), // explicit_follow
+            false // no_bypass
+        );
+    }
+    // bang-seq-opt -> bang-seq
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("bang-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("bang-seq-opt"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // bang-seq [bang_seq_1] -> BANG
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("BANG"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("bang-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
+    }
+    // bang-seq [bang_seq_2] -> bang-seq BANG
+    {
+        RuleSymbolVector right_rule_symbols {
+            RuleSymbol(
+                c.get_symbol("bang-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            RuleSymbol(
+                c.get_symbol("BANG"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            )
+        };
+        c.add_rule(
+            NULL, // node
+            RuleSymbol(
+                c.get_symbol("bang-seq"),
+                Priority(0, 0), // reduce
+                Priority(0, 0), // first
+                Priority(0, 0), // shift
+                LexState(),
+                false, // sticky
+                false  // accept
+            ),
+            right_rule_symbols,
+            RuleSymbolVector(), // explicit_follow
+            false  // no_bypass
+        );
     }
 }
 
@@ -139,4 +865,5 @@ void grammar(Compiler &c)
 #src
 #include <basilcc_compiler.h>
 #include <basilcc_rule.h>
+#include <iostream>
 #end

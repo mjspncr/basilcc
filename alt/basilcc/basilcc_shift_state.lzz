@@ -1,0 +1,61 @@
+// basilcc shift state
+
+namespace basilcc {
+
+class State;
+
+class ShiftState
+{
+  public:
+    inline ShiftState(int shift_num, State const *state)
+        : _shift_num(shift_num), _state(state)
+    {}
+
+    inline ~ShiftState()
+    {}
+
+    // get shift number
+    inline int get_shift_number() const
+    {
+        return _shift_num;
+    }
+
+    // get state
+    inline State const *get_state() const
+    {
+        return _state;
+    }
+
+  private:
+    // (shift sel) number
+    int _shift_num;
+    State const *_state;
+};
+
+/*
+// a.getNumber () < b.getNumber ()
+bool shiftStateLessNumber (ShiftState const & a, ShiftState const & b)
+{
+    return a.getNumber () < b.getNumber ();
+}
+
+// a.getState () < b.getState ()
+bool shiftStateLessState (ShiftState const & a, ShiftState const & b)
+{
+    return a.getState ()->getNumber () < b.getState ()->getNumber ();
+}
+
+// true if state is equal in shift index
+bool shiftStateSameState (ShiftState const & a, ShiftState const & b)
+{
+    return a.getState () == b.getState ();
+}
+*/
+
+} // basilcc
+
+#hdr
+#end
+
+#src
+#end

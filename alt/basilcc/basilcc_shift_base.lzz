@@ -2,8 +2,8 @@
 
 namespace basilcc {
 
-class Compiler;
 class BaseKernel;
+class Compiler;
 class ShiftRule;
 
 typedef std::vector<ShiftRule const *> ShiftRuleVector;
@@ -11,10 +11,11 @@ typedef std::vector<ShiftRule const *> ShiftRuleVector;
 class ShiftBase
 {
   public:
-    // steals shift rules
-    ShiftBase(BaseKernel const &base_kernel, ShiftRuleVector const &shift_rules)
-        : _base_kernel(base_kernel), _shift_rules(shift_rules)
-    {}
+    ShiftBase(Compiler &c, BaseKernel const &base_kernel, ShiftRuleVector const &kernel_rules)
+        : _base_kernel(base_kernel)
+    {
+        init_shift_base(c, kernel_rules, _non_kernel_rules);
+    }
 
     ~ShiftBase ()
     {}
@@ -26,23 +27,80 @@ class ShiftBase
     }
 
     // get shift rules
-    inline ShiftRuleVector const &get_shift_rules() const
+    inline ShiftRuleVector const &get_non_kernel_rules() const
     {
-        return _shift_rules;
-    }
-
-    // closure on shift base 
-    void closure(Compiler &c)
-    {
-        // adds non kernel rules
-        shift_closure(c, _shift_rules);
+        return _non_kernel_rules;
     }
 
   private:
     BaseKernel const &_base_kernel;
-    ShiftRuleVector _shift_rules;
+    ShiftRuleVector _non_kernel_rules;
 };
 
+namespace {
+
+typedef std::map<Symbol const *, Priority> ShiftSymbolMap;
+
+// append non-kernel shift rules to kernel rules
+void init_shift_base(Compiler &c, ShiftRuleVector const &kernel_rules, ShiftRuleVector &non_kernel_rules)
+{
+    ShiftSymbolMap shift_symbols;
+    get_shift_symbols(kernel_rules, shift_symbols);
+    get_non_kernel_rules(c, shift_symbols, non_kernel_rules);
+}
+
+// get nonterminal shift symbols with priority from kernel rules
+void get_shift_symbols(ShiftRuleVector const &kernel_rules, ShiftSymbolMap &shift_symbols)
+{
+    for (ShiftRule const *shift_rule: kernel_rules) {
+        BaseRule const *base_rule = shift_rule->get_base_rule();
+        if (!base_rule->is_reduction()) {
+            Symbol const *next_symbol = base_rule->get_next_symbol();
+            if (!next_symbol->is_token()) {
+                Priority sp = shift_rule->get_shift_priority() + base_rule->get_shift_priority();
+                std::pair<ShiftSymbolMap::iterator, bool> r = shift_symbols.emplace(next_symbol, sp);
+                if (!r.second) {
+                    Priority &symbol_sp = r.first->second;
+                    symbol_sp = max_priority(symbol_sp, sp);
+                }
+            }
+        }
+    }
+}
+
+// get ordered non-kernel rules from shift symbols
+void get_non_kernel_rules(Compiler &c, ShiftSymbolMap const &shift_symbols, ShiftRuleVector &non_kernel_rules)
+{
+    typedef std::map<BaseRule const *, ShiftRulePtr> ShiftRulePtrMap;
+    ShiftRulePtrMap non_kernel_rule_ptrs;
+    for (ShiftSymbolMap::value_type const &p: shift_symbols) {
+        for (ShiftRule const *shift_rule: static_cast<Nonterminal const &>(*p.first).get_shift_rules()) {
+            BaseRule const *base_rule = shift_rule->get_base_rule();
+            Priority sp = shift_rule->get_shift_priority() + p.second;
+            std::pair<ShiftRulePtrMap::iterator, bool> r = non_kernel_rule_ptrs.emplace(base_rule, ShiftRulePtr());
+            if (r.second) {
+                r.first->second.reset(new ShiftRule(base_rule, sp));
+            }
+            else {
+                r.first->second->update(sp);
+            }
+        }
+    }
+    non_kernel_rules.reserve(non_kernel_rule_ptrs.size());
+    for (ShiftRulePtrMap::value_type &p: non_kernel_rule_ptrs) {
+        non_kernel_rules.push_back(c.freeze_shift_rule(p.second));
+    }
+    std::sort(non_kernel_rules.begin(), non_kernel_rules.end(), NonKernelShiftRuleLess());
+}
+
+// true if non-kernel shift rule a < b, for final ordering
+inline bool NonKernelShiftRuleLess(; ShiftRule const *a, ShiftRule const *b) const
+{
+    // pos always 0, so just compare rule number, no pointer comparison
+    return a->get_base_rule()->get_rule()->_num < b->get_base_rule()->get_rule()->_num;
+}
+
+} // unnamed
 } // basilcc
 
 #hdr
@@ -50,6 +108,10 @@ class ShiftBase
 #end
 
 #src
-#include <basilcc_shift_closure.h>
+#include <basilcc_base_rule.h>
+#include <basilcc_compiler.h>
+#include <basilcc_rule.h>
+#include <basilcc_shift_rule.h>
+#include <basilcc_symbol.h>
+#include <algorithm>
 #end
-

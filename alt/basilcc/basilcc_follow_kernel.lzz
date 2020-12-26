@@ -13,12 +13,13 @@ class FollowKernel {
     FollowKernel(FollowRuleVector &follow_rules)
         : _shift_kernel(NULL)
     {
-        _follow_rules.swap(follow_rules); // steals rules
+        _follow_rules.swap(follow_rules); // steals kernel rules
     }
     
     ~FollowKernel()
     {}
 
+    // get kernel follow rules
     inline FollowRuleVector const &get_follow_rules() const
     {
         return _follow_rules;
@@ -44,8 +45,8 @@ class FollowKernel {
     {
         // create on demand
         if (!_follow_base) {
-
-            _follow_base.reset(new FollowBase(c, get_shift_kernel(c).get_shift_base(c), _follow_rules));
+            ShiftBase const &shift_base = get_shift_kernel(c).get_shift_base(c);
+            _follow_base.reset(new FollowBase(c, shift_base, _follow_rules));
         }
         return *_follow_base;
     }

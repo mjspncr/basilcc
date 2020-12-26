@@ -1,0 +1,68 @@
+// basilcc set goto
+
+namespace basilcc {
+
+class Compiler;
+class Symbol;
+
+typedef std::map<Symbol const *, Goto> GotoMap;
+
+// populate goto map
+void get_goto(Compiler &c, GotoMap &go2s)
+{
+    typedef std::map<Symbol const *, ShiftStateVector> SymbolShiftStateVectorMap;
+    SymbolShiftStateVectorMap symbol_shift_states;
+    for (ShiftSel const *shift_sel: c.get_shift_sels()) {
+        int shift_sel_num = shift_sel->_num;
+        for (Shift const &shift: shift_sel->get_shifts()) {
+            symbol_shift_states[shift.get_symbol()].push_back(ShiftState(shift_sel_num, shift.get_state()));
+        }
+    }
+    for (SymbolShiftStateVectorMap::value_type &p: symbol_shift_states) {
+        Symbol const *symbol = p.first;
+        ShiftStateVector &shift_states = p.second;
+        // get default state
+        std::sort(shift_states.begin(), shift_states.end(), ShiftStateLessState());
+        typedef std::pair<ShiftStateVector::iterator, ShiftStateVector::iterator> ShiftStateVectorRange;
+        ShiftStateVectorRange def_shift_states = most(shift_states.begin(), shift_states.end(), ShiftStateSameState());
+        State const *def_state = def_shift_states.first->get_state();
+        shift_states.erase(def_shift_states.first, def_shift_states.second);
+        // reorder remaining by shift number
+        std::sort(shift_states.begin(), shift_states.end(), ShiftStateLess());
+        ShiftStateSel const *shift_state_sel = c.get_shift_state_sel(shift_states); // steals shift_states
+        go2s.emplace(symbol, Goto(shift_state_sel, def_state));
+    }
+}
+
+namespace {
+
+bool ShiftStateLessState(; ShiftState const &a, ShiftState const &b) const
+{
+    return a.get_state() < b.get_state();
+}
+
+bool ShiftStateSameState(; ShiftState const &a, ShiftState const &b) const
+{
+    return a.get_state() == b.get_state();
+}
+
+bool ShiftStateLess(; ShiftState const &a, ShiftState const &b) const
+{
+    return a.get_shift_number() < b.get_shift_number();
+}
+
+} // unnamed
+} // basilcc
+
+#hdr
+#include <basilcc_goto.h>
+#include <map>
+#end
+
+#src
+#include <basilcc_compiler.h>
+#include <basilcc_shift.h>
+#include <basilcc_shift_sel.h>
+#include <basilcc_util.h>
+#include <algorithm>
+#end

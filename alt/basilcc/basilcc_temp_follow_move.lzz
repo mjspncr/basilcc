@@ -9,6 +9,7 @@ class LazyFollowMove;
 class Rule;
 class Symbol;
 class TempMove;
+
 typedef std::vector<Conflict *> ConflictVector;
 
 class TempFollowMove {
@@ -18,12 +19,10 @@ class TempFollowMove {
 
     ~TempFollowMove()
     {
-        for (TempMoveMap::value_type &p: _temp_moves) {
-            delete p.second;
-        }
+        delete_values(_temp_moves);
     }
 
-    // add reduction
+    // add reduction to move
     void add_reduction(Rule const *rule, Follow const &follow, Priority const &priority, bool sticky, bool accept)
     {
         for (FollowItem const &follow_item: follow.get_follow_items()) {
@@ -37,7 +36,7 @@ class TempFollowMove {
         }
     }
 
-    // add shift
+    // add shift to move
     void add_shift(Symbol const *term, Priority const &priority)
     {
         // add shift to priority action
@@ -45,7 +44,7 @@ class TempFollowMove {
         temp_move->add_shift(priority);
     }
 
-    // get conflicts and return lazy follow move
+    // return lazy follow move and set conflicts
     LazyFollowMove const *get_lazy_follow_move(Compiler &c, ConflictVector &conflicts) const
     {
         // get the default move

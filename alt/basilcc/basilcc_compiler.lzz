@@ -10,6 +10,7 @@ class ActionSeq;
 class Move;
 
 typedef std::vector<Action const *> ActionVector;
+typedef std::map<Symbol const *, Goto> GotoMap;
 
 class Compiler {
   public:
@@ -19,16 +20,16 @@ class Compiler {
 
     // compile grammmar, generate all states, set number of lex state conflicts and
     // return number of parser conflicts
-    int compile(int &num_lex_state_conflicts)
+    int compile(int &num_conflicts, int &num_lex_state_conflicts)
     {
         _nodes.freeze_nodes();
         _rules.freeze_rules();
         set_first(*this);
-        int num_conflicts = _states.closure(*this, num_lex_state_conflicts);
+        int num_states = _states.closure(*this, num_conflicts, num_lex_state_conflicts);
         if (num_conflicts == 0) {
-            // set_goto(*this);
+            get_goto(*this, _go2s);
         }
-        return num_conflicts;
+        return num_states;
     }
 
     // intern std::string, return shared char const *
@@ -94,17 +95,17 @@ class Compiler {
     }
 
     // get all rules
-    inline RuleVector const &get_rules() const
+    inline RuleMap const &get_rules() const
     {
         return _rules.get_rules();
     }
     // get start rules
-    inline RuleVector const &get_start_rules() const
+    inline RuleMapRange get_start_rules() const
     {
         return _rules.get_rules(get_start_symbol());
     }
     // get rules with left hand symbol
-    inline RuleVector const &get_rules(Symbol const *left_symbol) const
+    inline RuleMapRange get_rules(Symbol const *left_symbol) const
     {
         return _rules.get_rules(left_symbol);
     }
@@ -217,9 +218,13 @@ class Compiler {
     }
 
     // shift sel
-    ShiftSel const *get_shift_sel(ShiftVector &shifts)
+    inline ShiftSel const *get_shift_sel(ShiftVector &shifts)
     {
         return _shift_sels.get_shift_sel(shifts);
+    }
+    inline ShiftSelSet const &get_shift_sels() const
+    {
+        return _shift_sels.get_shift_sels();
     }
 
     // state move
@@ -232,6 +237,12 @@ class Compiler {
     State const *get_state(FollowKernel *follow_kernel)
     {
         return _states.get_state(*this, follow_kernel);
+    }
+
+    // shift state sels
+    ShiftStateSel const *get_shift_state_sel(ShiftStateVector &shift_states)
+    {
+        return _shift_state_sels.get_shift_state_sel(shift_states); // steals shift states
     }
 
   private:
@@ -259,10 +270,11 @@ class Compiler {
     ShiftSelTable _shift_sels;
     StateMoveTable _state_moves;
     StateTable _states;
+    ShiftStateSelTable _shift_state_sels;
+    GotoMap _go2s;
 };
 
 namespace {
-
 
 } // unmamed
 } // basilcc
@@ -274,6 +286,7 @@ namespace {
 #include <basilcc_base_rule_table.h>
 #include <basilcc_follow_kernel_table.h>
 #include <basilcc_follow_rule_table.h>
+#include <basilcc_get_goto.h>
 #include <basilcc_lazy_action_seq_table.h>
 #include <basilcc_lazy_action_table.h>
 #include <basilcc_lazy_follow_move_table.h>
@@ -287,6 +300,7 @@ namespace {
 #include <basilcc_shift_kernel_table.h>
 #include <basilcc_shift_rule_table.h>
 #include <basilcc_shift_sel_table.h>
+#include <basilcc_shift_state_sel_table.h>
 #include <basilcc_state_move_table.h>
 #include <basilcc_state_table.h>
 #include <basilcc_symbol_table.h>

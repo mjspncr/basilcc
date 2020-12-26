@@ -86,12 +86,6 @@ class ReduceAction : public Action {
         return _shortcut;
     }
 
-    // get shortcut number
-    int get_shortcut_number() const
-    {
-      return _shortcut->get_number();
-    }
-
     // true if has accept
     bool has_accept() const
     {

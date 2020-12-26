@@ -191,62 +191,6 @@ bool operator<(ReduceTempAction const &a, ReduceTempAction const &b)
     return a.has_accept() && !b.has_accept();
 }
 
-/*
-// temp action to string
-std::string tempActionToString (TempActionPtr temp_action)
-{
-    string str;
-    if (temp_action->isShift ())
-    {
-        str = "SHIFT";
-        appendWithSpace (str, shiftPriorityToString (temp_action->getPriority ()));
-    }
-    else
-    {
-        ReduceTempAction const & r_temp_action = static_cast <ReduceTempAction const &> (* temp_action);
-        RulePtr rule = r_temp_action.getRule ();
-        SymbolPtr shortcut = r_temp_action.getShortcut ();
-        if (rule->isStart ())
-        {
-            str = "DONE";
-            appendWithSpace (str, intToString (rule->getNumber ()));
-        }
-        else
-        {
-            if (r_temp_action.hasAccept ())
-            {
-                str = "ACCEPT";
-            }
-            else
-            {
-                str = "REDUCE";
-            }
-            appendWithSpace (str, intToString (rule->getNumber ()));
-            appendWithSpace (str, shortcut->getName ());
-        }
-        appendWithSpace (str, firstPriorityToString (temp_action->getPriority ()));
-    }
-    return str;
-}
-
-// append tmp actions to string, comma separated
-void appendTempActions (std::string & str, TempActionPtrVector const & temp_actions)
-{
-    if (! temp_actions.empty ())
-    {
-        for (TempActionPtrVectorConstIter i = temp_actions.begin (), endi = temp_actions.end ();;)
-        {
-            str += tempActionToString (* i);
-            if (++ i == endi)
-            {
-                break;
-            }
-            str += ", ";
-        }
-    }
-}
-*/
-
 } // basilcc
 
 #hdr

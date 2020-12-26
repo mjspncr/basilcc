@@ -10,7 +10,7 @@ class StateMove;
 class State {
   public:
     State(int num, FollowKernel *follow_kernel)
-      : _num(num), _follow_kernel(follow_kernel), _state_move(0), _nonterm_shift_sel(0) 
+      : _num(num), _follow_kernel(follow_kernel), _state_move(NULL), _nonterm_shift_sel(NULL)
     {}
 
     ~State()

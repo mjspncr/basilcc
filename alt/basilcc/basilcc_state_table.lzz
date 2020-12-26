@@ -16,50 +16,58 @@ class StateTable {
 
     ~StateTable ()
     {
-        delete_objects(_states);
+        for (StateMap::value_type const &p: _states) {
+            delete p.second;
+        }
     }
 
     State const *get_state(Compiler &c, FollowKernel *follow_kernel)
     {
         BaseKernel const &base_kernel = follow_kernel->get_shift_kernel(c).get_base_kernel(c);
-        StateVector &base_states = _kernel_states[&base_kernel];
-        for (State const *state: base_states) {
+        std::pair<StateMap::iterator, StateMap::iterator> p = _states.equal_range(&base_kernel);
+        for (StateMap::iterator i = p.first; i != p.second; ++i) {
+            State const *state = i->second;
             if (state->get_follow_kernel() == follow_kernel || is_kernel_equiv(c, state->get_follow_kernel(), follow_kernel)) {
                 return state;
             }
         }
-        State *state = *_states.insert(_states.end(), new State(_states.size(), follow_kernel));
-        base_states.push_back(state);
+        State const *state = _states.emplace_hint(p.second, &base_kernel, new State(_states.size(), follow_kernel))->second;
+        _pending.push_back(const_cast<State *>(state));
         return state;
     }
 
+    /*
     // get all states
     StateVector const &get_states() const
     {
         return _states;
     }
+    */
 
     // get all states
-    int closure(Compiler &c, int &num_lex_state_conflicts)
+    int closure(Compiler &c, int &num_conflicts, int &num_lex_state_conflicts)
     {
+        num_conflicts = 0;
         num_lex_state_conflicts = 0;
-        int num_conflicts = 0;
         create_start_states(c);
-        for (size_t i = 0; i < _states.size(); ++i) {
-            State *state = _states[i];
+        while (!_pending.empty()) {
+            State *state = _pending.front();
+            _pending.pop_front();
             num_conflicts += state->closure(c);
             if (state->get_lex_state().is_conflict()) {
                 ++num_lex_state_conflicts;
             }
         }
-        return num_conflicts;
+        return (int)_states.size();
     }
         
   private:
     // create all start states
     void create_start_states(Compiler &c)
     {
-        for (Rule const *rule: c.get_start_rules()) {
+        RuleMapRange const &r = c.get_start_rules();
+        for (RuleMap::const_iterator i = r.first; i != r.second; ++i) {
+            Rule const *rule = i->second;
             BaseRule const *base_rule = c.get_base_rule(rule, 0);
             ShiftRule const *shift_rule = c.get_shift_rule(base_rule, Priority());
             FollowRuleVector follow_rules(1, c.get_follow_rule(shift_rule, get_start_follow(c, rule)));
@@ -69,8 +77,9 @@ class StateTable {
     }
 
   private:
-    std::map<BaseKernel const *, StateVector> _kernel_states;
-    StateVector _states;
+    typedef std::multimap<BaseKernel const *, State const *> StateMap;
+    StateMap _states;
+    std::deque<State *> _pending; // new states pending closure
 };
 
 namespace {
@@ -138,6 +147,7 @@ Follow get_start_follow(Compiler &c, Rule const *rule)
 #hdr
 #include <map>
 #include <vector>
+#include <deque>
 #end
 
 #src
@@ -153,4 +163,10 @@ Follow get_start_follow(Compiler &c, Rule const *rule)
 #include <basilcc_util.h>
 #include <deque>
 #include <set>
+
+// DEBUG
+#include <basilcc_base_kernel.h>
+#include <basilcc_base_rule.h>
+#include <iostream>
+// DEBUG
 #end

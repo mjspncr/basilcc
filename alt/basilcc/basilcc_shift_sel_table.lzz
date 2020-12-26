@@ -15,7 +15,8 @@ class ShiftSelTable
         delete_objects(_shift_sels);
     }
 
-    ShiftSel const *get_shift_sel(ShiftVector &shifts)
+    // get shift sel from shifts
+    ShiftSel const *get_shift_sel(ShiftVector &shifts) // steals shifts
     {
         std::unique_ptr<ShiftSel> shift_sel_ptr(new ShiftSel(shifts));
         std::pair<ShiftSelSet::iterator, bool> r = _shift_sels.insert(shift_sel_ptr.get());
@@ -24,6 +25,12 @@ class ShiftSelTable
             shift_sel_ptr.release();
         }
         return *r.first;
+    }
+
+    // get all shift sels
+    ShiftSelSet const &get_shift_sels() const
+    {
+        return _shift_sels;
     }
 
   private:

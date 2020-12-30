@@ -3,7 +3,7 @@
 namespace basilcc {
 
 class Action;
-typedef std::vector<Action const *> ActionVector;
+typedef std::vector<Action *> ActionVector;
 
 class ActionSeq {
   public:
@@ -21,9 +21,8 @@ class ActionSeq {
     {
         return _actions;
     }
-
-    int _num;
-
+    
+    const int _num;
   private:
     ActionVector _actions;
 };
@@ -41,6 +40,11 @@ bool operator<(ActionSeq const &a, ActionSeq const &b)
 bool ActionSeqLess(; ActionSeq const *a, ActionSeq const *b) const
 {
     return *a < *b;
+}
+
+bool ActionSeqNumberLess(; ActionSeq const *a, ActionSeq const *b) const
+{
+    return a->_num < b->_num;
 }
 
 } // basilcc

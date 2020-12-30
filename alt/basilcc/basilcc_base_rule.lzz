@@ -44,7 +44,7 @@ class BaseRule
     {
         return _rule->get_left_rule_symbol();
     }
-    inline Symbol const *get_left_symbol() const
+    inline Symbol *get_left_symbol() const
     {
         return get_left_rule_symbol().get_symbol();
     }
@@ -54,7 +54,7 @@ class BaseRule
     {
         return _rule->get_right_rule_symbol(_pos);
     }
-    Symbol const *get_next_symbol() const
+    Symbol *get_next_symbol() const
     {
         return get_next_rule_symbol().get_symbol();
     }

@@ -1,0 +1,384 @@
+// baislcc rule lexer
+
+namespace basilcc {
+class Compiler;
+}
+
+namespace basilcc_fe {
+
+// file file reader 
+class RuleReader {
+  public:
+    RuleReader(std::string const &filename)
+        : _filename(filename), _fp(NULL), _line(1), _col(1), _newline(true), _lb(0), _le(0)
+    {}
+
+    ~RuleReader()
+    {
+        if (_fp) {
+            fclose(_fp);
+        }
+    }
+
+    // peek and return next nth char
+    char peek_char(int n = 0)
+    {
+        int i = (_lb + n) % MAX_LOOKAHEAD;
+        if (i == _le) {
+            _lookahead[_le] = read_char();
+            _le = (_le + 1) % MAX_LOOKAHEAD;
+        }
+        return _lookahead[i];
+    }
+
+    // return and advance to next char
+    char next_char()
+    {
+        char ch;
+        if (_lb == _le) {
+            ch = read_char();
+        }
+        else {
+            ch = _lookahead[_lb];
+            _lb = (_lb + 1) % MAX_LOOKAHEAD;
+        }
+        // make sure eof is preceeded by newline
+        if (ch == 0 && ! _newline) {
+            _lookahead[_le] = 0;
+            _le = (_le + 1) % MAX_LOOKAHEAD;
+            ch = '\n';
+        }
+        _newline = (ch == '\n');
+        if (_newline) {
+            ++ _line;
+            _col = 0;
+        }
+        ++_col;
+        return ch;
+    }
+    
+    // get location of last char returned
+    basilcc_api::Loc get_loc()
+    {
+        return basilcc_api::Loc(_filename.c_str(), _line, _col);
+    }
+
+  private:
+    // read char from file
+    char read_char()
+    {
+        // open file on first read
+        if (!_fp) {
+            _fp = fopen(_filename.c_str(), "r");
+            if (!_fp) {
+                std::ostringstream ss;
+                ss << "failed to open file for reading " << _filename;
+                throw std::runtime_error(ss.str());
+            }
+        }
+        // get character, eof is 0
+        char ch = fgetc(_fp);
+        if (ch == EOF) {
+            ch = 0;
+        }
+        return ch;
+    }
+
+  private:
+    // max char lookahead
+    enum {MAX_LOOKAHEAD = 16};
+    std::string _filename;
+    FILE *_fp;
+    // current line and column numbers
+    int _line;
+    int _col;
+    // true if start of line
+    bool _newline;
+    // lookahead circular buffer for peekChar()
+    char _lookahead[MAX_LOOKAHEAD];
+    // lookahead indices: begin and end
+    int _lb, _le;
+};
+
+// operators
+class RuleOperTable
+{
+  public:
+    RuleOperTable()
+    {
+        struct {
+            char const * name;
+            int number;
+        }
+        tbl[] = {
+            { "!",  TOKEN_BANG },
+            { "*",  TOKEN_STAR },
+            { "+",  TOKEN_PLUS },
+            { "->", TOKEN_ARROW },
+            { "<",  TOKEN_LT },
+            { ">",  TOKEN_GT },
+            { "[",  TOKEN_LBRACK },
+            { "]",  TOKEN_RBRACK },
+            { "^",  TOKEN_CARET },
+            /*
+            { "(",  TOKEN_LPAREN },
+            { ")",  TOKEN_RPAREN },
+            { "{",  TOKEN_LBRACE },
+            { "}",  TOKEN_RBRACE },
+            { ":",  TOKEN_COLON },
+            { "=",  TOKEN_EQUALS },
+            */
+        };
+        for (auto const &item: tbl) {
+            _opers.emplace(item.name, item.number);
+        }
+    }
+
+    ~RuleOperTable()
+    {}
+    
+    // get operator kind, exception if not operator lexeme
+    int get_oper_kind(std::string const &name)
+    {
+        StringIntMap::const_iterator p = _opers.find(name);
+        assert(p != _opers.end()); 
+        return p->second;
+    }
+    
+  private:
+    typedef std::map<std::string, int> StringIntMap;
+    StringIntMap _opers;
+};
+
+// lexer
+class RuleLexer : public basilcc_api::Lexer {
+  public:
+    RuleLexer(basilcc::Compiler &c, std::string const &filename)
+        : _c(c), _reader(filename)
+    {}
+
+    ~RuleLexer()
+    {}
+
+    // get next token 
+    virtual int get_next_token(int lex_state, basilcc_api::Loc & loc, std::string &lexeme)
+    {
+        int const TOKEN_NULL = -1;
+        for (;;)
+        {
+            int token_number = TOKEN_NULL;
+            loc = _reader.get_loc();
+            lexeme.clear();
+            bool found_ws = false;
+            int state = S_START;
+            for (;;) {
+                CharKind ch_kind = peek_char_kind(_reader);
+                switch (state) {
+                    // start
+                    case S_START:
+                        switch (ch_kind) {
+                            case C_LETTER:
+                                state = S_IDENT;
+                                break;
+
+                            case C_DIGIT:
+                                state = S_NUMBER;
+                                break;
+                                
+                            case C_MINUS:
+                                state = S_MINUS;
+                                break;
+
+                            case C_OP:
+                            case C_GT:
+                                state = S_OP;
+                                break;
+
+                            case C_HASH:
+                                state = S_COMMENT;
+                                break;
+
+                            case C_WS:
+                                state = S_WS;
+                                break;
+
+                            case C_NEWLINE:
+                                state = S_WS;
+                                break;
+
+                            case C_EOF:
+                                lexeme = "end of file";
+                                token_number = TOKEN_EOT;
+                                break;
+
+                            case C_DQUOTE:
+                            case C_NAC:
+                                throw std::runtime_error("invalid character");
+                        }
+                        break;
+
+                    // ident
+                    case S_IDENT:
+                        if (ch_kind != C_LETTER && ch_kind != C_DIGIT) {
+                            if (ch_kind == C_MINUS) {
+                                // might be arrow or ident character
+                                int next_ch_kind = peek_char_kind(_reader, 1);
+                                if (next_ch_kind != C_LETTER && next_ch_kind != C_DIGIT && next_ch_kind != C_MINUS) {
+                                    token_number = TOKEN_IDENT;
+                                }
+                            }
+                            else {
+                                token_number = TOKEN_IDENT;
+                            }
+                        }
+                        break;
+
+                    // -
+                    case S_MINUS:
+                        if (ch_kind == C_GT) {
+                            state = S_OP;
+                        }
+                        else {
+                            state = S_IDENT;
+                        }
+                        break;
+
+                    // number
+                    case S_NUMBER:
+                        if (ch_kind != C_DIGIT) {
+                            token_number = TOKEN_NUMBER;
+                        }
+                        break;
+
+                    // operator
+                    case S_OP:
+                        token_number = _oper_table.get_oper_kind(lexeme);
+                        break;
+
+                    // comment
+                    case S_COMMENT:
+                        // newline or eof ends comment
+                        if (ch_kind == C_NEWLINE || ch_kind == C_EOF) {
+                            found_ws = true;
+                        }
+                        break;
+
+                    // white space
+                    case S_WS:
+                        if (ch_kind != C_WS && ch_kind != C_NEWLINE) {
+                            found_ws = true;
+                        }
+                        break;
+                }
+                if (token_number != TOKEN_NULL) {
+                    return token_number;
+                }
+                if (found_ws) {
+                    break;
+                }
+                // consume next char and if not comment or whitespace add to lexeme
+                char ch = _reader.next_char();
+                if (state < S_WS) {
+                    // push ident char
+                    lexeme += ch;
+                }
+            }
+        }
+    }
+private:
+    basilcc::Compiler &_c;
+    RuleReader _reader;
+    RuleOperTable _oper_table;
+};
+
+namespace {
+// character kinds
+enum CharKind
+{
+    C_LETTER,
+    C_DIGIT,
+    C_MINUS,
+    C_GT,
+    //C_PERCENT,
+    C_DQUOTE,
+    C_HASH,
+    C_OP,
+    C_WS,
+    C_NEWLINE,
+    C_EOF,
+    C_NAC,
+};
+
+CharKind char_index[] =
+{
+    // 0
+    C_EOF, C_NAC, C_NAC, C_NAC, C_NAC, C_NAC, C_NAC, C_NAC, C_NAC, C_WS,
+    // 10
+    C_NEWLINE, C_NAC, C_NAC, C_NAC, C_NAC, C_NAC, C_NAC, C_NAC, C_NAC, C_NAC,
+    // 20
+    C_NAC, C_NAC, C_NAC, C_NAC, C_NAC, C_NAC, C_NAC, C_NAC, C_NAC, C_NAC,
+    // 30
+    C_NAC, C_NAC, C_WS, C_OP, C_DQUOTE, C_HASH, C_OP, C_NAC /*C_PERCENT*/, C_NAC, C_NAC,
+    // 40
+    C_OP, C_OP, C_OP, C_OP, C_NAC, C_MINUS, C_NAC, C_NAC, C_DIGIT, C_DIGIT,
+    // 50
+    C_DIGIT, C_DIGIT, C_DIGIT, C_DIGIT, C_DIGIT, C_DIGIT, C_DIGIT, C_DIGIT, C_OP, C_NAC,
+    // 60
+    C_OP, C_OP, C_GT, C_NAC, C_NAC, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER,
+    // 70
+    C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER,
+    // 80
+    C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER,
+    // 90
+    C_LETTER, C_OP, C_NAC, C_OP, C_OP, C_LETTER, C_NAC, C_LETTER, C_LETTER, C_LETTER,
+    // 100
+    C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER,
+    // 110
+    C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER, C_LETTER,
+    // 120
+    C_LETTER, C_LETTER, C_LETTER, C_OP, C_NAC, C_OP, C_NAC, C_NAC,
+};
+
+// peek next char kind from reader
+CharKind peek_char_kind(RuleReader &reader, int n = 0)
+{
+    CharKind ch_kind = C_EOF;
+    if (int ch = reader.peek_char(n)) {
+        ch_kind = (ch >= 0 && ch <= 127) ? char_index[ch] : C_LETTER;
+    }
+    return ch_kind;
+}
+
+// lex states
+enum
+{
+    S_START,
+    S_IDENT,
+    S_MINUS,
+    S_NUMBER,
+    S_OP,
+    S_WS,
+    S_COMMENT,
+};
+
+} // unnamed
+} // basilcc
+
+#hdr
+#include <basilcc_fe_parser_fsm.h>
+#include <basilcc_api_lexer.h>
+#include <map>
+#include <string>
+#end
+
+#src
+#include <basilcc_api_loc.h>
+#include <basilcc_compiler.h>
+#include <basilcc_util.h>
+#include <cassert>
+#include <climits>
+#include <cstdio>
+#include <sstream>
+#include <stddef.h>
+#include <stdexcept>
+#end

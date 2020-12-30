@@ -32,7 +32,7 @@ class Follow
     }
 
     // add follow with shortcut and flags
-    void add_follow(Follow const &follow, Symbol const *shortcut, Priority const &rp, bool sticky, bool accept)
+    void add_follow(Follow const &follow, Symbol *shortcut, Priority const &rp, bool sticky, bool accept)
     {
       for (FollowItem const &item: follow.get_follow_items()) {
           FollowItemSet::iterator p = _follow_items.insert(FollowItem(item.get_token(), shortcut)).first;
@@ -52,7 +52,7 @@ class Follow
     }
 
     // add first
-    void add_first(First const &first, LexState const &lex_state, Symbol const *shortcut, Priority const &rp, bool sticky, bool accept)
+    void add_first(First const &first, LexState const &lex_state, Symbol *shortcut, Priority const &rp, bool sticky, bool accept)
     {
         for (FirstItem const &item: first.get_first_items()) {
           FollowItemSet::iterator p = _follow_items.insert(FollowItem(item.get_token(), shortcut)).first;
@@ -75,7 +75,7 @@ class Follow
     }
 
     // to string, to cut down on clutter suppress shortcut if equal to left hand symbol in rule
-    std::string to_string(Symbol const *left_symbol) const
+    std::string to_string(Symbol *left_symbol) const
     {
         std::string items_str;
         if (_lex_state.is_set()) {
@@ -107,7 +107,7 @@ bool operator<(Follow const &a, Follow const &b)
 namespace {
 
 // return follow items as string
-std::string follow_items_to_string(FollowItemSet const &follow_items, Symbol const *left_symbol)
+std::string follow_items_to_string(FollowItemSet const &follow_items, Symbol *left_symbol)
 {
     std::ostringstream ss;
     for (FollowItemSet::const_iterator i = follow_items.begin(), endi = follow_items.end();;) {

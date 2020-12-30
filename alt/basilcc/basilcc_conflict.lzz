@@ -8,7 +8,7 @@ typedef std::vector<TempAction *> TempActionVector;
 
 class Conflict {
   public:
-    Conflict(Symbol const *token, TempActionVector const &temp_actions)
+    Conflict(Symbol *token, TempActionVector const &temp_actions)
         : _token(token), _temp_actions(temp_actions)
     {}
     
@@ -18,7 +18,7 @@ class Conflict {
     }
 
     // get token
-    inline Symbol const *get_token() const
+    inline Symbol *get_token() const
     {
         return _token;
     }
@@ -42,7 +42,7 @@ class Conflict {
     */
 
   private:
-    Symbol const *_token;
+    Symbol *_token;
     // conflicting actions, responsible for deleting them
     TempActionVector _temp_actions;
 };

@@ -1,0 +1,30 @@
+// basilcc parser
+
+namespace basilcc_api {
+
+template <class T>
+class Parser : public LRParser {
+  public:
+    typedef basilcc_api::AbstractNode *NodeConstructor(T &userobj, basilcc_api::AbstractNodeVector &children);
+    Parser(FSM const &fsm, Lexer &lexer, T &userobj, NodeConstructor *const *node_ctors)
+      : LRParser(fsm, lexer), _userobj(userobj), _node_ctors(node_ctors)
+    {}
+
+    basilcc_api::AbstractNode *on_node(int num, AbstractNodeVector &children)
+    {
+        return _node_ctors[num](_userobj, children);
+    }
+
+  private:
+    T &_userobj;
+    NodeConstructor *const *_node_ctors;
+};
+
+}
+
+#hdr
+#include <basilcc_api_lr_parser.h>
+#end
+
+#src
+#end

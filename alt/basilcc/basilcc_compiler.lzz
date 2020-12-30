@@ -9,8 +9,7 @@ class Action;
 class ActionSeq;
 class Move;
 
-typedef std::vector<Action const *> ActionVector;
-typedef std::map<Symbol const *, Goto> GotoMap;
+typedef std::map<Symbol *, Goto> GotoMap;
 
 class Compiler {
   public:
@@ -18,17 +17,20 @@ class Compiler {
         : _symbols(*this), _rules(*this)
     {}
 
+    // generated parser namespace 
+    std::string parser_namespace;
+    std::string userdata_class;
+
     // compile grammmar, generate all states, set number of lex state conflicts and
     // return number of parser conflicts
     int compile(int &num_conflicts, int &num_lex_state_conflicts)
     {
-        _nodes.freeze_nodes();
-        _rules.freeze_rules();
+        _symbols.freeze();
+        _nodes.freeze();
+        _rules.freeze();
         set_first(*this);
         int num_states = _states.closure(*this, num_conflicts, num_lex_state_conflicts);
-        if (num_conflicts == 0) {
-            get_goto(*this, _go2s);
-        }
+        get_goto(*this, _go2s);
         return num_states;
     }
 
@@ -39,34 +41,36 @@ class Compiler {
     }
 
     // symbols
-    inline Symbol const *get_symbol(std::string const &name)
+    inline Symbol *get_symbol(std::string const &name)
     {
         return _symbols.get_symbol(intern(name));
     }
+    SymbolVector const &get_tokens() const
+    {
+        return _symbols.get_tokens();
+    }
+    SymbolVector const &get_nonterminals() const
+    {
+        return _symbols.get_nonterminals();
+    }
+    inline SymbolMap const &get_symbols() const
+    {
+        return _symbols.get_symbols();
+    }
 
-    inline Symbol const *get_eot_symbol() const
+    inline Symbol *get_eot_symbol() const
     {
         return _symbols.get_eot_symbol();
     }
 
-    inline Symbol const *get_start_symbol() const
+    inline Symbol *get_start_symbol() const
     {
         return _symbols.get_start_symbol();
     }
 
-    inline bool is_start_symbol(Symbol const *symbol) const
+    inline bool is_start_symbol(Symbol *symbol) const
     {
         return get_start_symbol() == symbol;
-    }
-
-    inline SymbolVector const &get_tokens() const
-    {
-        return _symbols.get_tokens();
-    }
-
-    inline SymbolVector const &get_nonterminals() const
-    {
-        return _symbols.get_nonterminals();
     }
 
     // nodes
@@ -74,30 +78,33 @@ class Compiler {
     {
         return _nodes.get_node(intern(name));
     }
+    // get nodes ordered by number
+    inline void get_nodes(NodeVector &nodes) const
+    {
+        return _nodes.get_nodes(nodes);
+    }
 
     // rules
-    // TODO: need to return rule so that can define node
-    inline void add_rule(
-        Node const *node,
+    inline Rule *add_rule(
+        Node *node,
         RuleSymbol const &left_rule_symbol,
         RuleSymbolVector const &right_rule_symbols,
         RuleSymbolVector const &explicit_follow,
         bool no_bypass
     )
     {
-        _rules.add_rule(
+        return _rules.add_rule(
             node,
             left_rule_symbol,
             right_rule_symbols,
             explicit_follow,
-            no_bypass
-        );
+            no_bypass);
     }
 
-    // get all rules
-    inline RuleMap const &get_rules() const
+    // get vector of rules ordered by number
+    void get_rules(RuleVector &rules) const
     {
-        return _rules.get_rules();
+        return _rules.get_rules(rules);
     }
     // get start rules
     inline RuleMapRange get_start_rules() const
@@ -105,7 +112,7 @@ class Compiler {
         return _rules.get_rules(get_start_symbol());
     }
     // get rules with left hand symbol
-    inline RuleMapRange get_rules(Symbol const *left_symbol) const
+    inline RuleMapRange get_rules(Symbol *left_symbol) const
     {
         return _rules.get_rules(left_symbol);
     }
@@ -156,13 +163,17 @@ class Compiler {
     }
 
     // actions
-    inline Action const *get_shift_action(State const *state)
+    inline Action *get_shift_action(State const *state)
     {
         return _actions.get_shift_action(state);
     }
-    inline Action const *get_reduce_action(Rule const *rule, Symbol const *shortcut, bool accept)
+    inline Action *get_reduce_action(Rule const *rule, Symbol *shortcut, bool accept)
     {
         return _actions.get_reduce_action(rule, shortcut, accept);
+    }
+    inline void get_actions(ActionVector &actions) const
+    {
+        return _actions.get_actions(actions);
     }
 
     // action seqs
@@ -170,17 +181,30 @@ class Compiler {
     {
         return _action_seqs.get_action_seq(actions);
     }
+    // get action sequences in order
+    void get_action_seqs(ActionSeqVector &action_seqs) const
+    {
+        return _action_seqs.get_action_seqs(action_seqs);
+    }
 
     // moves
-    inline Move const *get_move(Symbol const *token, ActionSeq const *action_seq)
+    inline Move *get_move(Symbol *token, ActionSeq const *action_seq)
     {
         return _moves.get_move(token, action_seq);
     }
-    
+    void get_moves(MoveVector &moves) const
+    {
+        return _moves.get_moves(moves);
+    }
+
     // move sels
     inline MoveSel const *get_move_sel(MoveVector &moves) // steals moves
     {
         return _move_sels.get_move_sel(moves);
+    }
+    void get_move_sels(MoveSelVector &move_sels) const
+    {
+        _move_sels.get_move_sels(move_sels);
     }
 
     // lazy actions
@@ -188,7 +212,7 @@ class Compiler {
     {
         return _lazy_actions.get_shift_lazy_action();
     }
-    inline LazyAction const *get_reduce_lazy_action(Rule const *rule, Symbol const *shortcut, bool accept)
+    inline LazyAction const *get_reduce_lazy_action(Rule const *rule, Symbol *shortcut, bool accept)
     {
         return _lazy_actions.get_reduce_lazy_action(rule, shortcut, accept);
     }
@@ -200,7 +224,7 @@ class Compiler {
     }
 
     // lazy moves
-    inline LazyMove const *get_lazy_move(Symbol const *token, LazyActionSeq const *lazy_action_seq)
+    inline LazyMove *get_lazy_move(Symbol *token, LazyActionSeq const *lazy_action_seq)
     {
         return _lazy_moves.get_lazy_move(token, lazy_action_seq);
     }
@@ -238,11 +262,25 @@ class Compiler {
     {
         return _states.get_state(*this, follow_kernel);
     }
+    // get states in number order
+    void get_states(StateVector &states) const
+    {
+        return _states.get_states(states);
+    }
 
     // shift state sels
-    ShiftStateSel const *get_shift_state_sel(ShiftStateVector &shift_states)
+    inline ShiftStateSel const *get_shift_state_sel(ShiftStateVector &shift_states)
     {
         return _shift_state_sels.get_shift_state_sel(shift_states); // steals shift states
+    }
+    inline ShiftStateSelVector const &get_shift_state_sels() const
+    {
+        return _shift_state_sels.get_shift_state_sels();
+    }
+
+    GotoMap const &get_go2s() const
+    {
+        return _go2s;
     }
 
   private:

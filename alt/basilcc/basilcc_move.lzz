@@ -8,17 +8,17 @@ class ActionSeq;
 
 class Move {
   public:
-    Move(Symbol const *token, ActionSeq const *action_seq)
+    Move(Symbol *token, ActionSeq const *action_seq)
         : _num(-1), _token(token), _action_seq(action_seq)
     {}
 
     ~Move()
     {}
 
-
     // get token
-    inline Symbol const *get_token() const
+    inline Symbol *get_token() const
     {
+
         return _token;
     }
 
@@ -28,21 +28,16 @@ class Move {
         return _action_seq;
     }
 
-    /* TODO
-    // to string
-    std::string to_string() const
+    // format as string
+    void format(std::ostream &os) const
     {
-        std::string str = _token->getName ();
-        str += " - ";
-        ActionPtrVector const & actions = m_action_seq->getActions ();
-        appendActions (str, actions);
+        os << _token->get_name() << " - ";
+        format_actions(_action_seq->get_actions(), os);
     }
-    */
 
     int _num;
-
   private:
-    Symbol const *_token;
+    Symbol *_token;
     ActionSeq const *_action_seq;
 };
 
@@ -73,14 +68,21 @@ bool MoveLess(; Move const *a, Move const *b) const
     return *a < *b; 
 }
 
+bool MoveNumberLess(; Move const *a, Move const *b) const
+{
+    return a->_num < b->_num;
+}
+
 } // namespace basilcc
 
 #hdr
 #include <string>
+#include <iosfwd>
 #end
 
 #src
 #include <basilcc_action.h>
 #include <basilcc_action_seq.h>
 #include <basilcc_symbol.h>
+#include <ostream>
 #end

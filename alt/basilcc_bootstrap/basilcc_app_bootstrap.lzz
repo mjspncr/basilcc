@@ -1,9 +1,11 @@
 // basilcc_app_bootstrap
 //
 
+
 int main(int argc, char **argv)
 {
     try {
+#if 1
         Compiler c;
         bootstrap_grammar(c);
         int num_conflicts = 0;
@@ -12,6 +14,19 @@ int main(int argc, char **argv)
         std::cout << "num states: " << num_states << std::endl;
         std::cout << "num conflicts: " << num_conflicts << std::endl;
         std::cout << "num lex state conflicts: " << num_lex_state_conflicts << std::endl;
+
+        c.parser_namespace = "basilcc_fe";
+        c.userdata_class = "basilcc::Compiler";
+        std::ofstream os("/home/mike/dev/basilcc/alt/basilcc/basilcc_fe_parser_fsm.lzz");
+        serialize_fsm(c, os);
+        print_states(c, "/home/mike/dev/basilcc/alt/basilcc_bootstrap/states.txt");
+#else
+        Compiler c;
+        std::string filename = "/home/mike/dev/basilcc/alt/basilcc_bootstrap/basil_rules.txt";
+        basilcc_fe::RuleLexer lexer(c, filename);
+        basilcc_api::Parser<Compiler> parser(basilcc_fe::get_FSM(), lexer, c, basilcc_fe::get_nodes());
+        parser.parse(0);
+#endif
     }
     catch (std::exception const &e) {
         std::cerr << e.what() << std::endl;
@@ -169,7 +184,7 @@ void bootstrap_grammar(Compiler &c)
             false  // no_bypass
         );
     }
-    // rule [rule] -> symbol node-type-opt ARROW symbol-seq-opt >
+    // rule [RuleNode] -> symbol node-type-opt ARROW symbol-seq-opt >
     {
         RuleSymbolVector right_rule_symbols {
             RuleSymbol(
@@ -209,8 +224,9 @@ void bootstrap_grammar(Compiler &c)
                 false  // accept
             ),
         };
-        c.add_rule(
-            NULL, // node
+        Node *node = c.get_node("RuleNode");
+        Rule *rule = c.add_rule(
+            node,
             RuleSymbol(
                 c.get_symbol("rule"),
                 Priority(0, 0), // reduce
@@ -224,6 +240,8 @@ void bootstrap_grammar(Compiler &c)
             RuleSymbolVector(), // explicit_follow
             false  // no_bypass
         );
+        node->define(rule, true); // has semantics
+
     }
     // node-type-opt ->
     {
@@ -272,7 +290,7 @@ void bootstrap_grammar(Compiler &c)
             false  // no_bypass
         );
     }
-    // node-type [node_type] -> LBRACK IDENT RBRACK
+    // node-type [NodeTypeNode] -> LBRACK IDENT RBRACK
     {
         RuleSymbolVector right_rule_symbols {
             RuleSymbol(
@@ -301,10 +319,11 @@ void bootstrap_grammar(Compiler &c)
                 LexState(),
                 false, // sticky
                 false  // accept
-            )
+            ),
         };
-        c.add_rule(
-            NULL, // node
+        Node *node = c.get_node("NodeTypeNode");
+        Rule *rule = c.add_rule(
+            node,
             RuleSymbol(
                 c.get_symbol("node-type"),
                 Priority(0, 0), // reduce
@@ -318,6 +337,7 @@ void bootstrap_grammar(Compiler &c)
             RuleSymbolVector(), // explicit_follow
             false  // no_bypass
         );
+        node->define(rule, false);
     }
     // symbol-seq-opt ->
     {
@@ -366,7 +386,7 @@ void bootstrap_grammar(Compiler &c)
             false  // no_bypass
         );
     }
-    // symbol-seq [symbol_seq_1] -> symbol
+    // symbol-seq [SymbolSeq1Node] -> symbol
     {
         RuleSymbolVector right_rule_symbols {
             RuleSymbol(
@@ -379,8 +399,9 @@ void bootstrap_grammar(Compiler &c)
                 false  // accept
             )
         };
-        c.add_rule(
-            NULL, // node
+        Node *node = c.get_node("SymbolSeq1Node");
+        Rule *rule = c.add_rule(
+            node,
             RuleSymbol(
                 c.get_symbol("symbol-seq"),
                 Priority(0, 0), // reduce
@@ -394,8 +415,9 @@ void bootstrap_grammar(Compiler &c)
             RuleSymbolVector(), // explicit_follow
             false  // no_bypass
         );
+        node->define(rule, false);
     }
-    // symbol-seq [symbol_seq_2] -> symbol-seq symbol
+    // symbol-seq [SymbolSeq2Node] -> symbol-seq symbol
     {
         RuleSymbolVector right_rule_symbols {
             RuleSymbol(
@@ -415,10 +437,11 @@ void bootstrap_grammar(Compiler &c)
                 LexState(),
                 false, // sticky
                 false  // accept
-            )
+            ),
         };
-        c.add_rule(
-            NULL, // node
+        Node *node = c.get_node("SymbolSeq2Node");
+        Rule *rule = c.add_rule(
+            node,
             RuleSymbol(
                 c.get_symbol("symbol-seq"),
                 Priority(0, 0), // reduce
@@ -432,8 +455,9 @@ void bootstrap_grammar(Compiler &c)
             RuleSymbolVector(), // explicit_follow
             false  // no_bypass
         );
+        node->define(rule, false);
     }
-    // symbol <* [symbol] -> IDENT attrib-seq
+    // symbol <* [SymbolNode] -> IDENT attrib-seq
     {
         RuleSymbolVector right_rule_symbols {
             RuleSymbol(
@@ -453,10 +477,11 @@ void bootstrap_grammar(Compiler &c)
                 LexState(),
                 false, // sticky
                 false  // accept
-            )
+            ),
         };
-        c.add_rule(
-            NULL, // node
+        Node *node = c.get_node("SymbolNode");
+        Rule *rule =c.add_rule(
+            node,
             RuleSymbol(
                 c.get_symbol("symbol"),
                 Priority(0, 0), // reduce
@@ -470,11 +495,13 @@ void bootstrap_grammar(Compiler &c)
             RuleSymbolVector(), // explicit_follow
             false  // no_bypass
         );
+        node->define(rule, false);
     }
-    // attrib-seq [attrib_seq_1] ->
+    // attrib-seq [AttribSeq1Node] ->
     {
-        c.add_rule(
-            NULL, // node
+        Node *node = c.get_node("AttribSeq1Node");
+        Rule *rule = c.add_rule(
+            node,
             RuleSymbol(
                 c.get_symbol("attrib-seq"),
                 Priority(0, 0), // reduce
@@ -488,8 +515,9 @@ void bootstrap_grammar(Compiler &c)
             RuleSymbolVector(), // explicit_follow
             false // no_bypass
         );
+        node->define(rule, false);
     }        
-    // attrib-seq [attrib_seq_2] -> attrib-seq NUMBER
+    // attrib-seq [AttribSeq2Node] -> attrib-seq NUMBER
     {
         RuleSymbolVector right_rule_symbols {
             RuleSymbol(
@@ -511,8 +539,9 @@ void bootstrap_grammar(Compiler &c)
                 false  // accept
             )
         };
-        c.add_rule(
-            NULL, // node
+        Node *node = c.get_node("AttribSeq2Node");
+        Rule *rule = c.add_rule(
+            node,
             RuleSymbol(
                 c.get_symbol("attrib-seq"),
                 Priority(0, 0), // reduce
@@ -526,8 +555,9 @@ void bootstrap_grammar(Compiler &c)
             RuleSymbolVector(), // explicit_follow
             false  // no_bypass
         );
+        node->define(rule, false);
     }
-    // attrib-seq [attrib_seq_3] -> attrib-seq LT
+    // attrib-seq [AttribSeq3Node] -> attrib-seq LT
     {
         RuleSymbolVector right_rule_symbols {
             RuleSymbol(
@@ -549,8 +579,9 @@ void bootstrap_grammar(Compiler &c)
                 false  // accept
             )
         };
-        c.add_rule(
-            NULL, // node
+        Node *node = c.get_node("AttribSeq3Node");
+        Rule *rule = c.add_rule(
+            node,
             RuleSymbol(
                 c.get_symbol("attrib-seq"),
                 Priority(0, 0), // reduce
@@ -564,8 +595,9 @@ void bootstrap_grammar(Compiler &c)
             RuleSymbolVector(), // explicit_follow
             false  // no_bypass
         );
+        node->define(rule, false);
     }
-    // attrib-seq [attrib_seq_4] -> attrib-seq STAR
+    // attrib-seq [AttribSeq4Node] -> attrib-seq STAR
     {
         RuleSymbolVector right_rule_symbols {
             RuleSymbol(
@@ -587,8 +619,9 @@ void bootstrap_grammar(Compiler &c)
                 false  // accept
             )
         };
-        c.add_rule(
-            NULL, // node
+        Node *node = c.get_node("AttribSeq4Node");
+        Rule *rule = c.add_rule(
+            node,
             RuleSymbol(
                 c.get_symbol("attrib-seq"),
                 Priority(0, 0), // reduce
@@ -602,8 +635,9 @@ void bootstrap_grammar(Compiler &c)
             RuleSymbolVector(), // explicit_follow
             false  // no_bypass
         );
+        node->define(rule, false);
     }
-    // attrib-seq [attrib_seq_5] -> attrib-seq PLUS  bang-seq-opt
+    // attrib-seq [AttribSeq5Node] -> attrib-seq PLUS  bang-seq-opt
     {
         RuleSymbolVector right_rule_symbols {
             RuleSymbol(
@@ -634,8 +668,9 @@ void bootstrap_grammar(Compiler &c)
                 false  // accept
             )
         };
-        c.add_rule(
-            NULL, // node
+        Node *node = c.get_node("AttribSeq5Node");
+        Rule *rule = c.add_rule(
+            node,
             RuleSymbol(
                 c.get_symbol("attrib-seq"),
                 Priority(0, 0), // reduce
@@ -649,8 +684,9 @@ void bootstrap_grammar(Compiler &c)
             RuleSymbolVector(), // explicit_follow
             false  // no_bypass
         );
+        node->define(rule, false);
     }
-    // attrib-seq [attrib_seq_6] -> attrib-seq CARET bang-seq-opt
+    // attrib-seq [AttribSeq6Node] -> attrib-seq CARET bang-seq-opt
     {
         RuleSymbolVector right_rule_symbols {
             RuleSymbol(
@@ -681,8 +717,9 @@ void bootstrap_grammar(Compiler &c)
                 false  // accept
             )
         };
-        c.add_rule(
-            NULL, // node
+        Node *node = c.get_node("AttribSeq6Node");
+        Rule *rule = c.add_rule(
+            node,
             RuleSymbol(
                 c.get_symbol("attrib-seq"),
                 Priority(0, 0), // reduce
@@ -696,8 +733,9 @@ void bootstrap_grammar(Compiler &c)
             RuleSymbolVector(), // explicit_follow
             false  // no_bypass
         );
+        node->define(rule, false);
     }
-    // attrib-seq [attrib_seq_7] -> attrib-seq GT    bang-seq-opt
+    // attrib-seq [AttribSeq7Node] -> attrib-seq GT bang-seq-opt
     {
         RuleSymbolVector right_rule_symbols {
             RuleSymbol(
@@ -728,8 +766,9 @@ void bootstrap_grammar(Compiler &c)
                 false  // accept
             )
         };
-        c.add_rule(
-            NULL, // node
+        Node *node = c.get_node("AttribSeq7Node");
+        Rule *rule = c.add_rule(
+            node,
             RuleSymbol(
                 c.get_symbol("attrib-seq"),
                 Priority(0, 0), // reduce
@@ -743,6 +782,7 @@ void bootstrap_grammar(Compiler &c)
             RuleSymbolVector(), // explicit_follow
             false  // no_bypass
         );
+        node->define(rule, false);
     }
     // bang-seq-opt ->
     {
@@ -791,7 +831,7 @@ void bootstrap_grammar(Compiler &c)
             false  // no_bypass
         );
     }
-    // bang-seq [bang_seq_1] -> BANG
+    // bang-seq [BangSeq1Node] -> BANG
     {
         RuleSymbolVector right_rule_symbols {
             RuleSymbol(
@@ -804,8 +844,9 @@ void bootstrap_grammar(Compiler &c)
                 false  // accept
             )
         };
-        c.add_rule(
-            NULL, // node
+        Node *node = c.get_node("BangSeq1Node");
+        Rule *rule = c.add_rule(
+            node,
             RuleSymbol(
                 c.get_symbol("bang-seq"),
                 Priority(0, 0), // reduce
@@ -819,8 +860,9 @@ void bootstrap_grammar(Compiler &c)
             RuleSymbolVector(), // explicit_follow
             false  // no_bypass
         );
+        node->define(rule, false);
     }
-    // bang-seq [bang_seq_2] -> bang-seq BANG
+    // bang-seq [BangSeq2Node] -> bang-seq BANG
     {
         RuleSymbolVector right_rule_symbols {
             RuleSymbol(
@@ -842,8 +884,9 @@ void bootstrap_grammar(Compiler &c)
                 false  // accept
             )
         };
-        c.add_rule(
-            NULL, // node
+        Node *node = c.get_node("BangSeq2Node");
+        Rule *rule = c.add_rule(
+            node,
             RuleSymbol(
                 c.get_symbol("bang-seq"),
                 Priority(0, 0), // reduce
@@ -857,13 +900,22 @@ void bootstrap_grammar(Compiler &c)
             RuleSymbolVector(), // explicit_follow
             false  // no_bypass
         );
+        node->define(rule, false);
     }
 }
-
 }
 
 #src
 #include <basilcc_compiler.h>
 #include <basilcc_rule.h>
+#include <basilcc_node.h>
+#include <basilcc_print_states.h>
+#include <basilcc_serialize_fsm.h>
+
+#include <basilcc_fe_lexer.h>
+#include <basilcc_fe_parser_fsm.h>
+#include <basilcc_api_parser.h>
+
 #include <iostream>
+#include <fstream>
 #end

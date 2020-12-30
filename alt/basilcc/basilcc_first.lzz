@@ -32,7 +32,7 @@ class First
     }
 
     // update first item
-    void update(Symbol const *token, Priority const &shift_priority)
+    void update(Symbol *token, Priority const &shift_priority)
     {
         std::pair<FirstItemSet::iterator, bool> r = _first_items.insert(FirstItem(token, shift_priority));
         if (!r.second) {

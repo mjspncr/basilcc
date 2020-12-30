@@ -8,7 +8,8 @@ class Rule;
 class State;
 class Symbol;
 
-typedef std::set<Action const *, ActionLess> ActionSet;
+typedef std::set<Action *, ActionLess> ActionSet;
+typedef std::vector<Action *> ActionVector;
 
 class ActionTable
 {
@@ -22,13 +23,13 @@ class ActionTable
     }
 
     // get shift action from state
-    Action const *get_shift_action(State const *state)
+    Action *get_shift_action(State const *state)
     {
         return get_action(ActionPtr(new ShiftAction(state)));
     }
 
     // get reduce action from components
-    Action const *get_reduce_action(Rule const *rule, Symbol const *shortcut, bool accept)
+    Action *get_reduce_action(Rule const *rule, Symbol *shortcut, bool accept)
     {
         return get_action(ActionPtr(new ReduceAction(rule, shortcut, accept)));
     }
@@ -39,9 +40,15 @@ class ActionTable
         return _actions;
     }
 
+    void get_actions(ActionVector &actions) const
+    {
+        ActionVector(_actions.begin(), _actions.end()).swap(actions);
+        std::sort(actions.begin(), actions.end(), ActionNumberLess());
+    }
+
   private:
     typedef std::unique_ptr<Action> ActionPtr;
-    Action const *get_action(ActionPtr action_ptr)
+    Action *get_action(ActionPtr action_ptr)
     {
         std::pair<ActionSet::iterator, bool> r = _actions.insert(action_ptr.get());
         if (r.second) {
@@ -55,12 +62,13 @@ class ActionTable
     ActionSet _actions;
 };
 
-} // namespace basilcc
+} // basilcc
 
 #hdr
 #include <basilcc_action.h>
-#include <set>
 #include <memory>
+#include <set>
+#include <vector>
 #end
 
 #src

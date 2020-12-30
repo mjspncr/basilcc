@@ -26,7 +26,7 @@ class LazyActionSeq {
     }
 
     // get action seq
-    ActionSeq const *get_action_seq(Compiler &c, ShiftVector const &token_shifts, Symbol const *token) const
+    ActionSeq const *get_action_seq(Compiler &c, ShiftVector const &token_shifts, Symbol *token) const
     {
         ActionVector actions;
         actions.reserve(_lazy_actions.size());
@@ -34,6 +34,17 @@ class LazyActionSeq {
             actions.push_back(lazy_action->get_action(c, token_shifts, token));
         }
         return c.get_action_seq(actions);
+    }
+
+    // true if actions all reductions (or if action seq can be the default)
+    bool is_reduction() const
+    {
+        for (LazyAction const *lazy_action: _lazy_actions) {
+            if (lazy_action->is_shift()) {
+                return false;
+            }
+        }
+        return true;
     }
 
   private:

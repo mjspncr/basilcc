@@ -26,7 +26,7 @@ class LazyActionTable
         return _shift_lazy_action;
     }
 
-    LazyAction const *get_reduce_lazy_action(Rule const *rule, Symbol const *shortcut, bool accept)
+    LazyAction const *get_reduce_lazy_action(Rule const *rule, Symbol *shortcut, bool accept)
     {
         return get_lazy_action(LazyActionPtr(new ReduceLazyAction(rule, shortcut, accept)));
     }

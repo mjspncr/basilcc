@@ -28,7 +28,7 @@ class LazyAction {
     }
 
     // get action
-    virtual Action const *get_action(Compiler &c, ShiftVector const &token_shifts, Symbol const *token) const = 0;
+    virtual Action *get_action(Compiler &c, ShiftVector const &token_shifts, Symbol *token) const = 0;
 };
 
 // shift
@@ -47,7 +47,7 @@ class ShiftLazyAction : public LazyAction {
     }
 
     // get action
-    Action const *get_action(Compiler &c, ShiftVector const &token_shifts, Symbol const *token) const
+    Action *get_action(Compiler &c, ShiftVector const &token_shifts, Symbol *token) const
     {
         State const *state = get_shift_state(token_shifts, token);
         assert(state != NULL);
@@ -59,7 +59,7 @@ class ShiftLazyAction : public LazyAction {
 class ReduceLazyAction : public LazyAction {
   public:
 
-    ReduceLazyAction(Rule const *rule, Symbol const *shortcut, bool accept)
+    ReduceLazyAction(Rule const *rule, Symbol *shortcut, bool accept)
         : _rule(rule), _shortcut(shortcut), _accept(accept)
     {}
 
@@ -78,7 +78,7 @@ class ReduceLazyAction : public LazyAction {
     }
 
     // get shortcut
-    inline Symbol const *get_shortcut() const
+    inline Symbol *get_shortcut() const
     {
         return _shortcut;
     }
@@ -91,14 +91,14 @@ class ReduceLazyAction : public LazyAction {
 
 
     // get action
-    Action const *get_action(Compiler &c, ShiftVector const &token_shifts, Symbol const *token) const
+    Action *get_action(Compiler &c, ShiftVector const &token_shifts, Symbol *token) const
     {
         return c.get_reduce_action(_rule, _shortcut, _accept);
     }
 
   private:
     Rule const *_rule;
-    Symbol const *_shortcut;
+    Symbol *_shortcut;
     bool _accept;
 };
 
@@ -110,8 +110,8 @@ bool operator <(ReduceLazyAction const &a, ReduceLazyAction const &b)
     if (a_rule != b_rule) {
         return a_rule < b_rule;
     }
-    Symbol const *a_shortcut = a.get_shortcut();
-    Symbol const *b_shortcut = b.get_shortcut();
+    Symbol *a_shortcut = a.get_shortcut();
+    Symbol *b_shortcut = b.get_shortcut();
     if (a_shortcut != b_shortcut) {
         return a_shortcut < b_shortcut;
     }

@@ -1,0 +1,66 @@
+// basilcc_api_fsm
+//
+
+namespace basilcc_api {
+
+struct Rule {
+    int size; // number of right hand side symbols
+    int node; // node number, -1 if no new node on reduction
+};
+
+// shift or reduce action
+enum ActionKind {
+    ACTION_SHIFT,
+    ACTION_REDUCE,
+    ACTION_ACCEPT, // reduce is an accepting reduction
+    ACTION_DONE,   // reduce start rule, done parsing
+};
+struct Action {
+    ActionKind kind;
+    int arg1; // state number if shift, otherwise rule number
+    int arg2; // shortcut symbol if reduce  
+};
+typedef Action const *ActionSeq;
+
+struct Move {
+    int token;
+    int action_seq; 
+};
+typedef Move const *MoveSel;
+
+struct State {
+    int move_sel;
+    int def_action_seq;
+    int lex_state;
+    int num;
+};
+
+struct ShiftState {
+    int num;
+    int state;
+};
+typedef ShiftState const *ShiftStateSel;
+
+struct Goto {
+    int shift_state_sel;
+    int def_state;
+};
+
+struct FSM
+{
+    Rule const *rules;
+    ActionSeq const *action_seqs;
+    MoveSel const *move_sels;
+    State const *states;
+    ShiftStateSel const *shift_state_sels;
+    Goto const *go2s;
+};
+
+} // basilcc_api
+
+#hdr
+#include <utility>
+#end
+
+#src
+#end

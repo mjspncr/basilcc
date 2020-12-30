@@ -1,0 +1,500 @@
+// basilcc serialize
+//
+
+namespace basilcc {
+
+class Compiler;
+
+// seralize FSM
+void serialize_fsm(Compiler &c, std::ostream &os)
+{
+    os << "// basilcc generated LR parser\n";
+    os << '\n';
+    os << "namespace basilcc_api {\n";
+    os << "struct FSM;\n";
+    os << "}\n";
+    os << '\n';
+    {
+        size_t p = c.userdata_class.rfind("::");
+        if (p != std::string::npos) {
+            os << "namespace " << c.userdata_class.substr(0, p) << " {\n";
+            os << "class " << c.userdata_class.substr(p + 2) << ";\n";
+            os << "}\n";
+        }
+        else {
+            os << "class " << c.userdata_class << ";\n";
+        }
+        os << '\n';
+    }            
+    if (!c.parser_namespace.empty()) {
+        os << "namespace " << c.parser_namespace << " {\n";
+    }
+    FSMWriter w(c, os);
+    os << "// token numbers\n";
+    w.write_tokens();
+    os << '\n';
+    os << "// return reference to finite state machine\n";
+    os << "basilcc_api::FSM const &get_FSM() { return fsm; }\n";
+    os << '\n';
+    NodeVector nodes;
+    c.get_nodes(nodes);
+    if (!nodes.empty()) {
+        os << "// return pointer to array of node constructors\n";
+        os << "typedef basilcc_api::AbstractNode *NodeCtor(" << c.userdata_class << " &userdata, basilcc_api::AbstractNodeVector &children);\n";
+        os << "NodeCtor *const *get_nodes() { return node_ctors; }\n";
+        os << '\n';
+        os << "// nodes\n";
+        w.write_nodes(nodes);
+    }
+    os << '\n';
+    os << "namespace {\n";
+    os << "// node constructors\n";
+    os << "NodeCtor *const node_ctors[] = {\n";
+    for (Node *node: nodes) {
+        char const *node_name = node->get_name();
+        os << INDENT << node_name << "::_create,\n";
+    }
+    os << "};\n";
+    os << '\n';
+    w.write_fsm();
+    os << "} // unnamed\n";
+    if (!c.parser_namespace.empty()) {
+        os << "} // " << c.parser_namespace << '\n';
+    }
+    os << '\n';
+    os << "#hdr\n";
+    os << "#include <basilcc_api_node.h>\n";
+    os << "#include <memory>\n";
+    os << "#end\n";
+    os << '\n';
+    os << "#src\n";
+    os << "#include <basilcc_api_fsm.h>\n";
+    os << "#end\n";
+}
+
+namespace {
+// indent 4 spaces
+char const INDENT[] = "    ";
+char const HALF_INDENT[] = "  ";
+
+class FSMWriter(Compiler const &c, std::ostream &os)
+{
+  public:
+    // write token numbers
+    void write_tokens()
+    {
+        char const prefix[] = "TOKEN_";
+        os << "enum {\n";
+        SymbolVector const &tokens = c.get_tokens(); // in number order from 0
+        SymbolVector::const_iterator i = tokens.begin(), endi = tokens.end();
+        // EOT always first, set it apart from rest
+        os << INDENT << prefix << (*i)->get_name() << " = 0, // end of tokens\n";
+        if (++i != endi) {
+            os << '\n';
+            do {
+                os << INDENT << prefix << (*i)->get_name() << ",\n";
+            } while (++i != endi);
+        }
+        os << "};\n";
+    }
+
+    // write node classes and node visitor
+    void write_nodes(NodeVector const &nodes)
+    {
+        os << "class NodeVisitor;\n";
+        os << '\n';
+        os << "// base node\n";
+        os << "class Node : public basilcc_api::AbstractNode {\n";
+        os << HALF_INDENT << "public:\n";
+        os << INDENT << "virtual void accept(NodeVisitor const &visitor) const = 0;\n";
+        os << HALF_INDENT << "protected:\n";
+        os << INDENT << "inline Node(basilcc_api::AbstractNodeVector &children) {\n";
+        os << INDENT << INDENT << "_children.swap(children);\n";
+        os << INDENT << "}\n";
+        os << INDENT << "basilcc_api::AbstractNodeVector _children;\n";
+        os << "};\n";
+        os << '\n';
+        // forward declarations
+        os << "// rule nodes\n";
+        for (Node *node : nodes) {
+            os << "class " << node->get_name() << ";\n"; 
+        }
+        os << '\n';
+        // definitions
+        for (Node *node : nodes) {
+            write_node(node);
+            os << '\n';
+        }
+        os << "class NodeVisitor {\n";
+        os << HALF_INDENT << "public:\n";
+        os << INDENT << "virtual ~NodeVisitor() {};\n";
+        for (Node *node: nodes) {
+            char const *node_name = node->get_name();
+            Rule *rule = node->get_rule();
+            os << INDENT << "// " << rule->to_string() << '\n';
+            os << INDENT << "virtual void visit(" << node_name << " const &node) const {}\n";
+        };
+        os << "};\n";
+    }
+
+    void write_node(Node *node)
+    {
+        char const *node_name = node->get_name();
+        Rule *rule = node->get_rule();
+        StringVector child_names;
+        get_node_child_names(rule, child_names);
+        os << "// " << rule->to_string() << '\n';
+        os << "class " << node_name << " : public Node {\n";
+        os << HALF_INDENT << "public:\n";
+        os << INDENT << "static basilcc_api::AbstractNode *_create(" << c.userdata_class << " &userdata, basilcc_api::AbstractNodeVector &children) {\n";
+        if (node->has_semantics()) {
+            os << INDENT << INDENT << "std::unique_ptr<" << node_name << "> node(new " << node_name << "(children));\n";
+            os << INDENT << INDENT << "node->on_node(userdata);\n";
+            os << INDENT << INDENT << "return node.release();\n";
+        }
+        else {
+            os << INDENT << INDENT << "return new " << node_name << "(children);\n";
+        }
+        os << INDENT << "}\n";
+        os << INDENT << "void accept(NodeVisitor const &visitor) const {\n";
+        os << INDENT << INDENT << "visitor.visit(*this);\n";
+        os << INDENT << "}\n";
+        // children
+        for (int i = 0, n = child_names.size(); i < n; ++i) {
+            std::string const &child_name = child_names[i];
+            std::string child_type;
+            bool nullable = false;
+            if (get_child_type(rule->get_right_symbol(i), child_type, nullable)) {
+                if (nullable) {
+                    os << INDENT << "bool has_" << child_name << "() const {\n";
+                    os << INDENT << INDENT << "return _children[" << i << "].get();\n";
+                    os << INDENT << "}\n";
+                }
+                os << INDENT << child_type << " const &get_" << child_name << "() const {\n";
+                os << INDENT << INDENT << "return static_cast<" << child_type << " const &>(*_children[" << i << "]);\n";
+                os << INDENT << "}\n";
+            }
+        }
+        os << HALF_INDENT << "private:\n";
+        os << INDENT << "inline " << node_name << "(basilcc_api::AbstractNodeVector &children) : Node(children) {}\n";
+        if (node->has_semantics()) {
+            os << INDENT << "void on_node(" << c.userdata_class << " &userdata) const;\n";
+        }
+        os << "};\n";
+    }
+
+    void write_fsm()
+    {
+        os << "// FSM rules\n";
+        write_rules();
+        os << '\n';
+        os << "// FSM actions\n";
+        write_action_seqs();
+        os << '\n';
+        os << "// FSM moves\n";
+        write_move_sels();
+        os << '\n';
+        os << "// FSM states\n";
+        write_states();
+        os << '\n';
+        os << "// FSM shift states\n";
+        write_shift_state_sels();
+        os << '\n';
+        os << "// FSM gotos\n";
+        write_gotos();
+        os << '\n';
+        os << "// finite state machine\n";
+        os << "basilcc_api::FSM fsm = {rules, action_seqs, move_sels, states, shift_state_sels, go2s};\n";
+    }
+
+    // write rules
+    void write_rules()
+    {
+        os << "basilcc_api::Rule const rules[] = {\n";
+        RuleVector rules;
+        c.get_rules(rules);
+        for (Rule *rule: rules) {
+            Node *node = rule->get_node();
+            os << INDENT << '{' << rule->get_size() << ", " << (node ? node->_num : -1) << "},\n";
+        }
+        os << "};\n";
+    }
+
+    // write action sequences
+    void write_action_seqs()
+    {
+        std::vector<size_t> cum_sizes;
+        write_seq_actions(cum_sizes);
+        os << '\n';
+        os << "basilcc_api::ActionSeq const action_seqs[] = {\n";
+        os << INDENT << "&seq_actions[0],\n";
+        for (size_t cum_size: cum_sizes) {
+            os << INDENT << "&seq_actions[" << cum_size << "],\n";
+        }
+        os << "};\n";
+    }
+
+    // write action sequence actions, all in one "seq_actions" array, populate cum sizes 
+    void write_seq_actions(std::vector<size_t> &cum_sizes)
+    {
+        ActionSeqVector action_seqs;
+        c.get_action_seqs(action_seqs);
+        cum_sizes.reserve(action_seqs.size());
+        os << "basilcc_api::Action const seq_actions[] = {\n";
+        size_t cum_size = 0;
+        for (ActionSeq *action_seq: action_seqs) {
+            ActionVector const &actions = action_seq->get_actions();
+            cum_sizes.push_back(cum_size += actions.size());
+            for (Action *action: actions) {
+                if (action->is_shift()) {
+                    ShiftAction &shift = static_cast<ShiftAction &>(*action);
+                    os << INDENT << "{basilcc_api::ACTION_SHIFT, " << shift.get_state()->_num << "},\n";
+                }
+                else {
+                    ReduceAction &reduce = static_cast<ReduceAction &>(*action);
+                    Rule const *rule = reduce.get_rule();
+                    os << INDENT << '{';
+                    if (c.is_start_symbol(rule->get_left_symbol())) {
+                        os << "basilcc_api::ACTION_DONE";
+                    }
+                    else if (reduce.has_accept()) {
+                        os << "basilcc_api::ACTION_ACCEPT";
+                    }
+                    else {
+                        os << "basilcc_api::ACTION_REDUCE";
+                    }
+                    os << ", " << rule->_num << ", " << reduce.get_shortcut()->_num << "},\n";
+                }
+            }
+        }
+        os << "};\n";
+    }
+
+    // moves
+    void write_move_sels()
+    {
+        std::vector<size_t> cum_sizes;
+        write_sel_moves(cum_sizes);
+        os << '\n';
+        os << "basilcc_api::MoveSel const move_sels[] = {\n";
+        os << INDENT << "&sel_moves[0],\n";
+        for (size_t cum_size: cum_sizes) {
+            os << INDENT << "&sel_moves[" << cum_size << "],\n";
+        }
+        os << "};\n";
+    }
+
+    // write move selection moves in "sel_moves" array
+    void write_sel_moves(std::vector<size_t> &cum_sizes)
+    {
+        MoveSelVector move_sels;
+        c.get_move_sels(move_sels);
+        os << "basilcc_api::Move const sel_moves[] = {\n";
+        size_t cum_size = 0;
+        for (MoveSel *move_sel: move_sels) {
+            MoveVector const &moves = move_sel->get_moves();
+            cum_sizes.push_back(cum_size += moves.size());
+            for (Move *move: moves) {
+                os << INDENT << '{' << move->get_token()->_num << ", " << move->get_action_seq()->_num << "},\n";
+            }
+        }
+        os << "};\n";
+    }
+
+    // write states
+    void write_states()
+    {
+        StateVector states;
+        c.get_states(states);
+        os << "basilcc_api::State const states[] = {\n";
+        for (State *state: states) {
+            StateMove const *state_move = state->get_state_move();
+            os << INDENT << '{'
+               << state_move->get_move_sel()->_num << ", "
+               << state_move->get_default_action_seq()->_num << ", "
+               << state->get_lex_state().get_state();
+            // shift sel NULL if no gotos
+            ShiftSel const *shift_sel = state->get_nonterm_shift_sel();
+            if (shift_sel) {
+                os << ", " << shift_sel->_num;
+            }
+            os << "},\n";
+        }
+        os << "};\n";
+    }
+
+    // write shift state sels
+    void write_shift_state_sels()
+    {
+        std::vector<size_t> cum_sizes;
+        write_sel_shift_states(cum_sizes);
+        os << '\n';
+        os << "basilcc_api::ShiftStateSel const shift_state_sels[] = {\n";
+        os << INDENT << "&sel_shift_states[0],\n";
+        for (size_t cum_size: cum_sizes) {
+            os << INDENT << "&sel_shift_states[" << cum_size << "],\n";
+        }
+        os << "};\n";
+    }
+
+    // write selection shift states
+    void write_sel_shift_states(std::vector<size_t> &cum_sizes)
+    {
+        ShiftStateSelVector const &shift_state_sels = c.get_shift_state_sels();
+        os << "basilcc_api::ShiftState const sel_shift_states[] = {\n";
+        size_t cum_size = 0;
+        for (ShiftStateSel *shift_state_sel: shift_state_sels) {
+            ShiftStateVector const &shift_states = shift_state_sel->get_shift_states();
+            cum_sizes.push_back(cum_size += shift_states.size());
+            for (ShiftState const &shift_state: shift_states) {
+                os << INDENT << '{'
+                   << shift_state.get_shift_number() << ", "
+                   << shift_state.get_state()->_num << "},\n";
+            }
+        }
+        os << "};\n";
+    }
+
+    // write non terminal gotos
+    void write_gotos()
+    {
+        GotoMap const &go2s = c.get_go2s();
+        os << "basilcc_api::Goto const go2s[] = {\n";
+        for (Symbol *symbol: c.get_nonterminals()) {
+            int shift_state_sel = -1, def_state = -1;
+            GotoMap::const_iterator p = go2s.find(symbol);
+            if (p != go2s.end()) {
+                Goto const &go2 = p->second;
+                shift_state_sel = go2.get_shift_state_sel()->_num;
+                def_state = go2.get_default_state()->_num;
+            }
+            os << INDENT << '{' << shift_state_sel << ", " << def_state << "},\n";
+        }
+        os << "};\n";
+    }
+
+    // get symbol type, if specific node set node_name, set nullable=true if symbol can be null
+    bool get_child_type(Symbol *symbol, std::string &node_name, bool &nullable)
+    {
+        // otherwise check rules
+        typedef std::vector<Symbol *> SymbolVector;
+        SymbolVector symbols(1, symbol);
+        std::set<char const *> node_names;
+        bool has_null = false, has_token = false;
+        while (!symbols.empty()) {
+            symbol = symbols.back();
+            symbols.pop_back();
+            if (symbol->is_token()) {
+                has_token = true;
+            }
+            else {
+                RuleMapRange r = c.get_rules(symbol);
+                for (RuleMap::const_iterator i = r.first, endi = r.second; i != endi; ++ i) {
+                    Rule *rule = i->second;
+                    basilcc::Node *node = rule->get_node();
+                    if (!node) {
+                        if (rule->get_size() == 1) {
+                            symbols.push_back(rule->get_right_symbol(0));
+                        }
+                        else {
+                            has_null = true;
+                        }
+                    }
+                    else {
+                        node_names.insert(node->get_name());
+                    }
+                }
+            }
+        }
+        if (has_token) {
+            // can't have both token and node
+            if (!node_names.empty()) {
+                std::ostringstream ss;
+                ss << symbol->get_name() << " can resolve to both a token and a node";
+                throw std::runtime_error(ss.str());
+            }
+            node_name = "basilcc_api::Token";
+        }
+        else if (node_names.empty()) {
+            return false;
+        }
+        else if (node_names.size() > 1) {
+            node_name = "Node"; // base node
+        }
+        else {
+            node_name = *node_names.begin();
+        }
+        if (has_null) {
+            nullable = true;
+        }
+        return true;
+    }
+};
+
+// get node child names from rule
+typedef std::vector<std::string> StringVector;
+void get_node_child_names(Rule *rule, StringVector &names)
+{
+    typedef std::vector<int> IntVector;
+    typedef std::map<std::string, IntVector> StringIntVectorMap;
+    // note positions of all names
+    StringIntVectorMap names_index;
+    int size = rule->get_size();
+    for (int i = 0; i < size; ++ i) {
+        Symbol const *symbol = rule->get_right_symbol(i);
+        std::string name = make_valid_identifier(symbol->get_name());
+        names_index[name].push_back(i);
+    }
+    // add number suffix if duplicates
+    names.resize(size);
+    for (StringIntVectorMap::value_type const &p : names_index) {
+        std::string const &name = p.first;
+        IntVector const &index = p.second;
+        if (index.size() == 1) {
+            names[index.front()] = name;
+        }
+        else {
+            for (size_t i = 0; i < index.size(); ++i) {
+                std::ostringstream ss;
+                ss << name << (i+1); // start at 1
+                names[index[i]] = ss.str();
+            }
+        }
+    }
+}
+
+// convert symbol name into a valid c++ identifier, just replace dash with underscore
+std::string make_valid_identifier(char const *symbol_name)
+{
+    std::string name;
+    for (char const *j = symbol_name; *j != '\0'; ++j) {
+        char ch = *j;
+        if (ch == '-') {
+            ch = '_';
+
+        }
+        name += ch;
+    }
+    return name;
+}
+
+} // unnamed
+} // basilcc
+
+#hdr
+#include <iostream>
+#end
+
+#src
+#include <basilcc_action.h>
+#include <basilcc_action_seq.h>
+#include <basilcc_compiler.h>
+#include <basilcc_node.h>
+#include <basilcc_rule.h>
+#include <basilcc_shift_sel.h>
+#include <basilcc_state.h>
+#include <basilcc_shift_state_sel.h>
+#include <basilcc_state_move.h>
+#include <basilcc_symbol.h>
+#include <sstream>
+#end

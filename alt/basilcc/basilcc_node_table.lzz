@@ -9,6 +9,7 @@ class Node;
 
 bool NodeLess(; Node const *a, Node const *b) const { return *a < *b; }
 typedef std::set<Node *, NodeLess> NodeSet;
+typedef std::vector<Node *> NodeVector;
 
 class NodeTable
 {
@@ -32,21 +33,27 @@ class NodeTable
         return *r.first;
     }
 
-    // freeze nodes, no more
-    void freeze_nodes()
+    // get nodes ordered by number
+    void get_nodes(NodeVector &nodes) const
     {
-        // order by name, just nice for generated code
+        NodeVector(_nodes.begin(), _nodes.end()).swap(nodes);
+        std::sort(nodes.begin(), nodes.end(), NodeNumberLess());
+    }
+
+    // no more nodes
+    void freeze()
+    {
+        // order by name then assign numbers
         std::vector<Node *> nodes(_nodes.begin(), _nodes.end());
         std::sort(nodes.begin(), nodes.end(), NodeNameLess());
-        // make sure each is defined and assign number
-        int k = 0;
-        for (Node *node: nodes) {
+        int num = 0;
+        for (Node *node : nodes) {
             if (!node->is_defined()) {
                 std::ostringstream ss;
                 ss << "node " << node->get_name() << " does not have a defining rule";
                 throw std::runtime_error(ss.str());
             }
-            const_cast<int &>(node->_num) = k ++;
+            const_cast<int &>(node->_num) = num++;
         }
     }
 
@@ -58,6 +65,7 @@ class NodeTable
 
 #hdr
 #include <set>
+#include <vector>
 #end
 
 #src

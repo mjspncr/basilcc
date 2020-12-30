@@ -1,0 +1,38 @@
+# rule grammar
+
+start -> rule-seq-opt
+
+rule-seq-opt ->
+rule-seq-opt -> rule-seq
+
+rule-seq -> rule
+rule-seq -> rule-seq rule
+
+rule [RuleNode] -> symbol node-type-opt ARROW symbol-seq-opt >
+
+node-type-opt ->
+node-type-opt -> node-type
+
+node-type [NodeTypeNode] -> LBRACK IDENT RBRACK
+
+symbol-seq-opt ->
+symbol-seq-opt -> symbol-seq
+
+symbol-seq [SymbolSeq1Node] -> symbol
+symbol-seq [SymbolSeqfNode2] -> symbol-seq symbol
+
+symbol <* [SymbolNode] -> IDENT attrib-seq
+
+attrib-seq [AttribSeq1Node] -> 
+attrib-seq [AttribSeq2Node] -> attrib-seq NUMBER
+attrib-seq [AttribSeq3Node] -> attrib-seq LT
+attrib-seq [AttribSeq4Node] -> attrib-seq STAR
+attrib-seq [AttribSeq5Node] -> attrib-seq PLUS bang-seq-opt
+attrib-seq [AttribSeq6Node] -> attrib-seq CARET bang-seq-opt
+attrib-seq [AttribSeq7Node] -> attrib-seq GT bang-seq-opt
+
+bang-seq-opt -> 
+bang-seq-opt -> bang-seq
+
+bang-seq [BangSeq1Node] -> BANG
+bang-seq [BangSeq2Node] -> bang-seq BANG

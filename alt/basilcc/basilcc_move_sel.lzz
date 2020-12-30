@@ -4,7 +4,7 @@ namespace basilcc {
 
 class Move;
 
-typedef std::vector<Move const *> MoveVector;
+typedef std::vector<Move *> MoveVector;
 
 class MoveSel {
   public:
@@ -43,6 +43,11 @@ bool operator<(MoveSel const &a, MoveSel const &b)
 inline bool MoveSelLess(; MoveSel const *a, MoveSel const *b) const
 {
     return *a < *b;
+}
+
+inline bool MoveSelNumberLess(; MoveSel const *a, MoveSel const *b) const
+{
+    return a->_num < b->_num;
 }
 
 } // basilccc

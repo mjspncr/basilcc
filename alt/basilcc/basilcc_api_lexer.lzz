@@ -1,0 +1,24 @@
+// basilcc api lexer
+
+namespace basilcc_api {
+
+class Loc;
+
+// lexer interface
+class Lexer {
+  public:
+    Lexer()
+    {}
+    
+    virtual ~Lexer()
+    {}
+
+    // set location and lexeme of next token and return token number
+    virtual int get_next_token(int lex_state, Loc &loc, std::string &lexeme) = 0;
+};
+
+} // basilcc_api
+
+#hdr
+#include <string>
+#end

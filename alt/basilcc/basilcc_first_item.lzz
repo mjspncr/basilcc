@@ -10,7 +10,7 @@ class Symbol;
 class FirstItem
 {
   public:
-    inline explicit FirstItem(Symbol const *token, Priority const &fp = Priority())
+    inline explicit FirstItem(Symbol *token, Priority const &fp = Priority())
         : _token(token), _fp(fp)
     {}
 
@@ -18,7 +18,7 @@ class FirstItem
     {}
 
     // get token
-    inline Symbol const *get_token() const
+    inline Symbol *get_token() const
     {
         return _token;
     }
@@ -43,7 +43,7 @@ class FirstItem
     }
 
   private:
-    Symbol const *_token;
+    Symbol *_token;
     Priority _fp; // first priority
 };
 

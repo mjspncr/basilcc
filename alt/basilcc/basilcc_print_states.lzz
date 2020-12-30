@@ -1,0 +1,112 @@
+// basilcc print states
+
+namespace basilcc {
+
+class Compiler;
+class State;
+
+// print state
+void print_state(Compiler &c, State *state, std::ostream &os)
+{
+    // state number followed by lex state if non-zero
+    os << state->_num;
+    LexState lex_state = state->get_lex_state();
+    if (lex_state.is_conflict()) {
+      os << " (LEXICAL STATE CONFLICT)";
+    }
+    else if (lex_state.is_set())
+    {
+      os << " (" << lex_state.get_state() << ')';
+    }
+    os << "\n-----\n";
+    // conflicts
+    FollowKernel *follow_kernel = state->get_follow_kernel();
+    FollowBase const &follow_base = follow_kernel->get_follow_base();
+    ConflictVector const &conflicts = follow_base.get_conflicts();
+    if (!conflicts.empty()) {
+        os << "CONFLICT\n"; // TODO
+    }
+    {
+        FollowRuleVector const &follow_rules = follow_kernel->get_follow_rules();
+        for (FollowRule const *follow_rule: follow_rules) {
+            ShiftRule const *shift_rule = follow_rule->get_shift_rule();
+            BaseRule const *base_rule = shift_rule->get_base_rule();
+            os << base_rule->to_string() << ' ';
+            os << follow_rule->get_follow().to_string(base_rule->get_left_symbol()) << '\n';
+        }
+    }
+
+    /*
+    // rules
+    BaseKernel const &base_kernel = follow_base.get_shift_base().get_base_kernel();
+    for (BaseRule const *base_rule: base_kernel.get_base_rules()) {
+        os << base_rule->to_string() << '\n';
+    }
+    */
+    os << '\n';
+    StateMove const *state_move = state->get_state_move();
+    MoveVector const &moves = state_move->get_move_sel()->get_moves();
+    ActionVector const &def_actions = state_move->get_default_action_seq()->get_actions();
+    if (!(moves.empty() && def_actions.empty())) {
+        for (Move *move: moves) {
+            move->format(os);
+            os << '\n';
+        }
+        if (!def_actions.empty()) {
+            os << "* - ";
+            format_actions(def_actions, os);
+            os << '\n';
+        }
+    }
+    ShiftSel const *nonterm_shift_sel = state->get_nonterm_shift_sel();
+    if (nonterm_shift_sel) {
+        os << '\n';
+        for (Shift const &shift: nonterm_shift_sel->get_shifts()) {
+            os << shift.get_symbol()->get_name() << " - GOTO " << shift.get_state()->_num << '\n';
+        }
+    }
+    os << '\n';
+}
+
+// print all states
+void print_states(Compiler &c, std::ostream &os)
+{
+    StateVector states;
+    c.get_states(states);
+    for (State *state: states) {
+        print_state(c, state, os);
+    }
+}
+
+void print_states(Compiler &c, std::string const &filename)
+{
+    std::ofstream os(filename.c_str (), std::ios_base::out);
+    if (!os) {
+        throw std::runtime_error("failed to open file for writing");
+    }
+    print_states(c, os);
+}
+
+} // basilcc
+
+#hdr
+#include <iosfwd>
+#include <string>
+#end
+
+#src
+#include <basilcc_base_kernel.h>
+#include <basilcc_base_rule.h>
+#include <basilcc_compiler.h>
+#include <basilcc_follow_base.h>
+#include <basilcc_follow_kernel.h>
+#include <basilcc_shift_sel.h>
+#include <basilcc_state.h>
+#include <basilcc_state_move.h>
+#include <basilcc_symbol.h>
+
+#include <basilcc_shift_rule.h>
+#include <basilcc_follow_rule.h>
+
+#include <fstream>
+#end

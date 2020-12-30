@@ -39,7 +39,7 @@ class ShiftBase
 
 namespace {
 
-typedef std::map<Symbol const *, Priority> ShiftSymbolMap;
+typedef std::map<Symbol *, Priority> ShiftSymbolMap;
 
 // append non-kernel shift rules to kernel rules
 void init_shift_base(Compiler &c, ShiftRuleVector const &kernel_rules, ShiftRuleVector &non_kernel_rules)
@@ -55,7 +55,7 @@ void get_shift_symbols(ShiftRuleVector const &kernel_rules, ShiftSymbolMap &shif
     for (ShiftRule const *shift_rule: kernel_rules) {
         BaseRule const *base_rule = shift_rule->get_base_rule();
         if (!base_rule->is_reduction()) {
-            Symbol const *next_symbol = base_rule->get_next_symbol();
+            Symbol *next_symbol = base_rule->get_next_symbol();
             if (!next_symbol->is_token()) {
                 Priority sp = shift_rule->get_shift_priority() + base_rule->get_shift_priority();
                 std::pair<ShiftSymbolMap::iterator, bool> r = shift_symbols.emplace(next_symbol, sp);

@@ -2,7 +2,8 @@
 
 namespace basilcc {
 
-typedef std::set<Move const *, MoveLess> MoveSet;
+typedef std::set<Move *, MoveLess> MoveSet;
+typedef std::vector<Move *> MoveVector;  
 
 class MoveTable
 {
@@ -15,7 +16,7 @@ class MoveTable
         delete_objects(_moves);
     }
     
-    Move const *get_move(Symbol const *token, ActionSeq const *action_seq)
+    Move *get_move(Symbol *token, ActionSeq const *action_seq)
     {
         std::unique_ptr<Move> move_ptr(new Move(token, action_seq));
         std::pair<MoveSet::iterator, bool> r = _moves.insert(move_ptr.get());
@@ -31,6 +32,12 @@ class MoveTable
         return _moves;
     }
 
+    void get_moves(MoveVector &moves) const
+    {
+        MoveVector(_moves.begin(), _moves.end()).swap(moves);
+        std::sort(moves.begin(), moves.end(), MoveNumberLess());
+    }
+
   private:
     MoveSet _moves;
 };
@@ -40,6 +47,7 @@ class MoveTable
 #hdr
 #include <basilcc_move.h>
 #include <set>
+#include <vector>
 #end
 
 #src

@@ -23,7 +23,7 @@ class TempAction {
     {
         return !is_shift();
     }
-    
+
     // get priority
     inline Priority const &get_priority() const
     {
@@ -67,8 +67,8 @@ class ShiftTempAction : public TempAction {
 
 class ReduceTempAction : public TempAction {
   public:
-    ReduceTempAction(Rule const *rule, Symbol const *shortcut, Priority const &priority, bool sticky, bool accept)
-        : TempAction(priority), _rule(rule), _shortcut(shortcut), _sticky(sticky), _accept(accept)
+    ReduceTempAction(Rule const *rule, Symbol *shortcut, Priority const &priority, bool accept)
+        : TempAction(priority), _rule(rule), _shortcut(shortcut), _accept(accept)
     {}
 
     ~ReduceTempAction()
@@ -86,15 +86,9 @@ class ReduceTempAction : public TempAction {
     }
 
     // get shortcut
-    inline Symbol const *get_shortcut() const
+    inline Symbol *get_shortcut() const
     {
         return _shortcut;
-    }
-
-    // true if has sticky
-    inline bool has_sticky() const
-    {
-        return _sticky;
     }
 
     // true if has accept
@@ -103,11 +97,10 @@ class ReduceTempAction : public TempAction {
         return _accept;
     }
 
-    // update, max priority and stick and accept if either are true
-    void update(Priority const &priority, bool sticky, bool accept)
+    // update, max priority accept if true
+    void update(Priority const &priority, bool accept)
     {
         TempAction::update(priority);
-        _sticky = _sticky || sticky;
         _accept = _accept || accept;
     }
 
@@ -119,12 +112,11 @@ class ReduceTempAction : public TempAction {
 
   private:
     Rule const *_rule;
-    Symbol const *_shortcut;
-    bool _sticky;
+    Symbol *_shortcut;
     bool _accept;
 };
 
-// a < b
+// true if a < b (or a before b) wrt priority
 bool operator<(TempAction const &a, TempAction const &b)
 {
     int count_a = a.get_priority().get_count();
@@ -146,60 +138,14 @@ bool operator<(TempAction const &a, TempAction const &b)
     // sort by shortcut
     return c.get_shortcut() < d.get_shortcut();
 }
-inline bool TempActionLess(; TempAction const *a, TempAction const *b) const
-{
-    return *a < *b;
-}
-
-// action a == b, compares priority only!
-bool operator==(TempAction const &a, TempAction const &b)
-{
-    // equal if priority count is equal
-    return a.get_priority().get_count() == b.get_priority().get_count();
-}
-inline bool operator!=(TempAction const &a, TempAction const &b)
-{
-    return !(a == b);
-}
-
-// reduce action a == b
-// or: can a replace b?
-bool operator==(ReduceTempAction const &a, ReduceTempAction const &b)
-{
-    // same if only rule and shortcut are same
-    bool result = false;
-    if (a.get_rule() == b.get_rule() && a.get_shortcut() == b.get_shortcut()) {
-      result = true;
-      // if accepting on b but not on a, then a can't replace b
-      // this will happen if b is sticky--b won't be considered in default set
-      if (b.has_accept() && !a.has_accept()) {
-        result = false;
-      }
-    }
-    return result;
-}
-
-// a < b
-bool operator<(ReduceTempAction const &a, ReduceTempAction const &b)
-{
-    if (a.get_rule() != b.get_rule()) {
-        return a.get_rule() < b.get_rule();
-    }
-    if (a.get_shortcut() != b.get_shortcut()) {
-        return a.get_shortcut() < b.get_shortcut();
-    }
-    return a.has_accept() && !b.has_accept();
-}
 
 } // basilcc
 
 #hdr
-#include <memory>
 #include <basilcc_priority.h>
+#include <memory>
 #end
 
 #src
 #include <basilcc_compiler.h>
-#include <basilcc_rule.h>
-#include <basilcc_symbol.h>
 #end

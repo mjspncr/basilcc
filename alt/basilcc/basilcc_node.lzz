@@ -8,7 +8,7 @@ class Rule;
 class Node {
   public:
     Node(char const *name)
-      : _num(-1), _name(name), _rule(0)
+      : _num(-1), _name(name), _rule(NULL), _has_semantics(false)
     {}
 
     ~Node ()
@@ -21,9 +21,10 @@ class Node {
     }
 
     // set rule that defines this node
-    void set_rule(Rule const *rule)
+    void define(Rule *rule, bool has_semantics)
     {
         _rule = rule;
+        _has_semantics = has_semantics;
     }
 
     // true if node has a defining rule
@@ -32,10 +33,23 @@ class Node {
         return _rule != NULL;
     }
 
+    // get rule
+    Rule *get_rule() const
+    {
+        return _rule;
+    }
+
+    // true if has user defined semantics on node reduction
+    bool has_semantics() const
+    {
+        return _has_semantics;
+    }
+
     int const _num;
   private:
     char const *_name;
-    Rule const *_rule;
+    Rule *_rule;
+    bool _has_semantics; // true if node has an on_node() method
     // Type ? 
 };
 

@@ -1,0 +1,85 @@
+// basilcc api loc
+
+namespace basilcc_api {
+
+// file location
+class Loc {
+  public:
+    Loc()
+        : _filename(0), _line(0), _column(1)
+    {}
+    
+    Loc(char const * filename, int line, int column)
+        : _filename(filename), _fullname(filename), _line(line), _column(column)
+    {}
+
+    Loc(char const * filename, char const * fullname, int line, int column)
+        : _filename(filename), _fullname(fullname), _line(line), _column(column)
+    {}
+
+    // true if location set
+    inline bool is_set() const
+    {
+        return _filename != 0;
+    }
+    
+    // get filename
+    inline char const *get_filename() const
+    {
+        return _filename;
+    }
+    
+    // get fullname
+    inline char const * get_fullname() const
+    {
+        return _fullname;
+    }
+    
+    // get line number
+    inline int get_line() const
+    {
+        return _line;
+    }
+    
+    // get column number
+    inline int get_column() const
+    {
+        return _column;
+    }
+    
+  private:
+    // file name
+    char const *_filename; 
+    char const *_fullname; 
+    // line and column numbers
+    int _line;
+    int _column;
+};
+
+// format loc to stream
+std::ostream &operator<<(std::ostream &os, Loc const &loc)
+{
+    if (loc.is_set()) {
+        os << loc.get_filename() << ':' << loc.get_line() << ':' <<  loc.get_column() << ':';
+    }
+    return os;
+}
+
+// to string
+std::string loc_to_string(Loc const &loc)
+{
+    std::ostringstream ss;
+    ss << loc;
+    return ss.str();
+}
+
+} // basilcc_api
+
+#hdr
+#include <iosfwd>
+#include <string>
+#end
+
+#src
+#include <sstream>
+#end

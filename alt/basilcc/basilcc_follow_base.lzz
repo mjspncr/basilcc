@@ -10,7 +10,7 @@ class LazyFollowMove;
 class ShiftBase;
 class Symbol;
 
-typedef std::map<Symbol const *, FollowKernel *> FollowShiftMap;
+typedef std::map<Symbol *, FollowKernel *> FollowShiftMap;
 typedef std::vector<FollowRule const *> FollowRuleVector;
 typedef std::vector<Conflict *> ConflictVector;
 
@@ -109,7 +109,7 @@ void get_follow_rules(Compiler &c, ShiftBase const &shift_base, FollowRuleVector
 }
 
 // follow base helper, updates non kernel rules
-typedef std::multimap<Symbol const *, FollowRulePtr> FollowRulePtrMap;
+typedef std::multimap<Symbol *, FollowRulePtr> FollowRulePtrMap;
 class FollowBaseHelper(FollowRuleVector const &kernel_rules, FollowRulePtrMap const &non_kernel_rules)
 {
   public:
@@ -126,7 +126,7 @@ class FollowBaseHelper(FollowRuleVector const &kernel_rules, FollowRulePtrMap co
     {
         BaseRule const *base_rule = follow_rule->get_shift_rule()->get_base_rule();
         if (!base_rule->is_reduction()) {
-            Symbol const *next_symbol = base_rule->get_next_symbol();
+            Symbol *next_symbol = base_rule->get_next_symbol();
             if (!next_symbol->is_token()) {
                 Follow follow;
                 follow_rule->get_next_follow(follow);
@@ -149,7 +149,7 @@ void get_follow_shifts(Compiler &c, FollowRuleVector const &follow_rules, Follow
         FollowRule const *follow_rule = *i; 
         BaseRule const *base_rule = follow_rule->get_shift_rule()->get_base_rule();
         if (!base_rule->is_reduction() && !base_rule->get_rule()->can_bypass()) {
-            Symbol const *next_symbol = base_rule->get_next_symbol();
+            Symbol *next_symbol = base_rule->get_next_symbol();
             std::pair<FollowShiftMap::iterator, bool> r = follow_shifts.emplace(next_symbol, (FollowKernel *)NULL);
             if (r.second) {
                 // new kernel, get all rules, only need to search from i+1
@@ -180,16 +180,16 @@ LazyFollowMove const *get_lazy_follow_move(Compiler &c, FollowRuleVector const &
           if (!rule->can_bypass()) {
               RuleSymbol const &left_rule_symbol = rule->get_left_rule_symbol();
               Priority priority = left_rule_symbol.get_reduce_priority();
-              bool sticky = left_rule_symbol.has_sticky();
               bool accept = left_rule_symbol.has_accept();
+              bool sticky = left_rule_symbol.has_sticky();
               Follow const &follow = follow_rule->get_follow();
-              temp_follow_move.add_reduction(rule, follow, priority, sticky, accept);
+              temp_follow_move.add_reduction(rule, follow, priority, accept, sticky);
           }
       }
       else
       {
           // add shift if next symbol is a token
-          Symbol const *symbol = base_rule->get_next_symbol();
+          Symbol *symbol = base_rule->get_next_symbol();
           if (symbol->is_token()) {
               Priority priority = shift_rule->get_shift_priority() + base_rule->get_shift_priority();
               temp_follow_move.add_shift(symbol, priority);

@@ -1,0 +1,307 @@
+// basilcc_lr_parser
+
+namespace basilcc_api {
+
+class Lexer;
+
+// abstract LR parser
+class LRParser {
+  public:
+    LRParser(FSM const &fsm, Lexer &lexer)
+      : fsm(fsm), lexer(lexer)
+    {}
+
+    ~LRParser()
+    {}
+
+    void parse(int start_state)
+    {
+        Stack stack;
+        stack.push_back(Frame(start_state));
+        for (;;) {
+            Stack good_stack(stack);
+            int r = parse_some(stack);
+            if (r == PARSER_FAIL) {
+                //Token const &error_token = static_cast<Token const &>(*tokens[stack.token_pos]);
+                throw std::runtime_error("syntax error");
+            }
+            tokens.erase(tokens.begin(), tokens.begin() + stack.token_pos);
+            stack.token_pos = 0;
+            if (r == PARSER_DONE) {
+                break;
+            }
+        }
+    }
+
+    virtual basilcc_api::AbstractNode *on_node(int num, AbstractNodeVector &children) = 0;
+
+    // types
+    struct Frame(int state, int guess_cnt = 0, AbstractNodePtr node = AbstractNodePtr()) {}
+    typedef std::vector<Frame> FrameVector;
+    typedef FrameVector::const_iterator FrameVectorConstIter;
+    typedef FrameVector::iterator FrameVectorIter;
+    typedef std::pair<Action const *, Action const *> ActionRange;
+
+    // parser stack, is a frame vector
+    struct Stack : FrameVector {
+        Stack()
+            : token_pos(0), guess_cnt(0)
+        {}
+        Stack(Stack const &other)
+            : FrameVector(other), token_pos(other.token_pos), guess_cnt(other.guess_cnt)
+        {}
+        ~Stack()
+        {}
+        // copy other stack
+        void copy(Stack const &other)
+        {
+            static_cast<FrameVector &>(*this).operator=(other);
+            token_pos = other.token_pos;
+            guess_cnt = other.guess_cnt;
+        }
+        // take other stack -- move into this one
+        void take(Stack &other)
+        {
+            clear();
+            FrameVector::swap(other);
+            token_pos = other.token_pos;
+            guess_cnt = other.guess_cnt;
+        }
+        int token_pos;
+        int guess_cnt;
+    };
+
+    // stack snapshot, stack plus pending actions
+    struct Snapshot : Stack {
+        Snapshot(Stack const &other, ActionRange const &actions)
+            : Stack(other), actions(actions)
+        {}
+        ActionRange actions;
+    };
+    typedef std::deque<Snapshot> SnapshotDeque;
+
+    /*
+    // token
+    struct Token
+    {
+        inline Token(int number, Loc const &loc, std::string const &lexeme)
+            : num(num), loc(loc), lexeme(lexeme) {}
+        ~Token () {}
+        int num;
+        Loc loc;
+        std::string lexeme;
+    };
+
+    // get token from Lua reference
+    Parser::Token const & getToken(int ref)
+    {
+      lua_rawgeti (L, LUA_REGISTRYINDEX, ref);
+      Token const * token_ptr = static_cast <Token *> (luaL_testudata (L, -1, MT_TOKEN));
+      lua_pop (L, 1);
+      return * token_ptr;
+    }
+    // create token, return Lua reference
+    int createToken (int number, Loc const & loc, std::string const & lexeme)
+    {
+      new (lua_newuserdata (L, sizeof (Token))) Token (number, loc, lexeme);
+      luaL_setmetatable (L, MT_TOKEN);
+      return luaL_ref (L, LUA_REGISTRYINDEX);
+    }
+
+    // release token references, num tokens from pos
+    void clearTokens (int pos, int num)
+    {
+      IntVectorIter beg = tokens.begin () + pos;
+      IntVectorIter end = beg + num;
+      for (IntVectorIter i = beg; i != end; ++ i)
+      {
+        luaL_unref (L, LUA_REGISTRYINDEX, * i);
+      }
+      tokens.erase (beg, end);
+    }
+    */
+
+    // get token number at pos, lex next token if needed
+    int get_token_number(int state, int pos)
+    {
+        if (size_t(pos) < tokens.size()) {
+            return static_cast<Token const &>(*tokens[pos]).num;
+        }
+        assert(size_t(pos) == tokens.size());
+        Loc loc;
+        std::string lexeme;
+        int num = lexer.get_next_token(fsm.states[state].lex_state, loc, lexeme);
+        tokens.push_back(AbstractNodePtr(new Token(num, loc, lexeme)));
+        return num;
+    }
+
+    // lookup actions for state at top of stack
+    ActionRange lookup(Stack const &stack)
+    {
+        int state_num = stack.back().state;
+        int token_num = get_token_number(state_num, stack.token_pos);
+        State const &state = fsm.states[state_num];
+        Move const *move_sel_beg = fsm.move_sels[state.move_sel];
+        Move const *move_sel_end = fsm.move_sels[state.move_sel + 1];
+        Move const *t = std::lower_bound(move_sel_beg, move_sel_end, token_num, MoveTokenLess());
+        int action_seq_num = (t == move_sel_end || t->token != token_num) ? state.def_action_seq : t->action_seq;
+        return ActionRange(fsm.action_seqs[action_seq_num], fsm.action_seqs[action_seq_num + 1]);
+    }
+
+    // shift current token and advance token, guess true if this is a guess
+    void shift(Stack &stack, Action const *action, bool guess)
+    {
+        stack.push_back(Frame(action->arg1, guess ? 1 : 0, tokens[stack.token_pos]));
+        ++stack.token_pos;
+    }
+
+    // parser reduce codes
+    enum {
+        PARSER_OK,
+        PARSER_ACCEPT,
+        PARSER_DONE,
+        PARSER_FAIL,
+    }
+
+    // reduce and run semantic actions
+    int reduce(Stack &stack, Action const *action, bool guess, int &num_cancel)
+    {
+        int kind = action->kind;
+        Rule const &rule = fsm.rules[action->arg1];
+        int shortcut = action->arg2;
+        int guess_cnt = guess ? 1 : 0;
+        AbstractNodePtr node;
+        if (rule.node == -1 && rule.size == 1) {
+            Frame const &frame = stack.back();
+            guess_cnt += frame.guess_cnt;
+            node = frame.node;
+            stack.pop_back();
+        }
+        else {
+            AbstractNodeVector children;
+            FrameVectorIter endi = stack.end(), begi = endi - rule.size;
+            for (FrameVectorIter i = begi; i != endi; ++i) {
+                Frame const &frame = * i;
+                guess_cnt += frame.guess_cnt;
+                children.push_back(frame.node);
+            }
+            stack.erase (begi, endi);
+            if (rule.node != -1) {
+                node.reset(on_node(rule.node, children));
+                // TODO: node.reset(create_node(rule.node));
+            }
+        }
+        int r = PARSER_OK;
+        if (kind == ACTION_DONE) {
+            assert(stack.size() == 1);
+            num_cancel = guess_cnt;
+            assert(num_cancel == stack.guess_cnt);
+            stack.back().node = node;
+            r = PARSER_DONE;
+        }
+        else {
+            int s1 = stack.back().state;
+            int s2 = get_goto_state(fsm, s1, shortcut);
+            if (kind == ACTION_ACCEPT) {
+                num_cancel = guess_cnt;
+                assert(num_cancel <= stack.guess_cnt);
+                guess_cnt = 0;
+                stack.guess_cnt -= num_cancel;
+                if (stack.guess_cnt == 0) {
+                    r = PARSER_ACCEPT;
+                }
+            }
+            stack.push_back(Frame (s2, guess_cnt, node));
+        }
+        return r;
+    }
+
+    // parse until next accept or done
+    int parse_some(Stack &stack)
+    {
+        SnapshotDeque snapshots;
+        for (;;) {
+            ActionRange actions = lookup(stack);
+            if (actions.first == actions.second) {
+                if (snapshots.empty()) {
+                    return PARSER_FAIL;
+                }
+                // backtrack
+                Snapshot &snapshot = snapshots.back();
+                stack.take(snapshot);
+                actions = snapshot.actions;
+                snapshots.pop_back();
+            }
+            Action const *action = actions.first;
+            bool guess = ++actions.first != actions.second;
+            if (guess) {
+                snapshots.emplace_back(stack, actions);
+                ++stack.guess_cnt;
+            }
+            if (action->kind == ACTION_SHIFT) {
+                shift(stack, action, guess);
+            }
+            else {
+                int num_cancel = 0;
+                int r = reduce(stack, action, guess, num_cancel);
+                // cancel pending parsers
+                num_cancel = std::min(num_cancel, int(snapshots.size()));
+                for (; num_cancel > 0; --num_cancel) {
+                    snapshots.pop_back();
+                }
+                if (r == PARSER_DONE || r == PARSER_ACCEPT) {
+                    return r;
+                }
+            }
+        }
+    }
+
+  private:
+    FSM const &fsm;
+    Lexer &lexer;
+    AbstractNodeVector tokens;
+};
+
+namespace {
+// get goto state at state and shortcut
+int get_goto_state(FSM const &fsm, int state_num, int shortcut)
+{
+    Goto const & go2 = fsm.go2s[shortcut];
+    if (go2.shift_state_sel == -1) {
+        return -1;
+    }
+    ShiftState const *shift_state_sel_beg = fsm.shift_state_sels[go2.shift_state_sel];
+    ShiftState const *shift_state_sel_end = fsm.shift_state_sels[go2.shift_state_sel + 1];
+    int num = fsm.states[state_num].num;
+    ShiftState const *t = std::lower_bound (shift_state_sel_beg, shift_state_sel_end, num, ShiftStateNumberLess());
+    return (t == shift_state_sel_end || t->num != num) ? go2.def_state : t->state;
+}
+
+inline bool MoveTokenLess(; Move const &a, int token_num) const
+{
+    return a.token < token_num;
+}
+
+inline bool ShiftStateNumberLess(; ShiftState const &a, int num) const
+{
+    return a.num < num;
+}
+
+} // unnamed
+} // basilcc_api
+
+#hdr
+#include <basilcc_api_fsm.h>
+#include <basilcc_api_node.h>
+#include <deque>
+#include <vector>
+#end
+
+#src
+#include <basilcc_api_lexer.h>
+#include <basilcc_api_loc.h>
+#include <algorithm>
+#include <cassert>
+#include <cstring>
+#include <stddef.h>
+#end

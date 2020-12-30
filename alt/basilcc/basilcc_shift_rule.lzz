@@ -19,7 +19,7 @@ class ShiftRule {
     {}
 
     // get left hand symbol
-    Symbol const *get_left_symbol() const
+    Symbol *get_left_symbol() const
     {
         return _base_rule->get_left_symbol();
     }

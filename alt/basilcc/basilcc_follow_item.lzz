@@ -9,11 +9,11 @@ class Symbol;
 
 class FollowItem {
   public:
-    FollowItem(Symbol const *token, Symbol const *shortcut)
+    FollowItem(Symbol *token, Symbol *shortcut)
         : _token(token), _shortcut(shortcut), _sticky(false), _accept(false)
     {}
 
-    FollowItem(Symbol const *token, Symbol const *shortcut, Priority const &rp, bool sticky, bool accept)
+    FollowItem(Symbol *token, Symbol *shortcut, Priority const &rp, bool sticky, bool accept)
         : _token(token), _shortcut(shortcut), _rp(rp), _sticky(sticky), _accept(accept)
     {}
 
@@ -21,13 +21,13 @@ class FollowItem {
     {}
     
     // get token
-    inline Symbol const *get_token() const
+    inline Symbol *get_token() const
     {
         return _token;
     }
 
     // get shortcut
-    inline Symbol const *get_shortcut() const
+    inline Symbol *get_shortcut() const
     {
         return _shortcut;
     }
@@ -74,7 +74,7 @@ class FollowItem {
     }
 
     // to string, to reduce clutter suppress shortcut if equal to left hand symbol in rule
-    std::string to_string(Symbol const *left_symbol) const
+    std::string to_string(Symbol *left_symbol) const
     {
         std::ostringstream ss;
         ss << _token->get_name();
@@ -92,9 +92,9 @@ class FollowItem {
     }
 
   private:
-    Symbol const *_token;
+    Symbol *_token;
     // symbol to follow on reduction, left rule symbol or shortcut
-    Symbol const *_shortcut;
+    Symbol *_shortcut;
     // reduce/first priority
     Priority _rp;
     // follow item never considered for default reduce

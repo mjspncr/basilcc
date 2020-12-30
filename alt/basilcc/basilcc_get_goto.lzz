@@ -5,12 +5,12 @@ namespace basilcc {
 class Compiler;
 class Symbol;
 
-typedef std::map<Symbol const *, Goto> GotoMap;
+typedef std::map<Symbol *, Goto> GotoMap;
 
 // populate goto map
 void get_goto(Compiler &c, GotoMap &go2s)
 {
-    typedef std::map<Symbol const *, ShiftStateVector> SymbolShiftStateVectorMap;
+    typedef std::map<Symbol *, ShiftStateVector> SymbolShiftStateVectorMap;
     SymbolShiftStateVectorMap symbol_shift_states;
     for (ShiftSel const *shift_sel: c.get_shift_sels()) {
         int shift_sel_num = shift_sel->_num;
@@ -19,7 +19,7 @@ void get_goto(Compiler &c, GotoMap &go2s)
         }
     }
     for (SymbolShiftStateVectorMap::value_type &p: symbol_shift_states) {
-        Symbol const *symbol = p.first;
+        Symbol *symbol = p.first;
         ShiftStateVector &shift_states = p.second;
         // get default state
         std::sort(shift_states.begin(), shift_states.end(), ShiftStateLessState());
@@ -36,16 +36,20 @@ void get_goto(Compiler &c, GotoMap &go2s)
 
 namespace {
 
+// true if a.state < b.state
 bool ShiftStateLessState(; ShiftState const &a, ShiftState const &b) const
 {
-    return a.get_state() < b.get_state();
+    // compare numbers so will get consistent results for most()
+    return a.get_state()->_num < b.get_state()->_num;
 }
 
+// true if a.state == b.state
 bool ShiftStateSameState(; ShiftState const &a, ShiftState const &b) const
 {
     return a.get_state() == b.get_state();
 }
 
+// true if a.shift_number < b.shift_number
 bool ShiftStateLess(; ShiftState const &a, ShiftState const &b) const
 {
     return a.get_shift_number() < b.get_shift_number();
@@ -63,6 +67,7 @@ bool ShiftStateLess(; ShiftState const &a, ShiftState const &b) const
 #include <basilcc_compiler.h>
 #include <basilcc_shift.h>
 #include <basilcc_shift_sel.h>
+#include <basilcc_state.h>
 #include <basilcc_util.h>
 #include <algorithm>
 #end

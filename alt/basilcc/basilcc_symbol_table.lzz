@@ -6,7 +6,8 @@ namespace basilcc {
 class Symbol;
 class Compiler;
 
-typedef std::vector<Symbol const *> SymbolVector;
+typedef std::vector<Symbol *> SymbolVector;
+typedef std::map<char const *, Symbol *> SymbolMap;
 
 class SymbolTable
 {
@@ -19,53 +20,12 @@ class SymbolTable
 
     ~SymbolTable()
     {
-        delete_objects(_tokens);
-        delete_objects(_nonterminals);
+        delete_values(_symbols);
     }
 
-    // get EOT symbol
-    Symbol const *get_eot_symbol() const
+    SymbolMap const &get_symbols() const
     {
-        return _eot;
-    }
-
-    // get start symbol
-    Symbol const *get_start_symbol() const
-    {
-        return _start;
-    }
-
-    // get symbol from name, new symbol if doesn't exist
-    Symbol const *get_symbol(char const *name)
-    {
-        std::pair<SymbolMap::iterator, bool> r = _symbols.insert(SymbolMap::value_type(name, NULL));
-        if (r.second) {
-            Symbol const *symbol;
-            if (is_token(name)) {
-                symbol = *_tokens.insert(_tokens.end(), new Token(name));
-            }
-            else {
-                symbol = *_nonterminals.insert(_nonterminals.end(), new Nonterminal(name));
-            }
-            r.first->second = symbol;
-        }
-        return r.first->second;
-    }
-
-    // freeze symbols, no more
-    void freeze_symbols()
-    {
-        // assign numbers
-        std::sort(_tokens.begin() + 1, _tokens.end(), SymbolNameLess()); // EOT=0
-        int num = 0;
-        for (Symbol const *symbol: _tokens) {
-            const_cast<int &>(symbol->_num) = num++;
-        }
-        std::sort(_nonterminals.begin() + 1, _nonterminals.end(), SymbolNameLess()); // start=0
-        num = 0;
-        for (Symbol const *symbol: _nonterminals) {
-            const_cast<int &>(symbol->_num) = num++;
-        }
+        return _symbols;
     }
 
     SymbolVector const &get_tokens() const
@@ -78,16 +38,61 @@ class SymbolTable
         return _nonterminals;
     }
 
+    // get EOT symbol
+    Symbol *get_eot_symbol() const
+    {
+        return _eot;
+    }
+
+    // get start symbol
+    Symbol *get_start_symbol() const
+    {
+        return _start;
+    }
+
+    // get symbol from name, new symbol if doesn't exist
+    Symbol *get_symbol(char const *name)
+    {
+        std::pair<SymbolMap::iterator, bool> r = _symbols.insert(SymbolMap::value_type(name, NULL));
+        if (r.second) {
+            if (is_token(name)) {
+                _tokens.push_back(r.first->second = new Token(name));
+
+            }
+            else {
+                _nonterminals.push_back(r.first->second = new Nonterminal(name));
+            }
+        }
+        return r.first->second;
+    }
+
+    // no more symbols
+    void freeze()
+    {
+        // tokens, EOT always 0
+        {
+            std::sort(_tokens.begin() + 1, _tokens.end(), SymbolNameLess());
+            int num = 0;
+            for (Symbol *symbol: _tokens) {
+                const_cast<int &>(symbol->_num) = num++;
+            }
+        }
+        // nonterminals
+        {
+            std::sort(_nonterminals.begin(), _nonterminals.end(), SymbolNameLess());
+            int num = 0;
+            for (Symbol *symbol: _nonterminals) {
+                const_cast<int &>(symbol->_num) = num++;
+            }
+        }
+    }
+
   private:
-    // tokens and nonterminals, owns the symbols
-    SymbolVector _tokens;
-    SymbolVector _nonterminals;
-    // index of symbols by name
-    typedef std::map<char const *, Symbol const *> SymbolMap;
     SymbolMap _symbols;
+    SymbolVector _tokens, _nonterminals;
     // special symbols EOT and start
-    Symbol const *_eot;
-    Symbol const *_start;
+    Symbol *_eot;
+    Symbol *_start;
 };
 
 namespace {

@@ -47,7 +47,7 @@ class State {
         FollowShiftMap const &follow_shifts = follow_base.get_follow_shifts();
         ShiftVector token_shifts, nonterm_shifts;
         for (FollowShiftMap::value_type const &p: follow_shifts) {
-            Symbol const *symbol = p.first;
+            Symbol *symbol = p.first;
             Shift shift(symbol, c.get_state(p.second));
             if (symbol->is_token()) {
                 token_shifts.push_back(shift);
@@ -68,6 +68,11 @@ class State {
     ShiftSel const *_nonterm_shift_sel;
     LexState _lex_state; 
 };
+
+inline bool StateNumberLess(; State const *a, State const *b) const
+{
+    return a->_num < b->_num;
+}
 
 } // basilcc
 

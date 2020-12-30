@@ -5,7 +5,7 @@ namespace basilcc {
 class ShiftStateSel;
 
 typedef std::vector<ShiftState> ShiftStateVector;
-typedef std::vector<ShiftStateSel const *> ShiftStateSelVector;
+typedef std::vector<ShiftStateSel *> ShiftStateSelVector;
 
 class ShiftStateSelTable {
   public:

@@ -1,7 +1,4 @@
-// basilcc_rule_table
-//
-// maintains all rules
-//
+// basilcc rule table
 
 namespace basilcc {
 
@@ -11,7 +8,8 @@ class Symbol;
 class Rule;
 
 typedef std::vector<RuleSymbol> RuleSymbolVector;
-typedef std::multimap<Symbol const *, Rule *> RuleMap;
+typedef std::vector<Rule *> RuleVector;
+typedef std::multimap<Symbol *, Rule *> RuleMap;
 typedef std::pair<RuleMap::const_iterator, RuleMap::const_iterator> RuleMapRange;
 
 class RuleTable
@@ -30,14 +28,14 @@ class RuleTable
 
     // add new rule
     Rule *add_rule(
-        Node const *node,
+        Node *node,
         RuleSymbol const &left_rule_symbol,
         RuleSymbolVector const &right_rule_symbols,
         RuleSymbolVector const &explicit_follow,
         bool no_bypass
     )
     {
-        Symbol const *left_symbol = left_rule_symbol.get_symbol();
+        Symbol *left_symbol = left_rule_symbol.get_symbol();
         if (left_symbol->is_token()) {
             std::ostringstream ss;
             ss << "left hand symbol '" << left_symbol->get_name() << "' is a token";
@@ -51,29 +49,40 @@ class RuleTable
             }
         }
         return _rules.emplace_hint(_rules.end(), left_symbol,
-            new Rule(_rules.size(), node, left_rule_symbol, right_rule_symbols, explicit_follow, can_bypass))->second;
+                new Rule(
+                    _rules.size(),
+                    node,
+                    left_rule_symbol,
+                    right_rule_symbols,
+                    explicit_follow,
+                    _c.is_start_symbol(left_symbol),
+                    can_bypass))->second;
     }
 
-    // get all rules
-    inline RuleMap const &get_rules() const
+    // get vector of rules ordered by number
+    void get_rules(RuleVector &rules) const
     {
-        return _rules;
+        rules.reserve(_rules.size());
+        for (RuleMap::value_type const &p: _rules) {
+            rules.push_back(p.second);
+        }
+        std::sort(rules.begin(), rules.end(), RuleNumberLess());
     }
 
     // get rules with left hand symbol
-    RuleMapRange get_rules(Symbol const *left_symbol) const
+    inline RuleMapRange get_rules(Symbol *left_symbol) const
     {
         return _rules.equal_range(left_symbol);
     }
 
     // true if left symbol
-    bool is_left_symbol(Symbol const *symbol) const
+    inline bool is_left_symbol(Symbol *symbol) const
     {
         return _rules.find(symbol) != _rules.end();
     }
 
-    // freeze rules, check for errors
-    void freeze_rules() const
+    // no more rules
+    void freeze() const
     {
         // make sure at least one start rule
         if (!is_left_symbol(_c.get_start_symbol())) {
@@ -83,7 +92,7 @@ class RuleTable
         for (RuleMap::value_type const &p: _rules) {
             Rule const *rule = p.second;
             for (RuleSymbol const &rule_symbol: rule->get_right_rule_symbols()) {
-                Symbol const *symbol = rule_symbol.get_symbol();
+                Symbol *symbol = rule_symbol.get_symbol();
                 if (!symbol->is_token()) {
                     if (_c.is_start_symbol(symbol)) {
                         throw std::runtime_error("start symbol on right hand side of rule");
@@ -117,5 +126,6 @@ class RuleTable
 #include <basilcc_rule.h>
 #include <basilcc_symbol.h>
 #include <basilcc_util.h>
+#include <algorithm>
 #include <sstream>
 #end

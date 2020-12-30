@@ -128,7 +128,7 @@ inline bool SymbolLess(; Symbol const *a, Symbol const *b) const
 
 
 // for debuggging
-void print_first(Symbol const *symbol)
+void print_first(Symbol *symbol)
 {
     std::cout << symbol->get_name() << ": " << symbol->get_first().to_string() << std::endl; 
 }

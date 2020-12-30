@@ -2,7 +2,8 @@
 
 namespace basilcc {
 
-typedef std::set<MoveSel const *, MoveSelLess> MoveSelSet;
+typedef std::set<MoveSel *, MoveSelLess> MoveSelSet;
+typedef std::vector<MoveSel *> MoveSelVector;
 
 class MoveSelTable {
   public:
@@ -31,6 +32,12 @@ class MoveSelTable {
         return _move_sels;
     }
 
+    void get_move_sels(MoveSelVector &move_sels) const
+    {
+        MoveSelVector(_move_sels.begin(), _move_sels.end()).swap(move_sels);
+        std::sort(move_sels.begin(), move_sels.end(), MoveSelNumberLess());
+    }
+
   private:
     MoveSelSet _move_sels;
 };
@@ -40,6 +47,7 @@ class MoveSelTable {
 #hdr
 #include <basilcc_move_sel.h>
 #include <set>
+#include <vector>
 #end
 
 #src

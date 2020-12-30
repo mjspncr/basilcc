@@ -49,7 +49,7 @@ class FollowRule {
         Rule const *rule = base_rule->get_rule();
         RuleSymbol const &next_rule_symbol = base_rule->get_next_rule_symbol();
         RuleSymbol const &left_rule_symbol = base_rule->get_left_rule_symbol();
-        Symbol const *shortcut = next_rule_symbol.get_symbol();
+        Symbol *shortcut = next_rule_symbol.get_symbol();
         Priority rp = _shift_rule->get_shift_priority() + left_rule_symbol.get_shift_priority() + next_rule_symbol.get_reduce_priority();
         bool sticky = next_rule_symbol.has_sticky();
         bool accept = next_rule_symbol.has_accept();
@@ -57,7 +57,7 @@ class FollowRule {
         bool null = true;
         for (int i = base_rule->get_pos() + 1, endi = rule->get_size(); null && i != endi; ++i) {
             RuleSymbol const &rule_symbol = rule->get_right_rule_symbol(i);
-            Symbol const *symbol = rule_symbol.get_symbol();
+            Symbol *symbol = rule_symbol.get_symbol();
             First const &first = symbol->get_first();
             Priority first_rp = rp + rule_symbol.get_first_priority(); 
             follow.add_first(first, rule_symbol.get_lex_state(), shortcut, first_rp, sticky, accept);

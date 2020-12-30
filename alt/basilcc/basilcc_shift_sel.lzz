@@ -21,7 +21,7 @@ class ShiftSel
     }
 
     // get shift state from symbol number
-    State const *get_shift_state(Symbol const *symbol) const
+    State const *get_shift_state(Symbol *symbol) const
     {
         return basilcc::get_shift_state(_shifts, symbol);
     }

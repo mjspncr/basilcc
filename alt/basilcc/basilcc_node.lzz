@@ -1,5 +1,4 @@
-// basilcc_node
-//
+// rule node
 
 namespace basilcc {
 
@@ -21,10 +20,12 @@ class Node {
     }
 
     // set rule that defines this node
-    void define(Rule *rule, bool has_semantics)
+    void define(Rule *rule, bool has_semantics, std::string const &user_type = std::string())
     {
         _rule = rule;
         _has_semantics = has_semantics;
+        _user_type = user_type;
+
     }
 
     // true if node has a defining rule
@@ -49,8 +50,13 @@ class Node {
   private:
     char const *_name;
     Rule *_rule;
-    bool _has_semantics; // true if node has an on_node() method
-    // Type ? 
+     // true if node has an on_node() method
+    bool _has_semantics;
+    // optional return type for on_node() method, just keep the type simple,
+    // assume a type name (at least looks like a type name in the c++ declaration),
+    // can also be "void" to mean the on_node() method returns nothing, if not set
+    // assumes on_node returns the node itself (*this)
+    std::string _user_type;
 };
 
 // true if a < b
@@ -72,5 +78,6 @@ inline bool NodeNumberLess(; Node const *a, Node const *b) const
 } // basilcc
 
 #hdr
+#include <string>
 #include <cstring>
 #end

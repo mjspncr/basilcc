@@ -1,4 +1,4 @@
-// basilcc shift state
+// shift state
 
 namespace basilcc {
 
@@ -14,7 +14,7 @@ class ShiftState
     inline ~ShiftState()
     {}
 
-    // get shift number
+    // get shift selection number
     inline int get_shift_number() const
     {
         return _shift_num;
@@ -27,7 +27,7 @@ class ShiftState
     }
 
   private:
-    // (shift sel) number
+    // shift selection number
     int _shift_num;
     State const *_state;
 };

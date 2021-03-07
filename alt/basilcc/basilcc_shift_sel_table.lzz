@@ -1,3 +1,5 @@
+// shift selection table
+
 namespace basilcc {
 
 class ShiftSel;
@@ -10,13 +12,13 @@ class ShiftSelTable
     ShiftSelTable()
     {}
 
-    ~ShiftSelTable ()
+    ~ShiftSelTable()
     {
         delete_objects(_shift_sels);
     }
 
-    // get shift sel from shifts
-    ShiftSel const *get_shift_sel(ShiftVector &shifts) // steals shifts
+    // get shift selection from shifts, steals shifts
+    ShiftSel const *get_shift_sel(ShiftVector &shifts)
     {
         std::unique_ptr<ShiftSel> shift_sel_ptr(new ShiftSel(shifts));
         std::pair<ShiftSelSet::iterator, bool> r = _shift_sels.insert(shift_sel_ptr.get());
@@ -27,7 +29,7 @@ class ShiftSelTable
         return *r.first;
     }
 
-    // get all shift sels
+    // get all shift selections
     ShiftSelSet const &get_shift_sels() const
     {
         return _shift_sels;

@@ -1,4 +1,4 @@
-// basilcc shift state sel
+// shift state selection
 
 namespace basilcc {
 
@@ -23,7 +23,6 @@ class ShiftStateSel {
     }
 
     int const _num;
-
   private:
     ShiftStateVector _shift_states;
 };

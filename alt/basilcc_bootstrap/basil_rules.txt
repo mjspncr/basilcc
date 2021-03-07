@@ -1,38 +1,54 @@
 # rule grammar
+### maybe "Node" should be append to all node names, so don't need to do here...
 
-start -> rule-seq-opt
+[RootNode/void]
+start -> rule-seq
 
-rule-seq-opt ->
-rule-seq-opt -> rule-seq
-
-rule-seq -> rule
+# rule
+rule-seq ->
+[RuleSeqNode]
 rule-seq -> rule-seq rule
 
-rule [RuleNode] -> symbol node-type-opt ARROW symbol-seq-opt >
+[RuleNode]
+rule -> node-type symbol ARROW symbol-seq >
 
-node-type-opt ->
-node-type-opt -> node-type
+# node
+node-type ->
+[NodeTypeNode]
+node-type -> LBRACK IDENT node-qualifier RBRACK
 
-node-type [NodeTypeNode] -> LBRACK IDENT RBRACK
+node-qualifier ->
+[NodeQualifierNode]
+node-qualifier -> SLASH ident-opt
 
-symbol-seq-opt ->
-symbol-seq-opt -> symbol-seq
+ident-opt ->
+ident-opt -> IDENT
 
-symbol-seq [SymbolSeq1Node] -> symbol
-symbol-seq [SymbolSeqfNode2] -> symbol-seq symbol
+# symbol
+symbol-seq ->
+[SymbolSeqNode]
+symbol-seq -> symbol-seq symbol
 
-symbol <* [SymbolNode] -> IDENT attrib-seq
+[SymbolNode]
+symbol <* -> IDENT attrib-seq
 
-attrib-seq [AttribSeq1Node] -> 
-attrib-seq [AttribSeq2Node] -> attrib-seq NUMBER
-attrib-seq [AttribSeq3Node] -> attrib-seq LT
-attrib-seq [AttribSeq4Node] -> attrib-seq STAR
-attrib-seq [AttribSeq5Node] -> attrib-seq PLUS bang-seq-opt
-attrib-seq [AttribSeq6Node] -> attrib-seq CARET bang-seq-opt
-attrib-seq [AttribSeq7Node] -> attrib-seq GT bang-seq-opt
+# attributes
+[AttribSeq1Node/Attributes]
+attrib-seq ->
+[AttribSeq2Node/Attributes]
+attrib-seq -> attrib-seq NUMBER
+[AttribSeq3Node/Attributes]
+attrib-seq -> attrib-seq LT
+[AttribSeq4Node/Attributes]
+attrib-seq -> attrib-seq STAR
+[AttribSeq5Node/Attributes]
+attrib-seq -> attrib-seq PLUS bang-seq
+[AttribSeq6Node/Attributes]
+attrib-seq -> attrib-seq CARET bang-seq
+[AttribSeq7Node/Attributes]
+attrib-seq -> attrib-seq GT bang-seq
 
-bang-seq-opt -> 
-bang-seq-opt -> bang-seq
-
-bang-seq [BangSeq1Node] -> BANG
-bang-seq [BangSeq2Node] -> bang-seq BANG
+[BangSeq1Node/int]
+bang-seq ->
+[BangSeq2Node/int]
+bang-seq -> bang-seq BANG

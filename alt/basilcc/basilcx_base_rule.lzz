@@ -1,0 +1,106 @@
+namespace basilcx {
+
+class Priority;
+class Rule;
+class RuleSymbol;
+class Symbol;
+class Workspace;
+
+class BaseRule
+{
+  public:
+    BaseRule(Rule const *rule, int pos)
+        : _num(-1), _rule(rule), _pos(pos)
+    {}
+
+    ~BaseRule()
+    {}
+
+    // get rule
+    inline Rule const *get_rule() const
+    {
+        return _rule;
+    }
+
+    // get dot position in rule
+    inline int get_pos() const
+    {
+        return _pos;
+    }
+
+    // true if reduction, dot at end of rule
+    bool is_reduction() const
+    {
+        return _pos == _rule->get_size();
+    }
+
+    // get left rule symbol
+    inline RuleSymbol const &get_left_rule_symbol() const
+    {
+        return _rule->get_left_rule_symbol();
+    }
+    inline Symbol *get_left_symbol() const
+    {
+        return get_left_rule_symbol().get_symbol();
+    }
+
+    // get rule symbol at dot, dot must not be at end
+    RuleSymbol const &get_next_rule_symbol() const
+    {
+        return _rule->get_right_rule_symbol(_pos);
+    }
+    Symbol *get_next_symbol() const
+    {
+        return get_next_rule_symbol().get_symbol();
+    }
+
+    // get first priority, called in first closure when all symbols to the left of dot have null in first set
+    Priority get_first_priority() const
+    {
+        return get_left_rule_symbol().get_first_priority() + get_next_rule_symbol().get_first_priority();
+    }
+
+    // get shift priority
+    Priority get_shift_priority() const
+    {
+        return get_left_rule_symbol().get_shift_priority() + get_next_rule_symbol().get_shift_priority();
+    }
+
+    // get base rule at next pos
+    BaseRule const *get_next_base_rule(Workspace &w) const
+    {
+        return w.base_rules.get_base_rule(_rule, _pos + 1);
+    }
+
+    // to string
+    std::string to_string() const
+    {
+      return _rule->to_string(_pos);
+    }
+
+    int const _num;
+  private:
+    Rule const *_rule;
+    int _pos;
+};
+
+// true if a < b, compares pointers
+inline bool operator<(BaseRule const &a, BaseRule const &b)
+{
+    if (a.get_rule() != b.get_rule()) {
+        return a.get_rule() < b.get_rule();
+    }
+    return a.get_pos() < b.get_pos();
+}
+
+} // basilcx
+
+#hdr
+#include <string>
+#end
+
+#inl
+#include <basilcx_workspace.h>
+#include <basilcx_rule.h>
+#include <basilcx_rule_symbol.h>
+#end

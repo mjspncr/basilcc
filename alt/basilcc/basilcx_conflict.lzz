@@ -1,0 +1,60 @@
+// basilcc conflict
+
+namespace basilcc {
+
+class TempAction;
+class Symbol;
+typedef std::vector<TempAction *> TempActionVector;
+
+class Conflict {
+  public:
+    Conflict(Symbol *token, TempActionVector const &temp_actions)
+        : _token(token), _temp_actions(temp_actions)
+    {}
+    
+    ~Conflict()
+    {
+        delete_objects(_temp_actions);
+    }
+
+    // get token
+    inline Symbol *get_token() const
+    {
+        return _token;
+    }
+
+    // get actions that conflict on token
+    inline TempActionVector const &get_temp_actions() const
+    {
+        return _temp_actions;
+    }
+
+    /*
+    // to string
+    std::string to_string()
+    {
+      string str = "CONFLICT: ";
+      str += m_token->getName ();
+      str += " - ";
+      appendTempActions (str, m_temp_actions);
+      return str;
+    }
+    */
+
+  private:
+    Symbol *_token;
+    // conflicting actions, responsible for deleting them
+    TempActionVector _temp_actions;
+};
+
+} // basilcc
+
+#hdr
+#include <vector>
+#include <string>
+#end
+
+#src
+#include <basilcx_temp_action.h>
+#include <basilcx_util.h>
+#end

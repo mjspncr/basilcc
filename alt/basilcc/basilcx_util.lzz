@@ -1,0 +1,113 @@
+namespace basilcx {
+
+// append str2 to str1 with space if str1 non-empty, return str1
+std::string &append_with_space(std::string &str1, std::string const &str2)
+{
+    if (!str2.empty())
+    {
+        if (!str1.empty())
+        {
+            str1 += ' ';
+        }
+        str1 += str2;
+    }
+    return str1;
+}
+
+// return int as string
+std::string int_to_string(int v)
+{
+    std::ostringstream ss;
+    ss << v;
+    return ss.str();
+}
+
+// delete object and set pointer to 0
+template <class PTR>
+inline void delete_object(PTR &p)
+{
+    delete p;
+    p = 0;
+}
+// functor
+template <class T>
+inline void DeleteObject(; T* &p)
+{
+    delete_object(p);
+}
+
+// delete objects over iterators
+template <class ITER>
+inline void delete_objects(ITER beg, ITER end)
+{
+    for (; beg != end; ++beg) {
+        delete *beg;
+    }
+}
+template <class PTR>
+inline void delete_objects(PTR *beg, PTR *end)
+{
+    std::for_each(beg, end, DeleteObject<PTR>());
+}
+
+template <class T>
+inline void delete_objects(T &t)
+{
+    for (typename T::value_type x: t) {
+        delete x;
+    }
+}
+
+template <class T>
+inline void delete_values(T &t)
+{
+    for (typename T::value_type const &p: t) {
+        delete p.second;    }
+}
+
+// find element that occurs most
+template <class In, class Cmp>
+std::pair <In, In> most (In first, In last, Cmp cmp)
+{
+    In most_p = first, most_q = most_p, p = most_p, q = most_q;
+    unsigned int most_c = 0, c = most_c;
+    for (;; ++ first)
+    {
+        if (first == last || ! cmp (* first, * p))
+        {
+            if (c > most_c)
+            {
+                most_p = p;
+                most_q = q;
+                most_c = c;
+            }
+            if (first == last)
+            {
+                break;
+            }
+            p = first;
+            q = p;
+            c = 0;
+        }
+        else
+        {
+            ++ q;
+            ++ c;
+        }
+    }
+    return std::make_pair (most_p, most_q);
+}
+
+} // basilcx
+
+#hdr
+#include <string>
+#end
+
+#tnl
+#include <algorithm>
+#end
+
+#src
+#include <sstream>
+#end

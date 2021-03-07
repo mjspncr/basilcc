@@ -1,0 +1,87 @@
+namespace basilcx {
+
+class FollowKernel;
+class ShiftSel;
+class StateMove;
+class Workspace;
+
+class State {
+  public:
+    State(int num, FollowKernel *follow_kernel)
+      : _num(num), _follow_kernel(follow_kernel), _state_move(NULL), _nonterm_shift_sel(NULL)
+    {}
+
+    ~State()
+    {}
+
+    // get follow kernel
+    inline FollowKernel *get_follow_kernel() const
+    {
+        return _follow_kernel;
+    }
+
+    // get state move
+    inline StateMove *get_state_move() const
+    {
+        return _state_move;
+    }
+
+    // get nonterm shift sel
+    inline ShiftSel *get_nonterm_shift_sel() const
+    {
+        return _nonterm_shift_sel;
+    }
+
+    // get lex state
+    inline LexState const &get_lex_state() const
+    {
+      return _lex_state;
+    }
+
+    // closure, return number of conflicts
+    int closure(Workspace &w)
+    {
+        FollowBase const &follow_base = _follow_kernel->get_follow_base(c);
+        FollowShiftMap const &follow_shifts = follow_base.get_follow_shifts();
+        ShiftVector token_shifts, nonterm_shifts;
+        for (FollowShiftMap::value_type const &p: follow_shifts) {
+            Symbol *symbol = p.first;
+            Shift shift(symbol, w.states.get_state(p.second));
+            if (symbol->is_token()) {
+                token_shifts.push_back(shift);
+            }
+            else {
+                nonterm_shifts.push_back(shift);
+            }
+        }
+        _state_move = follow_base.get_lazy_follow_move()->get_state_move(w, token_shifts);
+        _nonterm_shift_sel = c.get_shift_sel(nonterm_shifts);
+        return follow_base.get_conflicts().size();
+    }
+
+    int const _num;
+  private:
+    FollowKernel *_follow_kernel;
+    StateMove *_state_move;
+    ShiftSel *_nonterm_shift_sel;
+    LexState _lex_state; 
+};
+
+inline bool StateNumberLess(; State const *a, State const *b) const
+{
+    return a->_num < b->_num;
+}
+
+} // basilcx
+
+#hdr
+#include <basilcx_lex_state.h>
+#end
+
+#src
+#include <basilcx_workspace.h>
+#include <basilcx_follow_base.h>
+#include <basilcx_follow_kernel.h>
+#include <basilcx_lazy_follow_move.h>
+#include <basilcx_symbol.h>
+#end

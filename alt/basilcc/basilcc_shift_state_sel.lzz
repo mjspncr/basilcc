@@ -30,6 +30,6 @@ class ShiftStateSel {
 } // basilcc
 
 #hdr
-#include <basilcc_shift_state.h>
+#include <basilcx_shift_state.h>
 #include <vector>
 #end

@@ -1,0 +1,128 @@
+namespace basilcx {
+
+class Symbol;
+
+class RuleSymbol
+
+{
+  public:
+    RuleSymbol(
+        Symbol *symbol,
+        Priority const &reduce_priority,
+        Priority const &first_priority,
+        Priority const &shift_priority,
+        LexState const &lex_state,
+        bool sticky,
+        bool accept
+    )
+        : _symbol(symbol),
+          _reduce_priority(reduce_priority),
+          _first_priority(first_priority),
+          _shift_priority(shift_priority),
+          _lex_state(lex_state),
+          _accept(accept),
+          _sticky(sticky)
+    {}
+
+    ~ RuleSymbol()
+    {}
+
+    // get symbol
+    inline Symbol *get_symbol() const
+    {
+        return _symbol;
+    }
+    
+    // get reduce priority
+    inline Priority const &get_reduce_priority() const
+    {
+        return _reduce_priority;
+    }
+    
+    // get first priority
+    inline Priority const &get_first_priority() const
+    {
+        return _first_priority;
+    }
+    
+    // get shift priority
+    inline Priority const &get_shift_priority() const
+    {
+        return _shift_priority;
+    }
+    
+    // get lex state
+    inline LexState const &get_lex_state() const
+    {
+        return _lex_state;
+    }
+    
+    // true if has sticky attribute
+    inline bool has_sticky() const
+    {
+        return _sticky;
+    }
+
+    // true if has accept attribute
+    inline bool has_accept() const
+    {
+        return _accept;
+    }
+    
+    // return rule symbol as string
+    std::string to_string() const
+    {
+        std::ostringstream ss;
+        if (_shift_priority.is_set())
+        {
+            ss << shift_priority_to_string(_shift_priority);
+        }
+        if (_first_priority.is_set())
+        {
+            ss << first_priority_to_string(_first_priority);
+        }
+        if (_reduce_priority.is_set())
+        {
+            ss << reduce_priority_to_string(_reduce_priority);
+        }
+        if (_sticky)
+        {
+            ss << '<';
+        }
+        if (_accept)
+        {
+            ss << '*';
+        }
+        std::string attrib_seq_str = ss.str();
+        if (_lex_state.is_set())
+        {
+            append_with_space(attrib_seq_str, _lex_state.to_string());
+        }
+        std::string str(_symbol->get_name());
+        append_with_space(str, attrib_seq_str);
+        return str;
+    }
+
+  private:
+    Symbol *_symbol;
+    Priority _reduce_priority;
+    Priority _first_priority;
+    Priority _shift_priority;
+    LexState _lex_state;
+    bool _accept;
+    bool _sticky;
+};
+
+} // basilcx
+
+#hdr
+#include <basilcx_lex_state.h>
+#include <basilcx_priority.h>
+#end
+
+#src
+#include <basilcx_symbol.h>
+#include <basilcx_util.h>
+
+#include <sstream>
+#end

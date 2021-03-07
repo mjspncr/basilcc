@@ -1,13 +1,13 @@
 // basilcc_fe_parser.cc
 
 namespace basilcc {
-class Compiler;
+class Workspace;
 }
 
 namespace basilcc_fe {
 
 // rule -> symbol node-type-opt ARROW symbol-seq-opt
-void RuleNode::on_node(basilcc::Compiler &compiler) const
+void RuleNode::on_node(basilcc::Workspace &compiler) const
 {
     std::cout << "RuleNode::on_node" << std::endl;
 }
@@ -31,6 +31,6 @@ class GetRuleSymbol : NodeVisitor {
 #end
 
 #src
-#include <basilcc_compiler.h>
+#include <basilcx_workspace.h>
 #include <iostream>
 #end

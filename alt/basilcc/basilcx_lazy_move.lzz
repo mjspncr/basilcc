@@ -1,0 +1,62 @@
+namespace basilcx {
+
+class LazyActionSeq;
+class Move;
+class Shift;
+class Symbol;
+class Workspace;
+typedef std::vector<Shift> ShiftVector;
+
+class LazyMove {
+  public:
+    LazyMove(Symbol *token, LazyActionSeq const *lazy_action_seq)
+        : _token(token), _lazy_action_seq(lazy_action_seq)
+    {}
+
+    ~LazyMove()
+    {}
+
+    // get token
+    inline Symbol *get_token() const
+    {
+        return _token;
+    }
+
+    // get lazy action seq
+    inline LazyActionSeq const *get_lazy_action_seq() const
+    {
+        return _lazy_action_seq;
+    }
+
+    // get move
+    Move *get_move(Workspace &w, ShiftVector const &token_shifts) const
+    {
+        ActionSeq const *action_seq = _lazy_action_seq->get_action_seq(w, token_shifts, _token);
+        return c.get_move(_token, action_seq);
+    } 
+
+  private:
+    Symbol *_token;
+    LazyActionSeq const *_lazy_action_seq;
+};
+
+// a < b, compares pointers
+bool operator<(LazyMove const &a, LazyMove const &b)
+{
+    if (a.get_token() != b.get_token()) {
+        return a.get_token() < b.get_token();
+    }
+    return a.get_lazy_action_seq() < b.get_lazy_action_seq();
+}
+
+} // basilcx
+
+#hdr
+#include <map>
+#include <vector>
+#end
+
+#src
+#include <basilcx_lazy_action_seq.h>
+#include <basilcx_workspace.h>
+#end

@@ -1,0 +1,46 @@
+namespace basilcx {
+
+class LazyActionSeq;
+class LazyFollowMove;
+class LazyMoveSel;
+
+class LazyFollowMoveTable
+{
+  public:
+    LazyFollowMoveTable()
+    {}
+    
+    ~LazyFollowMoveTable ()
+    {
+      delete_objects(_lazy_follow_moves);
+    }
+
+    // get lazy follow move from components
+    LazyFollowMove *get_lazy_follow_move(LazyMoveSel *lazy_move_sel, LazyActionSeq *def_lazy_action_seq)
+    {
+        std::unique_ptr<LazyFollowMove> lazy_follow_move_ptr(new LazyFollowMove(lazy_move_sel, def_lazy_action_seq));
+        std::pair<LazyFollowMoveSet::iterator, bool> r = _lazy_follow_moves.insert(lazy_follow_move_ptr.get());
+        if (r.second) {
+            lazy_follow_move_ptr.release();
+        }
+        return *r.first;
+    }
+
+  private:
+    inline bool LazyFollowMoveLess(; LazyFollowMove *a, LazyFollowMove *b) const { return *a < *b; }
+    typedef std::set<LazyFollowMove const *, LazyFollowMoveLess> LazyFollowMoveSet;
+    LazyFollowMoveSet _lazy_follow_moves;
+};
+
+} // basilcx
+
+#hdr
+#include <set>
+#end
+
+#src
+#include <basilcx_lazy_follow_move.h>
+#include <basilcx_util.h>
+
+#include <memory>
+#end

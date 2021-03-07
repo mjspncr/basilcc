@@ -1,0 +1,81 @@
+namespace basilcx {
+
+class Rule;
+
+class Node {
+  public:
+    Node(char const *name)
+      : _num(-1), _name(name), _rule(NULL), _has_semantics(false)
+    {}
+
+    ~Node ()
+    {}
+
+    // get name
+    char const *get_name() const
+    {
+        return _name;
+    }
+
+    // set rule that defines this node
+    void define(Rule *rule, bool has_semantics, std::string const &user_type = std::string())
+    {
+        _rule = rule;
+        _has_semantics = has_semantics;
+        _user_type = user_type;
+
+    }
+
+    // true if node has a defining rule
+    bool is_defined() const
+    {
+        return _rule != NULL;
+    }
+
+    // get rule
+    Rule *get_rule() const
+    {
+        return _rule;
+    }
+
+    // true if has user defined semantics on node reduction
+    bool has_semantics() const
+    {
+        return _has_semantics;
+    }
+
+    int const _num;
+  private:
+    char const *_name;
+    Rule *_rule;
+     // true if node has an on_node() method
+    bool _has_semantics;
+    // optional return type for on_node() method, just keep the type simple,
+    // assume a type name (at least looks like a type name in the c++ declaration),
+    // can also be "void" to mean the on_node() method returns nothing, if not set
+    // assumes on_node returns the node itself (*this)
+    std::string _user_type;
+};
+
+// true if a < b
+bool operator<(Node const &a, Node const &b)
+{
+    return a.get_name() < b.get_name();
+}
+
+inline bool NodeNameLess(; Node const *a, Node const *b) const
+{
+    return strcmp(a->get_name(), b->get_name()) < 0;
+}
+
+inline bool NodeNumberLess(; Node const *a, Node const *b) const
+{
+    return a->_num < b->_num;
+}
+
+} // basilcx
+
+#hdr
+#include <string>
+#include <cstring>
+#end

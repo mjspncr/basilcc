@@ -1,0 +1,63 @@
+namespace basilcx {
+
+class LazyActionSeq;
+class LazyMoveSel;
+class Shift;
+class StateMove;
+class Workspace;
+typedef std::vector<Shift> ShiftVector;
+
+class LazyFollowMove {
+  public:
+    LazyFollowMove(LazyMoveSel *lazy_move_sel, LazyActionSeq *def_lazy_action_seq)
+        : _lazy_move_sel(lazy_move_sel), _def_lazy_action_seq(def_lazy_action_seq)
+    {}
+
+    ~LazyFollowMove()
+    {}
+
+    // get lazy move selection
+    inline LazyMoveSel *get_lazy_move_sel() const
+    {
+        return _lazy_move_sel;
+    }
+
+    // get default lazy action sequence
+    inline LazyActionSeq *get_default_lazy_action_seq() const
+    {
+        return _def_lazy_action_seq;
+    }
+
+    // get state move
+    StateMove *get_state_move(Workspace &w, ShiftVector const &token_shifts) const
+    {
+        MoveSel *move_sel = _lazy_move_sel->get_move_sel(w, token_shifts);
+        ActionSeq *def_action_seq = _def_lazy_action_seq->get_action_seq(w, token_shifts, NULL);
+        return w.state_moves.get_state_move(move_sel, def_action_seq);
+    }
+    
+  private:
+    LazyMoveSel *_lazy_move_sel;
+    LazyActionSeq *_def_lazy_action_seq;
+};
+
+// a < b, compares pointers
+bool operator<(LazyFollowMove const &a, LazyFollowMove const &b)
+{
+    if (a.get_lazy_move_sel() != b.get_lazy_move_sel()) {
+        return a.get_lazy_move_sel() < b.get_lazy_move_sel();
+    }
+    return a.get_default_lazy_action_seq() < b.get_default_lazy_action_seq();
+}
+
+} // basilcx
+
+#hdr
+#include <vector>
+#end
+
+#src
+#include <basilcx_lazy_action_seq.h>
+#include <basilcx_lazy_move_sel.h>
+#include <basilcx_workspace.h>
+#end

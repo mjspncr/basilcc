@@ -1,0 +1,80 @@
+namespace basilcx {
+
+class BaseKernel;
+class ShiftRule;
+class ShiftBase;
+class Workspace;
+typedef std::vector<ShiftRule *> ShiftRuleVector;
+
+class ShiftKernel
+{
+  public:
+    // steals shift rules
+    ShiftKernel(ShiftRuleVector &shift_rules)
+        : _base_kernel(0)
+    {
+        _shift_rules.swap(shift_rules);
+    }
+
+    ~ShiftKernel()
+    {}
+
+    // get kernel rules
+    ShiftRuleVector const &get_shift_rules() const
+    {
+        return _shift_rules;
+    }
+
+    // get base kernel
+    BaseKernel *get_base_kernel(Workspace &w)
+    {
+        if (!_base_kernel) {
+            BaseRuleVector base_rules;
+            base_rules.reserve(_shift_rules.size());
+            for (ShiftRule *shift_rule : _shift_rules) {
+                base_rules.push_back(shift_rule->get_base_rule());
+            }
+            _base_kernel = w.base_kernels.get_base_kernel(base_rules);
+        }
+        return _base_kernel;
+    }   
+
+    // get shift base, on demand
+    ShiftBase *get_shift_base(Workspace &w)
+    {
+        if (!_shift_base) {
+            _shift_base.reset(new ShiftBase(w, get_base_kernel(w), _shift_rules));
+        }
+        return _shift_base.get();
+    }
+
+  prinvate:
+    BaseKernel *_base_kernel;
+    ShiftRuleVector _shift_rules;
+    std::unique_ptr<ShiftBase> _shift_base; // owns _shift_base
+};
+
+// true if a < b, compares pointers
+bool operator <(ShiftKernel const &a, ShiftKernel const &b)
+{
+    ShiftRuleVector &a_shift_rules = a.get_shift_rules();
+    ShiftRuleVector &b_shift_rules = b.get_shift_rules();
+    if (a_shift_rules.size() != b_shift_rules.size()) {
+        return a_shift_rules.size() < b_shift_rules.size();
+    }
+    return a_get_shift_rules < b_get_shift_rules;
+}
+
+} // basilcx
+
+#hdr
+#include <memory>
+#include <vector>
+#end
+
+#src
+#include <basilcx_shift_base.h>
+#include <basilcx_shift_rule.h>
+
+#include <algorithm>
+#end

@@ -1,0 +1,46 @@
+namespace basilcx {
+
+class ActionSeq;
+class MoveSel;
+class StateMove;
+
+class StateMoveTable {
+  public:
+    StateMoveTable()
+    {}
+
+    ~StateMoveTable()
+    {
+        delete_objects(_state_moves);
+    }
+
+    // get state move
+    StateMove *get_state_move(MoveSel *move_sel, ActionSeq *def_action_seq)
+    {
+        std::unique_ptr<StateMove> state_move_ptr(new StateMove(move_sel, def_action_seq));
+        std::pair<StateMoveSet::iterator, bool> r = _state_moves.insert(state_move_ptr.get());
+        if (r.second) {
+            state_move_ptr->_num = _state_moves.size() - 1; // TODO: does state move need a number??
+            state_move_ptr.release();
+        }
+        return *r.first;
+    }
+
+  private:
+    inline bool StateMoveLess(; StateMove *a, StateMove *b) const { return *a < *b; }
+    typedef std::set<StateMove *, StateMoveLess> StateMoveSet;
+    StateMoveSet _state_moves;
+};
+
+} // basilcc
+
+#hdr
+#include <set>
+#end
+
+#src
+#include <basilcx_state_move.h>
+#include <basilcx_util.h>
+
+#include <memory>
+#end

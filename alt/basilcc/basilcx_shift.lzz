@@ -1,0 +1,73 @@
+namespace basilcx {
+
+class Symbol;
+class State;
+
+class Shift
+{
+  public:
+    Shift(Symbol *symbol, State *state)
+        : _symbol(symbol), _state(state)
+    {}
+
+    ~Shift()
+    {}
+
+    // get symbol
+    inline Symbol *get_symbol() const
+    {
+        return _symbol;
+    }
+
+    // get state
+    inline State *get_state() const
+    {
+        return _state;
+    }
+
+  private:
+    Symbol *_symbol;
+    State *_state;
+};
+
+// a < b, compares pointers
+bool operator<(Shift const &a, Shift const &b)
+{
+    if (a.get_symbol() != b.get_symbol()) {
+        return a.get_symbol() < b.get_symbol();
+    }
+    return a.get_state() < b.get_state();
+}
+
+// get shift state given symbol number, 0 if symbol not found
+typedef std::vector<Shift> ShiftVector;
+State const *get_shift_state(ShiftVector const &shifts, Symbol *symbol)
+{
+    ShiftVector::const_iterator p = std::lower_bound(shifts.begin(), shifts.end(), symbol, ShiftSymbolLess());
+    if (p != shifts.end()) {
+        Shift const &shift = *p;
+        if (shift.get_symbol() == symbol) {
+            return shift.get_state();
+        }
+    }
+    return 0;
+}
+
+namespace {
+
+// shift.symbol < symbol
+bool ShiftSymbolLess(; Shift const &shift, Symbol *symbol) const
+{
+    return shift.get_symbol() < symbol;
+}
+
+} // unnamed
+} // basilcx
+
+#hdr
+#include <vector>
+#end
+
+#src
+#include <algorithm>
+#end

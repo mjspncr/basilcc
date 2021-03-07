@@ -1,0 +1,108 @@
+namespace basilcx {
+
+class Symbol;
+typedef std::vector<Symbol *> SymbolVector;
+typedef std::map<char const *, Symbol *> SymbolMap;
+
+class SymbolTable
+{
+  public:
+    SymbolTable()
+    {}
+
+    ~SymbolTable()
+    {
+        delete_values(_symbols);
+    }
+
+    SymbolMap const &get_symbols() const
+    {
+        return _symbols;
+    }
+
+    SymbolVector const &get_tokens() const
+    {
+        return _tokens;
+    }
+
+    SymbolVector const &get_nonterminals() const
+    {
+        return _nonterminals;
+    }
+
+    // get symbol from name, new symbol if doesn't exist
+    Symbol *get_symbol(char const *name)
+    {
+        std::pair<SymbolMap::iterator, bool> r = _symbols.insert(SymbolMap::value_type(name, NULL));
+        if (r.second) {
+            if (is_token(name)) {
+                _tokens.push_back(r.first->second = new Token(name));
+
+            }
+            else {
+                _nonterminals.push_back(r.first->second = new Nonterminal(name));
+            }
+        }
+        return r.first->second;
+    }
+
+    // no more symbols
+    void freeze()
+    {
+        // tokens, EOT always 0
+        {
+            std::sort(_tokens.begin() + 1, _tokens.end(), SymbolNameLess());
+            int num = 0;
+            for (Symbol *symbol: _tokens) {
+                const_cast<int &>(symbol->_num) = num++;
+            }
+        }
+        // nonterminals
+        {
+            std::sort(_nonterminals.begin(), _nonterminals.end(), SymbolNameLess());
+            int num = 0;
+            for (Symbol *symbol: _nonterminals) {
+                const_cast<int &>(symbol->_num) = num++;
+            }
+        }
+    }
+
+  private:
+    SymbolMap _symbols;
+    SymbolVector _tokens, _nonterminals;
+};
+
+namespace {
+
+// true if name is a token, if no lower case characters
+bool is_token(char const *name)
+{
+    for (char const *p = name; *p != '\0'; ++p)
+    {
+        if (islower(*p))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool SymbolNameLess(; Symbol const *a, Symbol const *b) const
+{
+    return strcmp(a->get_name(), b->get_name()) < 0;
+}
+
+} // unnamed
+} // basilcx
+
+#hdr
+#include <map>
+#include <vector>
+#end
+
+#src
+#include <basilcx_symbol.h>
+#include <basilcx_util.h>
+
+#include <string.h>
+#end

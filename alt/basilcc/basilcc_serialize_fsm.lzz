@@ -3,10 +3,10 @@
 
 namespace basilcc {
 
-class Compiler;
+class Workspace;
 
 // seralize FSM
-void serialize_fsm(Compiler &c, std::ostream &os)
+void serialize_fsm(Workspace &c, std::ostream &os)
 {
     os << "// basilcc generated LR parser\n";
     os << '\n';
@@ -77,7 +77,7 @@ namespace {
 char const INDENT[] = "    ";
 char const HALF_INDENT[] = "  ";
 
-class FSMWriter(Compiler const &c, std::ostream &os)
+class FSMWriter(Workspace const &c, std::ostream &os)
 {
   public:
     // write token numbers
@@ -486,15 +486,15 @@ std::string make_valid_identifier(char const *symbol_name)
 #end
 
 #src
-#include <basilcc_action.h>
-#include <basilcc_action_seq.h>
-#include <basilcc_compiler.h>
-#include <basilcc_node.h>
-#include <basilcc_rule.h>
-#include <basilcc_shift_sel.h>
-#include <basilcc_state.h>
-#include <basilcc_shift_state_sel.h>
-#include <basilcc_state_move.h>
-#include <basilcc_symbol.h>
+#include <basilcx_action.h>
+#include <basilcx_action_seq.h>
+#include <basilcx_workspace.h>
+#include <basilcx_node.h>
+#include <basilcx_rule.h>
+#include <basilcx_shift_sel.h>
+#include <basilcx_state.h>
+#include <basilcx_shift_state_sel.h>
+#include <basilcx_state_move.h>
+#include <basilcx_symbol.h>
 #include <sstream>
 #end

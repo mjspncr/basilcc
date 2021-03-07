@@ -37,11 +37,11 @@ class ShiftStateSelTable {
 } // basilcc
 
 #hdr
-#include <basilcc_shift_state.h>
+#include <basilcx_shift_state.h>
 #include <vector>
 #end
 
 #src
-#include <basilcc_shift_state_sel.h>
-#include <basilcc_util.h>
+#include <basilcx_shift_state_sel.h>
+#include <basilcx_util.h>
 #end

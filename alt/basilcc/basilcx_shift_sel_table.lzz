@@ -1,0 +1,47 @@
+namespace basilcx {
+
+class ShiftSel;
+
+class ShiftSelTable
+{
+  public:
+    ShiftSelTable()
+    {}
+
+    ~ShiftSelTable()
+    {
+        delete_objects(_shift_sels);
+    }
+
+    // get shift selection from shifts, steals shifts
+    ShiftSel *get_shift_sel(ShiftVector &shifts)
+    {
+        std::unique_ptr<ShiftSel> shift_sel_ptr(new ShiftSel(shifts));
+        std::pair<ShiftSelSet::iterator, bool> r = _shift_sels.insert(shift_sel_ptr.get());
+        if (r.second) {
+            const_cast<int &>(shift_sel_ptr->_num) = _shift_sels.size() - 1; // TODO - need number?
+            shift_sel_ptr.release();
+        }
+        return *r.first;
+    }
+
+  private:
+    inline bool ShiftSelLess(; ShiftSel *a, ShiftSel *b) const { return *a < *b; }
+    typedef std::set<ShiftSel *, ShiftSelLess> ShiftSelSet;
+    ShiftSelSet _shift_sels;
+};
+
+} // basilcx
+
+#hdr
+#include <basilcx_shift.h>
+
+#include <set>
+#end
+
+#src
+#include <basilcx_shift_sel.h>
+#include <basilcx_util.h>
+
+#include <memory>
+#end

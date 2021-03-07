@@ -1,0 +1,116 @@
+namespace basilcx {
+
+class ShiftRule;
+typedef std::vector<ShiftRule const *> ShiftRuleVector;
+
+class Symbol
+{
+  public:
+    virtual ~Symbol()
+    {}
+
+    // get symbol name
+    inline char const *get_name() const
+    {
+        return _name;
+    }
+    
+    // true if symbol is a token
+    virtual bool is_token() const = 0;
+
+    // get symbol's first set
+    inline First &get_first()
+    {
+        return _first;
+    }
+
+    inline First const &get_first() const
+    {
+        return _first;
+    }
+
+    int const _num;
+
+  protected:
+    Symbol(char const *name)
+        : _num(-1), _name(name)
+    {}
+
+  private:
+    char const *_name;
+    First _first;
+};
+
+class Token : public Symbol
+{
+  public:
+    inline Token(char const *name)
+        : Symbol(name)
+    {}
+
+    ~Token ()
+    {}
+
+    bool is_token() const
+    {
+      return true;
+    }
+};
+ 
+class Nonterminal : public Symbol
+{
+  public:
+    inline Nonterminal(char const *name)
+        : Symbol(name)
+    {}
+
+    // true if token
+    bool is_token() const
+    {
+        return false;
+    }
+
+    // set shift rules, steals rules
+    inline void set_shift_rules(ShiftRuleVector &shift_rules)
+    {
+        _shift_rules.swap(shift_rules);
+    }
+
+    // get shift rules
+    inline ShiftRuleVector const &get_shift_rules() const
+    {
+        return _shift_rules;
+    }
+
+  private:
+    ShiftRuleVector _shift_rules;
+};
+
+// true if a < b, tokens first, otherwise order by number
+bool operator<(Symbol const &a, Symbol const &b)
+{
+    if (a.is_token() != b.is_token()) {
+        return a.is_token();
+    }
+    return a._num < b._num;
+}
+
+// print symbol first set, for debuggging only
+void print_first(Symbol *symbol)
+{
+    std::cout << symbol->get_name() << ": " << symbol->get_first().to_string() << std::endl; 
+}
+
+} // basilcx
+
+#hdr
+#include <basilcx_first.h>
+#include <basilcx_goto.h>
+
+#include <string>
+#include <memory>
+#end
+
+#src
+#include <iostream>
+#end

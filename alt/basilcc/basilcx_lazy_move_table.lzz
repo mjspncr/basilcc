@@ -1,0 +1,46 @@
+namespace basilcx {
+
+class LazyActionSeq;
+class LazyMove;
+class Symbol;
+
+class LazyMoveTable
+{
+  public:
+    LazyMoveTable()
+    {}
+
+    ~LazyMoveTable()
+    {
+        delete_objects(_lazy_moves);
+    }
+
+    // get lazy move from token and action sequence 
+    LazyMove *get_lazy_move(Symbol *token, LazyActionSeq const *lazy_action_seq)
+    {
+        std::unique_ptr<LazyMove> lazy_move_ptr(new LazyMove(token, lazy_action_seq));
+        std::pair<LazyMoveSet::iterator, bool> r = _lazy_moves.insert(lazy_move_ptr.get());
+        if (r.second) {
+            lazy_move_ptr.release();
+        }
+        return *r.first;
+    }
+
+private:
+    bool LazyMoveLess(; LazyMove const *a, LazyMove const *b) const { return *a < *b; }
+    typedef std::set<LazyMove *, LazyMoveLess> LazyMoveSet;
+    LazyMoveSet _lazy_moves;
+};
+
+} // basilcx
+
+#hdr
+#include <set>
+#end
+
+#src
+#include <basilcx_lazy_move.h>
+#include <basilcx_util.h>
+
+#include <memory>
+#end

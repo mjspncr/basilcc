@@ -2,13 +2,13 @@
 
 namespace basilcc {
 
-class Compiler;
+class Workspace;
 class Symbol;
 
 typedef std::map<Symbol *, Goto> GotoMap;
 
 // populate goto map
-void get_goto(Compiler &c, GotoMap &go2s)
+void get_goto(Workspace &c, GotoMap &go2s)
 {
     typedef std::map<Symbol *, ShiftStateVector> SymbolShiftStateVectorMap;
     SymbolShiftStateVectorMap symbol_shift_states;
@@ -59,15 +59,15 @@ bool ShiftStateLess(; ShiftState const &a, ShiftState const &b) const
 } // basilcc
 
 #hdr
-#include <basilcc_goto.h>
+#include <basilcx_goto.h>
 #include <map>
 #end
 
 #src
-#include <basilcc_compiler.h>
-#include <basilcc_shift.h>
-#include <basilcc_shift_sel.h>
-#include <basilcc_state.h>
-#include <basilcc_util.h>
+#include <basilcx_workspace.h>
+#include <basilcx_shift.h>
+#include <basilcx_shift_sel.h>
+#include <basilcx_state.h>
+#include <basilcx_util.h>
 #include <algorithm>
 #end

@@ -1,0 +1,57 @@
+namespace basilcx {
+
+typedef std::set<ActionSeq *, ActionSeqLess> ActionSeqSet;
+typedef std::vector<ActionSeq *> ActionSeqVector;
+
+// action sequence table
+class ActionSeqTable {
+  public:
+    ActionSeqTable()
+    {}
+
+    ~ActionSeqTable()
+    {
+        delete_objects(_action_seqs);
+    }
+
+    // get shared action seq, steals actions
+    ActionSeq const *get_action_seq(ActionVector &actions)
+    {
+        std::unique_ptr<ActionSeq> action_seq_ptr(new ActionSeq(actions));
+        std::pair<ActionSeqSet::iterator, bool> r = _action_seqs.insert(action_seq_ptr.get());
+        if (r.second) {
+            const_cast<int &>(action_seq_ptr->_num) = _action_seqs.size() - 1;
+            action_seq_ptr.release();
+        }
+        return *r.first;
+    }
+
+    // get action sequences ordered by number
+    void get_action_seqs(ActionSeqVector &action_seqs) const
+    {
+        ActionSeqVector(_action_seqs.begin(), _action_seqs.end()).swap(action_seqs);
+        std::sort(action_seqs.begin(), action_seqs.end(), ActionSeqNumberLess());
+    }
+
+    inline ActionSeqSet const &get_action_seqs() const
+    {
+        return _action_seqs;
+    }
+
+  private:
+    ActionSeqSet _action_seqs;
+};
+
+} // basilcx
+
+#hdr
+#include <basilcx_action_seq.h>
+
+#include <set>
+#end
+
+#src
+#include <basilcx_util.h>
+
+#include <memory>
+#end

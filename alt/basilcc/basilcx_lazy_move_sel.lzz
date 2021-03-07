@@ -1,0 +1,55 @@
+namespace basilcx {
+
+class LazyMove;
+class MoveSel;
+class Shift;
+class Workspace;
+typedef std::vector<LazyMove const *> LazyMoveVector;
+typedef std::vector<Shift> ShiftVector;
+
+class LazyMoveSel {
+  public:
+    // steals lazy moves
+    LazyMoveSel(LazyMoveVector &lazy_moves)
+    {
+        _lazy_moves.swap(lazy_moves);
+    }
+
+    ~LazyMoveSel()
+    {}
+
+    inline LazyMoveVector const &get_lazy_moves() const
+    {
+        return _lazy_moves;
+    }
+
+    MoveSel const *get_move_sel(Workspace &w, ShiftVector const &token_shifts) const
+    {
+        MoveVector moves;
+        moves.reserve(_lazy_moves.size());
+        for (LazyMove const *lazy_move : _lazy_moves) {
+            moves.push_back(lazy_move->get_move(w, token_shifts));
+        }
+        return c.get_move_sel(moves);
+    }
+
+  private:
+    LazyMoveVector _lazy_moves;
+};
+
+// a < b, compares pointers
+bool operator<(LazyMoveSel const &a, LazyMoveSel const &b)
+{
+    return a.get_lazy_moves() < b.get_lazy_moves();
+}
+
+} // basilcx
+
+#hdr
+#include <vector>
+#end
+
+#src
+#include <basilcx_lazy_move.h>
+#include <basilcx_workspace.h>
+#end

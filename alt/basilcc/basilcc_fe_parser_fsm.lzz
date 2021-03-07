@@ -5,7 +5,7 @@ struct FSM;
 }
 
 namespace basilcc {
-class Compiler;
+class Workspace;
 }
 
 namespace basilcc_fe {
@@ -31,7 +31,7 @@ enum {
 basilcc_api::FSM const &get_FSM() { return fsm; }
 
 // return pointer to array of node constructors
-typedef basilcc_api::AbstractNode *NodeCtor(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children);
+typedef basilcc_api::AbstractNode *NodeCtor(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children);
 NodeCtor *const *get_nodes() { return node_ctors; }
 
 // nodes
@@ -69,7 +69,7 @@ class SymbolSeqNode;
 // attrib-seq ->
 class AttribSeq1Node : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         std::unique_ptr<AttribSeq1Node> node(new AttribSeq1Node(children));
         node->on_node(userdata);
         return node.release();
@@ -79,13 +79,13 @@ class AttribSeq1Node : public Node {
     }
   private:
     inline AttribSeq1Node(basilcc_api::AbstractNodeVector &children) : Node(children) {}
-    void on_node(basilcc::Compiler &userdata) const;
+    void on_node(basilcc::Workspace &userdata) const;
 };
 
 // attrib-seq -> attrib-seq NUMBER
 class AttribSeq2Node : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         std::unique_ptr<AttribSeq2Node> node(new AttribSeq2Node(children));
         node->on_node(userdata);
         return node.release();
@@ -101,13 +101,13 @@ class AttribSeq2Node : public Node {
     }
   private:
     inline AttribSeq2Node(basilcc_api::AbstractNodeVector &children) : Node(children) {}
-    void on_node(basilcc::Compiler &userdata) const;
+    void on_node(basilcc::Workspace &userdata) const;
 };
 
 // attrib-seq -> attrib-seq LT
 class AttribSeq3Node : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         std::unique_ptr<AttribSeq3Node> node(new AttribSeq3Node(children));
         node->on_node(userdata);
         return node.release();
@@ -123,13 +123,13 @@ class AttribSeq3Node : public Node {
     }
   private:
     inline AttribSeq3Node(basilcc_api::AbstractNodeVector &children) : Node(children) {}
-    void on_node(basilcc::Compiler &userdata) const;
+    void on_node(basilcc::Workspace &userdata) const;
 };
 
 // attrib-seq -> attrib-seq STAR
 class AttribSeq4Node : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         std::unique_ptr<AttribSeq4Node> node(new AttribSeq4Node(children));
         node->on_node(userdata);
         return node.release();
@@ -145,13 +145,13 @@ class AttribSeq4Node : public Node {
     }
   private:
     inline AttribSeq4Node(basilcc_api::AbstractNodeVector &children) : Node(children) {}
-    void on_node(basilcc::Compiler &userdata) const;
+    void on_node(basilcc::Workspace &userdata) const;
 };
 
 // attrib-seq -> attrib-seq PLUS bang-seq
 class AttribSeq5Node : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         std::unique_ptr<AttribSeq5Node> node(new AttribSeq5Node(children));
         node->on_node(userdata);
         return node.release();
@@ -170,13 +170,13 @@ class AttribSeq5Node : public Node {
     }
   private:
     inline AttribSeq5Node(basilcc_api::AbstractNodeVector &children) : Node(children) {}
-    void on_node(basilcc::Compiler &userdata) const;
+    void on_node(basilcc::Workspace &userdata) const;
 };
 
 // attrib-seq -> attrib-seq CARET bang-seq
 class AttribSeq6Node : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         std::unique_ptr<AttribSeq6Node> node(new AttribSeq6Node(children));
         node->on_node(userdata);
         return node.release();
@@ -195,13 +195,13 @@ class AttribSeq6Node : public Node {
     }
   private:
     inline AttribSeq6Node(basilcc_api::AbstractNodeVector &children) : Node(children) {}
-    void on_node(basilcc::Compiler &userdata) const;
+    void on_node(basilcc::Workspace &userdata) const;
 };
 
 // attrib-seq -> attrib-seq GT bang-seq
 class AttribSeq7Node : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         std::unique_ptr<AttribSeq7Node> node(new AttribSeq7Node(children));
         node->on_node(userdata);
         return node.release();
@@ -220,13 +220,13 @@ class AttribSeq7Node : public Node {
     }
   private:
     inline AttribSeq7Node(basilcc_api::AbstractNodeVector &children) : Node(children) {}
-    void on_node(basilcc::Compiler &userdata) const;
+    void on_node(basilcc::Workspace &userdata) const;
 };
 
 // bang-seq ->
 class BangSeq1Node : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         std::unique_ptr<BangSeq1Node> node(new BangSeq1Node(children));
         node->on_node(userdata);
         return node.release();
@@ -236,13 +236,13 @@ class BangSeq1Node : public Node {
     }
   private:
     inline BangSeq1Node(basilcc_api::AbstractNodeVector &children) : Node(children) {}
-    void on_node(basilcc::Compiler &userdata) const;
+    void on_node(basilcc::Workspace &userdata) const;
 };
 
 // bang-seq -> bang-seq BANG
 class BangSeq2Node : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         std::unique_ptr<BangSeq2Node> node(new BangSeq2Node(children));
         node->on_node(userdata);
         return node.release();
@@ -258,13 +258,13 @@ class BangSeq2Node : public Node {
     }
   private:
     inline BangSeq2Node(basilcc_api::AbstractNodeVector &children) : Node(children) {}
-    void on_node(basilcc::Compiler &userdata) const;
+    void on_node(basilcc::Workspace &userdata) const;
 };
 
 // node-qualifier -> SLASH ident-opt
 class NodeQualifierNode : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         return new NodeQualifierNode(children);
     }
     void accept(NodeVisitor const &visitor) const {
@@ -286,7 +286,7 @@ class NodeQualifierNode : public Node {
 // node-type -> LBRACK IDENT node-qualifier RBRACK
 class NodeTypeNode : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         return new NodeTypeNode(children);
     }
     void accept(NodeVisitor const &visitor) const {
@@ -314,7 +314,7 @@ class NodeTypeNode : public Node {
 // start -> rule-seq
 class RootNode : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         std::unique_ptr<RootNode> node(new RootNode(children));
         node->on_node(userdata);
         return node.release();
@@ -330,13 +330,13 @@ class RootNode : public Node {
     }
   private:
     inline RootNode(basilcc_api::AbstractNodeVector &children) : Node(children) {}
-    void on_node(basilcc::Compiler &userdata) const;
+    void on_node(basilcc::Workspace &userdata) const;
 };
 
 // rule -> node-type symbol ARROW symbol-seq >
 class RuleNode : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         return new RuleNode(children);
     }
     void accept(NodeVisitor const &visitor) const {
@@ -361,7 +361,7 @@ class RuleNode : public Node {
 // rule-seq -> rule-seq rule
 class RuleSeqNode : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         return new RuleSeqNode(children);
     }
     void accept(NodeVisitor const &visitor) const {
@@ -383,7 +383,7 @@ class RuleSeqNode : public Node {
 // symbol <* -> IDENT attrib-seq
 class SymbolNode : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         return new SymbolNode(children);
     }
     void accept(NodeVisitor const &visitor) const {
@@ -402,7 +402,7 @@ class SymbolNode : public Node {
 // symbol-seq -> symbol-seq symbol
 class SymbolSeqNode : public Node {
   public:
-    static basilcc_api::AbstractNode *_create(basilcc::Compiler &userdata, basilcc_api::AbstractNodeVector &children) {
+    static basilcc_api::AbstractNode *_create(basilcc::Workspace &userdata, basilcc_api::AbstractNodeVector &children) {
         return new SymbolSeqNode(children);
     }
     void accept(NodeVisitor const &visitor) const {

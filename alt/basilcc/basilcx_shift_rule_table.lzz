@@ -1,0 +1,55 @@
+namespace basilcx {
+
+class BaseRule;
+class Priority;
+class ShiftRule;
+typedef std::unique_ptr<ShiftRule> ShiftRulePtr;
+
+class ShiftRuleTable
+{
+public:
+    ShiftRuleTable()
+    {}
+
+    ~ShiftRuleTable()
+    {
+        delete_objects(_shift_rules);
+    }
+
+    // get shared rule from components
+    ShiftRule const *get_shift_rule(BaseRule const *base_rule, Priority const &sp)
+    {
+        ShiftRulePtr shift_rule(new ShiftRule(base_rule, sp));
+        return freeze_shift_rule(shift_rule);
+    }
+
+    // freeze shift rule, return shared frozen rule, may steal ownership
+    ShiftRule const *freeze_shift_rule(ShiftRulePtr &shift_rule_ptr)
+    {
+        std::pair<ShiftRuleSet::iterator, bool> r = _shift_rules.insert(shift_rule_ptr.get());
+        if (r.second) {
+            shift_rule.release();
+        }
+        return *r.first;
+    }
+
+  private:
+    inline bool ShiftRuleLess(; ShiftRule const *a, ShiftRule const *b) const { return *a < *b; }
+    typedef std::set<ShiftRule const *, ShiftRuleLess> ShiftRuleSet;
+    ShiftRuleSet _shift_rules;
+};
+
+} // basilcx
+
+#hdr
+#include <memory>
+#include <set>
+#end
+
+#inl
+#include <basilcx_shift_rule.h>
+#end
+
+#src
+#include <basilcx_util.h>
+#end

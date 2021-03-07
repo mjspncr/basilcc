@@ -1,0 +1,46 @@
+namespace basilcx {
+
+class ShiftKernel;
+class ShiftRule;
+typedef std::vector<ShiftRule *> ShiftRuleVector;
+
+class ShiftKernelTable {
+  public:
+    ShiftKernelTable()
+    {}
+
+    ~ShiftKernelTable()
+    {
+        delete_objects(_shift_kernels);
+    }
+
+    // get shift kernel from rules, steals rules
+    ShiftKernel *get_shift_kernel(ShiftRuleVector &shift_rules)
+    {
+        std::unique_ptr<ShiftKernel> shift_kernel(new ShiftKernel(shift_rules));
+        std::pair<ShiftKernelSet::iterator, bool> r = _shift_kernels.insert(shift_kernel.get());
+        if (r.second) {
+            shift_kernel.release();
+        }
+        return *r.first;
+    }
+
+  private:
+    inline bool ShiftKernelLess(; ShiftKernel *a, ShiftKernel *b) const { return *a < *b; }
+    typedef std::set<ShiftKernel *, ShiftKernelLess> ShiftKernelSet;
+    ShiftKernelSet _shift_kernels;
+};
+
+} // basilcx
+
+#hdr
+#include <set>
+#include <vector>
+#end
+
+#src
+#include <basilcx_shift_kernel.h>
+#include <basilcx_util.h>
+
+#include <memory>
+#end

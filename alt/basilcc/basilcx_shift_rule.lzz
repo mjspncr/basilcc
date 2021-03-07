@@ -1,0 +1,82 @@
+namespace basilcx {
+
+class BaseRule;
+class Workspace;
+class Symbol;
+
+class ShiftRule {
+  public:
+    ShiftRule(BaseRule const *base_rule, Priority const &sp)
+      : _base_rule(base_rule), _sp(sp)
+    {}
+
+    ~ShiftRule()
+    {}
+
+    // get left hand symbol
+    Symbol *get_left_symbol() const
+    {
+        return _base_rule->get_left_symbol();
+    }
+
+    // get base rule
+    inline BaseRule const *get_base_rule() const
+    {
+        return _base_rule;
+    }
+
+    // get shift priority on rule
+    Priority get_shift_priority() const
+    {
+        return _sp;
+    }
+    
+    // update shift priority, will keep max
+    void update(Priority const &sp)
+    {
+        _sp = max_priority(_sp, sp);
+    }
+
+    // get shift rule at next pos
+    ShiftRule const *get_next_shift_rule(Workspace &w) const
+    {
+        return w.shift_rules.get_shift_rule(_base_rule->get_next_base_rule(w), _sp);
+    }
+
+    // to string
+    std::string to_string() const
+    {
+        std::string str;
+        if (_sp.is_set()) {
+            str = shift_priority_to_string(_sp);
+        }
+        return append_with_space(str, _base_rule->to_string());
+    }
+
+  private:
+    BaseRule const *_base_rule;
+    Priority _sp;
+};
+
+// true if a < b, compares pointers
+bool operator<(ShiftRule const &a, ShiftRule const &b)
+{
+    if (a.get_base_rule() != b.get_base_rule()) {
+        return a.get_base_rule() < b.get_base_rule();
+    }
+    return a.get_shift_priority() < b.get_shift_priority();
+}
+
+} // basilcx
+
+#hdr
+#include <basilcx_priority.h>
+
+#include <string>
+#end
+
+#src
+#include <basilcx_base_rule.h>
+#include <basilcx_workspace.h>
+#include <basilcx_util.h>
+#end

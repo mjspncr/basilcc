@@ -1,0 +1,46 @@
+namespace basilcx {
+
+class BaseKernel;
+class BaseRule;
+typedef std::vector<BaseRule *> BaseRuleVector;
+
+class BaseKernelTable {
+  public:
+    BaseKernelTable()
+    {}
+
+    ~BaseKernelTable()
+    {
+        delete_objects(_base_kernels);
+    }
+
+    // get base kernel from rules, steals rules
+    BaseKernel *get_base_kernel(BaseRuleVector &base_rules)
+    {
+        std::unique_ptr<BaseKernel> base_kernel(new BaseKernel(base_rules));
+        std::pair<BaseKernelSet::iterator, bool> r = _base_kernels.insert(base_kernel.get());
+        if (r.second) {
+            base_kernel.release();
+        }
+        return *r.first;
+    }
+
+  private:
+    inline bool BaseKernelLess(; BaseKernel *a, BaseKernel *b) const { return *a < *b; }
+    typedef std::set<BaseKernel *, BaseKernelLess> BaseKernelSet;
+    BaseKernelSet _base_kernels;
+};
+
+} // basilcx
+
+#hdr
+#include <set>
+#include <vector>
+#end
+
+#src
+#include <basilcx_base_kernel.h>
+#include <basilcx_util.h>
+
+#include <memory>
+#end

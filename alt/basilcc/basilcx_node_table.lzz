@@ -1,0 +1,73 @@
+namespace basilcx {
+
+class Node;
+
+bool NodeLess(; Node const *a, Node const *b) const { return *a < *b; }
+typedef std::set<Node *, NodeLess> NodeSet;
+typedef std::vector<Node *> NodeVector;
+
+class NodeTable
+{
+  public:
+    NodeTable()
+    {}
+
+    ~NodeTable()
+    {
+        delete_objects(_nodes); 
+    }
+
+    // get node with name, create new node if doesn't exist
+    Node *get_node(char const *name)
+    {
+        std::unique_ptr<Node> node_ptr(new Node(name));
+        std::pair<NodeSet::iterator, bool> r = _nodes.insert(node_ptr.get());
+        if (r.second) {
+            node_ptr.release();
+        }
+        return *r.first;
+    }
+
+    // get nodes ordered by number
+    void get_nodes(NodeVector &nodes) const
+    {
+        NodeVector(_nodes.begin(), _nodes.end()).swap(nodes);
+        std::sort(nodes.begin(), nodes.end(), NodeNumberLess());
+    }
+
+    // no more nodes
+    void freeze()
+    {
+        // order by name then assign numbers
+        std::vector<Node *> nodes(_nodes.begin(), _nodes.end());
+        std::sort(nodes.begin(), nodes.end(), NodeNameLess());
+        int num = 0;
+        for (Node *node : nodes) {
+            if (!node->is_defined()) {
+                std::ostringstream ss;
+                ss << "node " << node->get_name() << " does not have a defining rule";
+                throw std::runtime_error(ss.str());
+            }
+            const_cast<int &>(node->_num) = num++;
+        }
+    }
+
+  private:
+    NodeSet _nodes;
+};
+
+} // basilcx
+
+#hdr
+#include <set>
+#include <vector>
+#end
+
+#src
+#include <basilcx_node.h>
+#include <basilcx_util.h>
+
+#include <algorithm>
+#include <memory>
+#include <sstream>
+#end

@@ -1,0 +1,50 @@
+namespace basilcx {
+
+class MoveSel;
+class ActionSeq;
+
+class StateMove {
+  public:
+    StateMove(MoveSel *move_sel, ActionSeq *def_action_seq)
+        : _num(-1), _move_sel(move_sel), _def_action_seq(def_action_seq)
+    {}
+
+    ~StateMove()
+    {}
+
+    // get move selection
+    inline MoveSel *get_move_sel() const
+    {
+        return _move_sel;
+    }
+
+    // get default action sequence
+    inline ActionSeq *get_default_action_seq() const
+    {
+        return _def_action_seq;
+    }
+
+    int _num;
+  private:
+    MoveSel *_move_sel;
+    ActionSeq *_def_action_seq;
+};
+
+// a < b, compares pointers 
+bool operator <(StateMove const &a, StateMove const &b)
+{
+    if (a.get_move_sel() != b.get_move_sel()) {
+        return a.get_move_sel() < b.get_move_sel();
+    }
+    return a.get_default_action_seq() < b.get_default_action_seq();
+}
+
+} // basilcx
+
+#hdr
+#end
+
+#src
+#include <basilcx_move_sel.h>
+#include <basilcx_action_seq.h>
+#end

@@ -3,10 +3,10 @@
 
 namespace basilcc {
 
-class Compiler;
+class Workspace;
 
 // set symbol first sets and non terminal shift rules
-void set_first(Compiler &c)
+void set_first(Workspace &c)
 {
     // tokens 
     for (Symbol *symbol: c.get_tokens()) {
@@ -24,7 +24,7 @@ void set_first(Compiler &c)
 namespace {
 
 // set first set null for all nonterminals
-void set_nonterminal_first_null(Compiler &c, SymbolVector const &nonterminals)
+void set_nonterminal_first_null(Workspace &c, SymbolVector const &nonterminals)
 {
     SymbolVector next_symbols(nonterminals);
     SymbolVector symbols;
@@ -172,7 +172,7 @@ class ForwardHelper
 };
 
 // helper to set first set
-class FirstHelper(Compiler &c) : public ForwardHelper
+class FirstHelper(Workspace &c) : public ForwardHelper
 {
   public:
     // set symbol first
@@ -266,7 +266,7 @@ class FirstHelper(Compiler &c) : public ForwardHelper
 };
 
 // set symbol shift rules helper
-class ShiftHelper(Compiler &c) : public ForwardHelper
+class ShiftHelper(Workspace &c) : public ForwardHelper
 {
   public:
     // set shift rules for nonterminal
@@ -359,12 +359,12 @@ class ShiftHelper(Compiler &c) : public ForwardHelper
 } // basilcc
 
 #src
-#include <basilcc_base_rule.h>
-#include <basilcc_compiler.h>
-#include <basilcc_first.h>
-#include <basilcc_rule.h>
-#include <basilcc_symbol.h>
-#include <basilcc_util.h>
+#include <basilcx_base_rule.h>
+#include <basilcx_workspace.h>
+#include <basilcx_first.h>
+#include <basilcx_rule.h>
+#include <basilcx_symbol.h>
+#include <basilcx_util.h>
 #include <algorithm>
 #include <set>
 #end

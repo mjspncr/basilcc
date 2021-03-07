@@ -1,0 +1,45 @@
+namespace basilcx {
+
+class Rule;
+class BaseRule;
+
+class BaseRuleTable {
+  public:
+    BaseRuleTable()
+    {}
+
+    ~BaseRuleTable()
+    {
+        delete_objects(_base_rules);
+    }
+    
+    // get base rule
+    BaseRule const *get_base_rule(Rule const *rule, int pos)
+    {
+        std::unique_ptr<BaseRule> base_rule_ptr(new BaseRule(rule, pos));
+        std::pair<BaseRuleSet::iterator, bool> r = _base_rules.insert(base_rule_ptr.get());
+        if (r.second) {
+            const_cast<int &>(base_rule_ptr->_num) = _base_rules.size() - 1;
+            base_rule_ptr.release();
+        }
+        return *r.first;
+    }
+
+  private:
+    bool BaseRuleLess(; BaseRule const *a, BaseRule const *b) const { return *a < *b; }
+    typedef std::set<BaseRule *, BaseRuleLess> BaseRuleSet;
+    BaseRuleSet _base_rules;
+};
+
+} // basilcx
+
+#hdr
+#include <set>
+#end
+
+#src
+#include <basilcx_base_rule.h>
+#include <basilcx_util.h>
+
+#include <memory>
+#end

@@ -1,7 +1,7 @@
 // baislcc rule lexer
 
 namespace basilcc {
-class Compiler;
+class Workspace;
 }
 
 namespace basilcc_fe {
@@ -153,7 +153,7 @@ class RuleOperTable
 // lexer
 class RuleLexer : public basilcc_api::Lexer {
   public:
-    RuleLexer(basilcc::Compiler &c, std::string const &filename)
+    RuleLexer(basilcc::Workspace &c, std::string const &filename)
         : _c(c), _reader(filename)
     {}
 
@@ -286,7 +286,7 @@ class RuleLexer : public basilcc_api::Lexer {
         }
     }
 private:
-    basilcc::Compiler &_c;
+    basilcc::Workspace &_c;
     RuleReader _reader;
     RuleOperTable _oper_table;
 };
@@ -373,8 +373,8 @@ enum
 
 #src
 #include <basilcc_api_loc.h>
-#include <basilcc_compiler.h>
-#include <basilcc_util.h>
+#include <basilcx_workspace.h>
+#include <basilcx_util.h>
 #include <cassert>
 #include <climits>
 #include <cstdio>

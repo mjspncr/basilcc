@@ -1,0 +1,192 @@
+namespace basilcx {
+
+class Rule;
+class State;
+class Symbol;
+
+class Action {
+  public:
+    inline Action()
+      : _num(-1)
+    {}
+
+    virtual ~Action()
+    {}
+
+    virtual bool is_shift() const = 0;
+    inline  bool is_reduction() const { return ! is_shift(); }
+    // print to stream
+    virtual void format(std::ostream &os) const = 0;
+
+    int _num;
+};
+
+class ShiftAction : public Action {
+  public:
+    ShiftAction(State const *state)
+        : _state(state)
+    {}
+
+    ~ShiftAction()
+    {}
+
+    // true if shift
+    bool is_shift() const
+    {
+        return true;
+    }
+
+    // get state
+    inline State const *get_state() const
+    {
+        return _state;
+    }
+
+    void format(std::ostream &os) const
+    {
+        os << "SHIFT " << _state->_num;
+    }
+
+  private:
+    // state on shift
+    State const *_state;
+};
+
+// true if a < b
+bool operator <(ShiftAction const &a, ShiftAction const &b)
+{
+    State const *a_state = a.get_state();
+    State const *b_state = b.get_state();
+    if (a_state != b_state) {
+        return a_state < b_state;
+    }
+    return false;
+}
+
+class ReduceAction : public Action {
+  public:
+    ReduceAction(Rule const *rule, Symbol *shortcut, bool accept)
+        : _rule(rule), _shortcut(shortcut), _accept(accept)
+    {}
+
+    ~ReduceAction()
+    {}
+
+    // true if shift
+    virtual bool is_shift() const
+    {
+        return false;
+    }
+
+    // get rule
+    inline Rule const *get_rule() const
+    {
+        return _rule;
+    }
+
+    // get shortcut
+    inline Symbol *get_shortcut() const
+    {
+        return _shortcut;
+    }
+
+    // true if has accept
+    bool has_accept() const
+    {
+      return _accept;
+    }
+
+    void format(std::ostream &os) const
+    {
+        if (_rule->is_start()) {
+            os << "DONE";
+        }
+        else {
+            if (_accept) {
+                os << "ACCEPT";
+            }
+            else {
+                os << "REDUCE";
+            }
+            os << ' ' << _rule->_num << ' ' << _shortcut->get_name();
+        }
+    }
+
+  private:
+    // reduce on this rule
+    Rule const *_rule;
+    // shortcut
+    Symbol *_shortcut;
+    // true if accept
+    bool _accept;
+};
+
+// true if reduce actions a < b, compares pointers
+bool operator<(ReduceAction const &a, ReduceAction const &b)
+{
+    Rule const *a_rule = a.get_rule();
+    Rule const *b_rule = b.get_rule();
+    if (a_rule != b_rule) {
+        return a_rule < b_rule;
+    }
+    Symbol *a_shortcut = a.get_shortcut();
+    Symbol *b_shortcut = b.get_shortcut();
+    if (a_shortcut != b_shortcut) {
+        return a_shortcut < b_shortcut;
+    }
+    return !a.has_accept() && b.has_accept();
+}
+
+// return a < b
+bool operator<(Action const &a, Action const &b)
+{
+    bool a_is_shift = a.is_shift(), b_is_shift = b.is_shift();
+    if (a_is_shift != b_is_shift) {
+        return a_is_shift;
+    }
+    if (a_is_shift) {
+        return static_cast<ShiftAction const &>(a) < static_cast<ShiftAction const &>(b);
+    }
+    return static_cast<ReduceAction const &>(a) < static_cast<ReduceAction const &>(b);
+}
+
+inline bool ActionLess(; Action const *a, Action const *b) const
+{
+    return *a < *b;
+}
+
+inline bool ActionNumberLess(; Action const *a, Action const *b) const
+{
+    return a->_num < b->_num;
+}
+
+// actions to string
+typedef std::vector<Action *> ActionVector;
+void format_actions(ActionVector const &actions, std::ostream &os)
+{
+    if (!actions.empty ()) {
+        for (ActionVector::const_iterator i = actions.begin(), endi = actions.end();;) {
+            (*i)->format(os);
+            if (++i == endi) {
+                break;
+            }
+            os << ", ";
+        }
+    }
+}
+
+} // basilcx
+
+#hdr
+#include <string>
+#include <vector>
+#include <iosfwd>
+#end
+
+#src
+#include <basilcx_rule.h>
+#include <basilcx_state.h>
+#include <basilcx_symbol.h>
+
+#include <ostream>
+#end

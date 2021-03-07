@@ -1,0 +1,200 @@
+namespace basilcx {
+
+class Conflict;
+class LazyActionSeq;
+class LazyMove;
+class Rule;
+class Symbol;
+class TempAction;
+class Workspace;
+typedef std::vector<TempAction *> TempActionVector;
+typedef std::vector<Conflict *> ConflictVector;
+
+class TempMove {
+  public:
+    TempMove(Symbol *token)
+        : _token(token), _sticky(false)
+    {}
+
+    ~TempMove()
+    {
+        delete_objects(_temp_actions);
+    }
+
+    // get token
+    inline Symbol *get_token() const
+    {
+        return _token;
+    }
+
+    // get temp actions associated with token
+    inline TempActionVector const &get_temp_actions() const
+    {
+        return _temp_actions;
+    }
+
+    // add reduction action
+    void add_reduction(Rule const *rule, Symbol *shortcut, Priority const &priority, bool accept, bool sticky)
+    {
+        _sticky = _sticky || sticky;
+        // search priority action set for same rule and shortcut, if present just update it
+        for (TempAction *action: _temp_actions) {
+            if (action->is_reduction()) {
+                ReduceTempAction &reduce_action = static_cast<ReduceTempAction &>(*action);
+                if (reduce_action.get_rule() == rule && reduce_action.get_shortcut() == shortcut) {
+                    reduce_action.update(priority, accept);
+                    return;
+                }
+            }
+        }
+        // otherwise new reduce
+        _temp_actions.push_back(new ReduceTempAction(rule, shortcut, priority, accept));
+    }
+
+    // add shift action
+    void add_shift(Priority const &priority)
+    {
+        // search for shift action, if present update it
+        for (TempAction *action: _temp_actions) {
+            // only shift
+            if (action->is_shift()) {
+                action->update(priority);
+                return; 
+            }
+        }
+        // otherwise new shift
+        _temp_actions.push_back(new ShiftTempAction(priority));
+    }
+
+    /*
+    // freeze temp move, no more changes
+    void freeze()
+    {
+        // sort and trim
+        sort();
+        trim();
+    }
+    */
+
+    // get lazy move, no more changes
+    LazyMove *get_lazy_move(Workspace &w, ConflictVector &conflicts)
+    {
+        sort();
+        trim();
+        LazyActionVector lazy_actions;
+        lazy_actions.reserve(_temp_actions.size());
+        for (TempAction const *temp_action: _temp_actions) {
+            lazy_actions.push_back(temp_action->get_lazy_action(w));
+        }
+        LazyActionSeq const *lazy_action_seq = c.get_lazy_action_seq(lazy_actions);
+        get_conflicts(conflicts);
+        return c.get_lazy_move(_token, lazy_action_seq);
+    }
+
+    // true if move is sticky, can't include as default
+    bool is_sticky() const
+    {
+        return _sticky;
+    }
+
+    /*
+    bool debug() {
+        if (!_temp_actions.empty() && _temp_actions[0]->is_reduction()) {
+            ReduceTempAction const &t = static_cast<ReduceTempAction const &>(*_temp_actions[0]);
+            if (t.get_rule()->_num == 20) {
+                return true;
+            }
+        }
+        return false;
+    }
+    */
+
+  private:
+    // sort actions
+    void sort()
+    {
+        std::sort(_temp_actions.begin(), _temp_actions.end(), TempActionLess());
+    }
+
+    // trim, discard actions that have lower bang count
+    void trim()
+    {
+        int bang = 0;
+        int count = 0;
+        for (TempActionVectorIter i = _temp_actions.begin (), endi = _temp_actions.end (); i != endi; ++i)
+        {
+            TempAction const *temp_action = *i;
+            int next_bang = temp_action->get_priority().get_bang();
+            int next_count = temp_action->get_priority().get_count();
+            if (bang > next_bang && count > next_count) {
+                delete_objects(i, endi);
+                _temp_actions.erase(i, endi);
+                break;
+            }
+            bang = next_bang;
+            count = next_count;
+        }
+    }
+
+    // get parsing conflicts, steals actions so call after get_lazy_move and get_lazy_action_seq
+    void get_conflicts(ConflictVector &conflicts)
+    {
+        assert(!_temp_actions.empty());
+        TempActionVectorIter i = _temp_actions.begin (), j = i + 1;
+        for (; j != _temp_actions.end(); ++j) {
+            if ((*i)->get_priority().get_count() != (*j)->get_priority().get_count()) {
+                if (j - i > 1) {
+                    j = create_conflict(i, j, conflicts);
+                }
+                i = j;
+            }
+        }
+        if (j - i > 1) {
+            j = create_conflict(i, j, conflicts);
+        }
+    }
+    
+    // create conflict, will steal/erase actions, return interator after last one erased
+    typedef TempActionVector::iterator TempActionVectorIter;
+    TempActionVectorIter create_conflict(TempActionVectorIter i, TempActionVectorIter j, ConflictVector &conflicts)
+    {
+        conflicts.push_back(new Conflict(_token, TempActionVector(i, j)));
+        return _temp_actions.erase(i, j);
+    }
+
+  private:
+    // token associated with move
+    Symbol *_token;
+    // temp actions on token
+    TempActionVector _temp_actions;
+    // true if move is move is sticky -- if only reductions on token then not considered as the default action seq
+    bool _sticky;
+};
+
+namespace {
+
+// true if a < b (or a before b) wrt priority
+inline bool TempActionLess(; TempAction const *a, TempAction const *b) const
+{
+    return *a < *b;
+}
+
+} // unnamed
+} // basilcx
+
+#hdr
+#include <basilcx_priority.h>
+
+#include <vector>
+#end
+
+#src
+#include <basilcx_conflict.h>
+#include <basilcx_rule.h>
+#include <basilcx_temp_action.h>
+#include <basilcx_util.h>
+#include <basilcx_workspace.h>
+
+#include <assert.h>
+#include <algorithm>
+#end

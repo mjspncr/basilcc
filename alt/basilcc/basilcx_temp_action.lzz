@@ -1,0 +1,149 @@
+namespace basilcx {
+
+class LazyAction;
+class Rule;
+class Symbol;
+class Workspace;
+
+class TempAction {
+  public:
+    TempAction(Priority const &priority)
+        : _priority(priority)
+    {}
+
+    virtual ~TempAction()
+    {}
+
+    virtual bool is_shift() const = 0;
+
+    inline bool is_reduction () const
+    {
+        return !is_shift();
+    }
+
+    // get priority
+    inline Priority const &get_priority() const
+    {
+        return _priority;
+    }
+
+    // update priority, take max
+    void update(Priority const &priority)
+    {
+        _priority = max_priority(_priority, priority);
+    }
+
+    // get lazy action
+    virtual LazyAction const *get_lazy_action(Workspace &c) const = 0;
+
+  private:
+    Priority _priority;
+};
+
+class ShiftTempAction : public TempAction {
+  public:
+    ShiftTempAction(Priority const &priority)
+        : TempAction(priority)
+    {}
+
+    ~ShiftTempAction()
+    {}
+
+    // true if shift
+    bool is_shift() const
+    {
+        return true;
+    }
+
+    // get lazy action
+    LazyAction const *get_lazy_action(Workspace &c) const
+    {
+        return c.get_shift_lazy_action();
+    }
+};
+
+class ReduceTempAction : public TempAction {
+  public:
+    ReduceTempAction(Rule const *rule, Symbol *shortcut, Priority const &priority, bool accept)
+        : TempAction(priority), _rule(rule), _shortcut(shortcut), _accept(accept)
+    {}
+
+    ~ReduceTempAction()
+    {}
+
+    bool is_shift () const
+    {
+        return false;
+    }
+
+    // get rule
+    inline Rule const *get_rule() const
+    {
+        return _rule;
+    }
+
+    // get shortcut
+    inline Symbol *get_shortcut() const
+    {
+        return _shortcut;
+    }
+
+    // true if has accept
+    inline bool has_accept () const
+    {
+        return _accept;
+    }
+
+    // update, max priority accept if true
+    void update(Priority const &priority, bool accept)
+    {
+        TempAction::update(priority);
+        _accept = _accept || accept;
+    }
+
+    // get lazy action
+    LazyAction const *get_lazy_action(Workspace &w) const
+    {
+        return w.lazy_actions.get_reduce_lazy_action(_rule, _shortcut, _accept);
+    }
+
+  private:
+    Rule const *_rule;
+    Symbol *_shortcut;
+    bool _accept;
+};
+
+// true if a < b (or a before b) wrt priority
+bool operator<(TempAction const &a, TempAction const &b)
+{
+    int count_a = a.get_priority().get_count();
+    int count_b = b.get_priority().get_count();
+    if (count_a != count_b) {
+        // less if count is greater
+        return count_a > count_b;
+    }
+    // conflict: just sort consistently then
+    if (a.is_reduction() != b.is_reduction()) {
+        return a.is_shift();
+    }
+    // both reductions, sort by rule
+    ReduceTempAction const &c = static_cast<ReduceTempAction const &>(a);
+    ReduceTempAction const &d = static_cast<ReduceTempAction const &>(b);
+    if (c.get_rule() != d.get_rule()) {
+        return c.get_rule() < d.get_rule();
+    }
+    // sort by shortcut
+    return c.get_shortcut() < d.get_shortcut();
+}
+
+} // basilcx
+
+#hdr
+#include <basilcx_priority.h>
+
+#include <memory>
+#end
+
+#src
+#include <basilcx_workspace.h>
+#end

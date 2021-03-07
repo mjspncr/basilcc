@@ -1,0 +1,46 @@
+namespace basilcx {
+
+class FollowKernel;
+class FollowRule;
+typedef std::vector<FollowRule *> FollowRuleVector;
+
+class FollowKernelTable {
+  public:
+    FollowKernelTable()
+    {}
+    
+    ~FollowKernelTable()
+    {
+        delete_objects(_follow_kernels);
+    }
+
+    // get follow kernel from rules, steals rules
+    FollowKernel *get_follow_kernel(FollowRuleVector &follow_rules)
+    {
+        std::unique_ptr<FollowKernel> follow_kernel_ptr(new FollowKernel(follow_rules));
+        std::pair<FollowKernelSet::iterator, bool> r = _follow_kernels.insert(follow_kernel_ptr.get());
+        if (r.second) {
+            follow_kernel_ptr.release();
+        }
+        return *r.first;
+    }
+
+  private:
+    inline bool FollowKernelLess(; FollowKernel *a, FollowKernel *b) const { return *a < *b; }
+    typedef std::set<FollowKernel *, FollowKernelLess> FollowKernelSet;
+    FollowKernelSet _follow_kernels;
+};
+
+} // basilcx
+
+#hdr
+#include <set>
+#include <vector>
+#end
+
+#src
+#include <basilcx_follow_kernel.h>
+#include <basilcx_util.h>
+
+#include <memory>
+#end

@@ -1,0 +1,141 @@
+namespace basilcx {
+
+class Action;
+class Rule;
+class Shift;
+class Symbol;
+class Workspace;
+typedef std::vector<Shift> ShiftVector;
+
+class LazyAction {
+  public:
+    LazyAction() 
+    {}
+
+    virtual ~LazyAction()
+    {}
+
+    // true if shift
+    virtual bool is_shift() const = 0;
+
+    // true if reduction
+    inline bool is_reduction() const
+    {
+      return !is_shift();
+    }
+
+    // get action
+    virtual Action *get_action(Workspace &w, ShiftVector const &token_shifts, Symbol *token) const = 0;
+};
+
+// shift
+class ShiftLazyAction : public LazyAction {
+  public:
+    ShiftLazyAction() 
+    {}
+
+    ~ShiftLazyAction()
+    {}
+
+    // true if shift
+    bool is_shift() const
+    {
+        return true;
+    }
+
+    // get action
+    Action *get_action(Workspace &w, ShiftVector const &token_shifts, Symbol *token) const
+    {
+        State *state = get_shift_state(token_shifts, token);
+        assert(state != NULL);
+        return w.actions.get_shift_action(state);
+    }
+};
+
+// reduce
+class ReduceLazyAction : public LazyAction {
+  public:
+
+    ReduceLazyAction(Rule const *rule, Symbol *shortcut, bool accept)
+        : _rule(rule), _shortcut(shortcut), _accept(accept)
+    {}
+
+    ~ReduceLazyAction()
+    {}
+
+    bool is_shift() const
+    {
+        return false;
+    }
+
+    // get rule
+    inline Rule const *get_rule() const
+    {
+        return _rule;
+    }
+
+    // get shortcut
+    inline Symbol *get_shortcut() const
+    {
+        return _shortcut;
+    }
+
+    // true if has accept
+    inline bool has_accept() const
+    {
+        return _accept;
+    }
+
+
+    // get action
+    Action *get_action(Workspace &w, ShiftVector const &token_shifts, Symbol *token) const
+    {
+        return c.actions.get_reduce_action(_rule, _shortcut, _accept);
+    }
+
+  private:
+    Rule const *_rule;
+    Symbol *_shortcut;
+    bool _accept;
+};
+
+// if a < b, compares pointers 
+bool operator <(ReduceLazyAction const &a, ReduceLazyAction const &b)
+{
+    Rule *a_rule = a.get_rule();
+    Rule *b_rule = b.get_rule();
+    if (a_rule != b_rule) {
+        return a_rule < b_rule;
+    }
+    Symbol *a_shortcut = a.get_shortcut();
+    Symbol *b_shortcut = b.get_shortcut();
+    if (a_shortcut != b_shortcut) {
+        return a_shortcut < b_shortcut;
+    }
+    return !a.has_accept() && b.has_accept();
+}
+
+bool operator <(LazyAction const &a, LazyAction const &b)
+{
+    bool a_is_shift = a.is_shift(), b_is_shift = b.is_shift();
+    if (a_is_shift != b_is_shift) {
+        return a_is_shift;
+    }
+    if (a_is_shift) {
+        return false; // only one lazy shift action
+    }
+    return static_cast<ReduceLazyAction const &>(a) < static_cast<ReduceLazyAction const &>(b);
+}
+
+} // basilcx
+
+#hdr
+#include <map>
+#include <vector>
+#end
+
+#src
+#include <assert.h>
+#include <basilcx_shift.h>
+#include <basilcx_workspace.h>
+#end

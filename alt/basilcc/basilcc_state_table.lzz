@@ -3,7 +3,7 @@
 namespace basilcc {
 
 class BaseKernel;
-class Compiler;
+class Workspace;
 class FollowKernel;
 class State;
 
@@ -21,7 +21,7 @@ class StateTable {
         }
     }
 
-    State const *get_state(Compiler &c, FollowKernel *follow_kernel)
+    State const *get_state(Workspace &c, FollowKernel *follow_kernel)
     {
         BaseKernel const &base_kernel = follow_kernel->get_shift_kernel(c).get_base_kernel(c);
         std::pair<StateMap::iterator, StateMap::iterator> p = _states.equal_range(&base_kernel);
@@ -47,7 +47,7 @@ class StateTable {
     }
 
     // get all states
-    int closure(Compiler &c, int &num_conflicts, int &num_lex_state_conflicts)
+    int closure(Workspace &c, int &num_conflicts, int &num_lex_state_conflicts)
     {
         num_conflicts = 0;
         num_lex_state_conflicts = 0;
@@ -65,7 +65,7 @@ class StateTable {
 
   private:
     // create all start states
-    void create_start_states(Compiler &c)
+    void create_start_states(Workspace &c)
     {
         RuleMapRange const &r = c.get_start_rules();
         for (RuleMap::const_iterator i = r.first; i != r.second; ++i) {
@@ -87,7 +87,7 @@ class StateTable {
 namespace {
 
 // true if kernels equivalent, produces the same moves
-bool is_kernel_equiv(Compiler &c, FollowKernel *a_kernel, FollowKernel *b_kernel)
+bool is_kernel_equiv(Workspace &c, FollowKernel *a_kernel, FollowKernel *b_kernel)
 {
     // to avoid infinite loop
     std::set<BaseKernel const *> history;
@@ -118,7 +118,7 @@ bool is_kernel_equiv(Compiler &c, FollowKernel *a_kernel, FollowKernel *b_kernel
 }
 
 // return follow for start rule
-Follow get_start_follow(Compiler &c, Rule const *rule)
+Follow get_start_follow(Workspace &c, Rule const *rule)
 {
     Follow follow;
     bool sticky = true, accept = true;
@@ -153,22 +153,22 @@ Follow get_start_follow(Compiler &c, Rule const *rule)
 #end
 
 #src
-#include <basilcc_compiler.h>
-#include <basilcc_follow.h>
-#include <basilcc_follow_base.h>
-#include <basilcc_follow_kernel.h>
-#include <basilcc_rule.h>
-#include <basilcc_shift_base.h>
-#include <basilcc_shift_kernel.h>
-#include <basilcc_state.h>
-#include <basilcc_symbol.h>
-#include <basilcc_util.h>
+#include <basilcx_workspace.h>
+#include <basilcx_follow.h>
+#include <basilcx_follow_base.h>
+#include <basilcx_follow_kernel.h>
+#include <basilcx_rule.h>
+#include <basilcx_shift_base.h>
+#include <basilcx_shift_kernel.h>
+#include <basilcx_state.h>
+#include <basilcx_symbol.h>
+#include <basilcx_util.h>
 #include <deque>
 #include <set>
 
 // DEBUG
-#include <basilcc_base_kernel.h>
-#include <basilcc_base_rule.h>
+#include <basilcx_base_kernel.h>
+#include <basilcx_base_rule.h>
 #include <iostream>
 // DEBUG
 #end

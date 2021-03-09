@@ -41,12 +41,12 @@ class State {
     // closure, return number of conflicts
     int closure(Workspace &w)
     {
-        FollowBase const &follow_base = _follow_kernel->get_follow_base(c);
-        FollowShiftMap const &follow_shifts = follow_base.get_follow_shifts();
+        FollowBase *follow_base = _follow_kernel->get_follow_base(w);
+        FollowShiftMap const &follow_shifts = follow_base->get_follow_shifts();
         ShiftVector token_shifts, nonterm_shifts;
-        for (FollowShiftMap::value_type const &p: follow_shifts) {
+        for (FollowShiftMap::value_type const &p : follow_shifts) {
             Symbol *symbol = p.first;
-            Shift shift(symbol, w.states.get_state(p.second));
+            Shift shift(symbol, w.get_state(p.second));
             if (symbol->is_token()) {
                 token_shifts.push_back(shift);
             }
@@ -54,9 +54,9 @@ class State {
                 nonterm_shifts.push_back(shift);
             }
         }
-        _state_move = follow_base.get_lazy_follow_move()->get_state_move(w, token_shifts);
-        _nonterm_shift_sel = c.get_shift_sel(nonterm_shifts);
-        return follow_base.get_conflicts().size();
+        _state_move = follow_base->get_lazy_follow_move()->get_state_move(w, token_shifts);
+        _nonterm_shift_sel = w.shift_sels.get_shift_sel(nonterm_shifts);
+        return follow_base->get_conflicts().size();
     }
 
     int const _num;
@@ -66,11 +66,6 @@ class State {
     ShiftSel *_nonterm_shift_sel;
     LexState _lex_state; 
 };
-
-inline bool StateNumberLess(; State const *a, State const *b) const
-{
-    return a->_num < b->_num;
-}
 
 } // basilcx
 

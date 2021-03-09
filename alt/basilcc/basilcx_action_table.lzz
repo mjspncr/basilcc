@@ -4,8 +4,6 @@ class Action;
 class Rule;
 class State;
 class Symbol;
-typedef std::set<Action *, ActionLess> ActionSet;
-typedef std::vector<Action *> ActionVector;
 
 // action table
 class ActionTable
@@ -20,28 +18,15 @@ class ActionTable
     }
 
     // get shift action from state
-    Action *get_shift_action(State const *state)
+    Action *get_shift_action(State *state)
     {
         return get_action(ActionPtr(new ShiftAction(state)));
     }
 
     // get reduce action from components
-    Action *get_reduce_action(Rule const *rule, Symbol *shortcut, bool accept)
+    Action *get_reduce_action(Rule *rule, Symbol *shortcut, bool accept)
     {
         return get_action(ActionPtr(new ReduceAction(rule, shortcut, accept)));
-    }
-
-    // get all actions
-    inline ActionSet const &get_actions() const
-    {
-        return _actions;
-    }
-
-    // get actions ordered by number
-    void get_actions(ActionVector &actions) const
-    {
-        ActionVector(_actions.begin(), _actions.end()).swap(actions);
-        std::sort(actions.begin(), actions.end(), ActionNumberLess());
     }
 
   private:
@@ -50,26 +35,26 @@ class ActionTable
     {
         std::pair<ActionSet::iterator, bool> r = _actions.insert(action_ptr.get());
         if (r.second) {
-            action_ptr->_num = _actions.size() - 1;
             action_ptr.release();
         }
         return *r.first;
     }
 
   private:
+    bool ActionLess(; Action *a, Action *b) const { return *a < *b; }
+    typedef std::set<Action *, ActionLess> ActionSet;
     ActionSet _actions;
 };
 
 } // basilcx
 
 #hdr
-#include <basilcx_action.h>
-
 #include <memory>
 #include <set>
 #include <vector>
 #end
 
 #src
+#include <basilcx_action.h>
 #include <basilcx_util.h>
 #end

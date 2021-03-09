@@ -1,6 +1,8 @@
 namespace basilcx {
 
-typedef std::set<MoveSel *, MoveSelLess> MoveSelSet;
+class Move;
+class MoveSel;
+typedef std::vector<Move *> MoveVector;
 typedef std::vector<MoveSel *> MoveSelVector;
 
 class MoveSelTable {
@@ -14,7 +16,7 @@ class MoveSelTable {
     }
 
     // get shared move sel, steals moves
-    MoveSel const *get_move_sel(MoveVector &moves)
+    MoveSel *get_move_sel(MoveVector &moves)
     {
         std::unique_ptr<MoveSel> move_sel_ptr(new MoveSel(moves));
         std::pair<MoveSelSet::iterator, bool> r = _move_sels.insert(move_sel_ptr.get());
@@ -25,11 +27,6 @@ class MoveSelTable {
         return *r.first;
     }
 
-    inline MoveSelSet const &get_move_sels() const
-    {
-        return _move_sels;
-    }
-
     // get move selections ordered by number
     void get_move_sels(MoveSelVector &move_sels) const
     {
@@ -38,19 +35,28 @@ class MoveSelTable {
     }
 
   private:
+    bool MoveSelLess(; MoveSel const *a, MoveSel const *b) const { return *a < *b; }
+    typedef std::set<MoveSel *, MoveSelLess> MoveSelSet;
     MoveSelSet _move_sels;
 };
 
+namespace {
+
+inline bool MoveSelNumberLess(; MoveSel const *a, MoveSel const *b) const
+{
+    return a->_num < b->_num;
+}
+
+} // unnamed
 } // basilcxc
 
 #hdr
-#include <basilcx_move_sel.h>
-
 #include <set>
 #include <vector>
 #end
 
 #src
+#include <basilcx_move_sel.h>
 #include <basilcx_util.h>
 
 #include <memory>

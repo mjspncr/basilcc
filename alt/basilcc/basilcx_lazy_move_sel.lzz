@@ -4,9 +4,10 @@ class LazyMove;
 class MoveSel;
 class Shift;
 class Workspace;
-typedef std::vector<LazyMove const *> LazyMoveVector;
+typedef std::vector<LazyMove *> LazyMoveVector;
 typedef std::vector<Shift> ShiftVector;
 
+// lazy move selection
 class LazyMoveSel {
   public:
     // steals lazy moves
@@ -23,14 +24,14 @@ class LazyMoveSel {
         return _lazy_moves;
     }
 
-    MoveSel const *get_move_sel(Workspace &w, ShiftVector const &token_shifts) const
+    MoveSel *get_move_sel(Workspace &w, ShiftVector const &token_shifts) const
     {
         MoveVector moves;
         moves.reserve(_lazy_moves.size());
-        for (LazyMove const *lazy_move : _lazy_moves) {
+        for (LazyMove *lazy_move : _lazy_moves) {
             moves.push_back(lazy_move->get_move(w, token_shifts));
         }
-        return c.get_move_sel(moves);
+        return w.move_sels.get_move_sel(moves);
     }
 
   private:

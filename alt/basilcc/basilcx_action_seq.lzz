@@ -37,16 +37,6 @@ bool operator<(ActionSeq const &a, ActionSeq const &b)
     return a_actions < b_actions;
 }
 
-bool ActionSeqLess(; ActionSeq const *a, ActionSeq const *b) const
-{
-    return *a < *b;
-}
-
-bool ActionSeqNumberLess(; ActionSeq const *a, ActionSeq const *b) const
-{
-    return a->_num < b->_num;
-}
-
 } // basilcx
 
 #hdr

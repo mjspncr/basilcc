@@ -1,30 +1,27 @@
-// basilcc set first
-//
-
-namespace basilcc {
+namespace basilcx {
 
 class Workspace;
 
-// set symbol first sets and non terminal shift rules
-void set_first(Workspace &c)
+// populate symbol first sets and non terminal shift rules
+void set_first(Workspace &w)
 {
     // tokens 
-    for (Symbol *symbol: c.get_tokens()) {
+    for (Symbol *symbol : w.symbols.get_tokens()) {
         symbol->get_first().update(symbol, Priority());
     }
     // nonterminals
-    SymbolVector const &nonterminals = c.get_nonterminals();
-    set_nonterminal_first_null(c, nonterminals);
-    for (Symbol *symbol: nonterminals) {
-        FirstHelper(c).set_first(symbol);
-        ShiftHelper(c).set_shift_rules(symbol);
+    SymbolVector const &nonterminals = w.symbols.get_nonterminals();
+    set_nonterminal_first_null(w, nonterminals);
+    for (Symbol *symbol : nonterminals) {
+        FirstHelper(w).set_first(symbol);
+        ShiftHelper(w).set_shift_rules(symbol);
     }
 }
 
 namespace {
 
 // set first set null for all nonterminals
-void set_nonterminal_first_null(Workspace &c, SymbolVector const &nonterminals)
+void set_nonterminal_first_null(Workspace &w, SymbolVector const &nonterminals)
 {
     SymbolVector next_symbols(nonterminals);
     SymbolVector symbols;
@@ -34,13 +31,13 @@ void set_nonterminal_first_null(Workspace &c, SymbolVector const &nonterminals)
     {
         symbols.clear();
         symbols.swap(next_symbols);
-        for (Symbol *symbol: symbols) {
+        for (Symbol *symbol : symbols) {
             bool null = false;
-            RuleMapRange const &r = c.get_rules(symbol);
+            RuleMapRange const &r = w.rules.get_rules(symbol);
             for (RuleMap::const_iterator i = r.first; i != r.second; ++i) {
-                Rule const *rule = i->second;
+                Rule *rule = i->second;
                 null = true;
-                for (RuleSymbol const &rule_symbol: rule->get_right_rule_symbols()) {
+                for (RuleSymbol const &rule_symbol : rule->get_right_rule_symbols()) {
                     null = rule_symbol.get_symbol()->get_first().has_null();
                     if (!null) {
                         break;
@@ -62,7 +59,7 @@ void set_nonterminal_first_null(Workspace &c, SymbolVector const &nonterminals)
 
 // base rule get first and shift priority function
 typedef Priority (BaseRule::*BaseRuleGetPriority)() const;
-typedef std::set<BaseRule const *> BaseRuleSet;
+typedef std::set<BaseRule *> BaseRuleSet;
 
 // path to forward rule
 class ForwardPath {
@@ -83,7 +80,7 @@ class ForwardPath {
     Priority get_priority(BaseRuleGetPriority get_priority) const
     {
         Priority p;
-        for (BaseRule const *base_rule: _base_rules) {
+        for (BaseRule *base_rule : _base_rules) {
             p += (base_rule->*get_priority)();
         }
         return p;
@@ -93,7 +90,7 @@ class ForwardPath {
 };
 
 // true if forward path includes base rules
-inline bool ForwardPathIncludes(BaseRuleSet const &base_rules; ForwardPath const *path) const
+inline bool ForwardPathIncludes(BaseRuleSet const &base_rules; ForwardPath *path) const
 {
     return path->includes(base_rules);
 }
@@ -102,7 +99,7 @@ inline bool ForwardPathIncludes(BaseRuleSet const &base_rules; ForwardPath const
 class ForwardRule
 {
   public:
-    ForwardRule(BaseRule const *base_rule)
+    ForwardRule(BaseRule *base_rule)
         : _base_rule(base_rule)
     {}
     ~ForwardRule()
@@ -110,7 +107,7 @@ class ForwardRule
         delete_objects(_paths);
     }
     // get base rule
-    inline BaseRule const *get_base_rule() const
+    inline BaseRule *get_base_rule() const
     {
         return _base_rule;
     }
@@ -140,14 +137,14 @@ class ForwardRule
     Priority get_priority(BaseRuleGetPriority get_priority) const
     {
         Priority p;
-        for (ForwardPath const *path: _paths) {
+        for (ForwardPath *path : _paths) {
             p = max_priority(p, path->get_priority(get_priority));
         }
         return p;
     }
   private:
     // base rule
-    BaseRule const *_base_rule;
+    BaseRule *_base_rule;
     // paths to forward rule
     typedef std::vector<ForwardPath *> ForwardPathVector;
     ForwardPathVector _paths;
@@ -157,10 +154,12 @@ class ForwardRule
 class ForwardHelper
 {
   public:
-    ForwardHelper() {}
+    ForwardHelper()
+    {}
+
     ~ForwardHelper()
     {
-        for (ForwardRuleMap::value_type &p: forward_rules) {
+        for (ForwardRuleMap::value_type &p : forward_rules) {
             delete p.second;
         }
     }
@@ -172,7 +171,7 @@ class ForwardHelper
 };
 
 // helper to set first set
-class FirstHelper(Workspace &c) : public ForwardHelper
+class FirstHelper(Workspace &w) : public ForwardHelper
 {
   public:
     // set symbol first
@@ -182,9 +181,9 @@ class FirstHelper(Workspace &c) : public ForwardHelper
         closure();
         // set first items
         First &first = symbol->get_first();
-        for (ForwardRuleMap::value_type &p: forward_rules) {
-            ForwardRule const *forward_rule = p.second;
-            BaseRule const *base_rule = forward_rule->get_base_rule();
+        for (ForwardRuleMap::value_type &p : forward_rules) {
+            ForwardRule *forward_rule = p.second;
+            BaseRule *base_rule = forward_rule->get_base_rule();
             RuleSymbol const &next_rule_symbol = base_rule->get_next_rule_symbol();
             Symbol *next_symbol = next_rule_symbol.get_symbol();
             if (next_symbol->is_token()) {
@@ -193,7 +192,6 @@ class FirstHelper(Workspace &c) : public ForwardHelper
                 first.update(next_symbol, fp);
             }
             first.update(base_rule->get_rule()->get_left_rule_symbol().get_lex_state());
-
             first.update(next_rule_symbol.get_lex_state());
         }
     }
@@ -206,11 +204,11 @@ class FirstHelper(Workspace &c) : public ForwardHelper
         SymbolSet history {symbol};
         SymbolVector stack;
         for (;;) {
-            RuleMapRange const &r = c.get_rules(symbol);
+            RuleMapRange const &r = w.rules.get_rules(symbol);
             for (RuleMap::const_iterator i = r.first; i != r.second; ++i) {
-                Rule const *rule = i->second;
-                BaseRule const *base_rule = c.get_base_rule(rule);
-                for (bool null = true; null && !base_rule->is_reduction(); base_rule = base_rule->get_next_base_rule(c)) {
+                Rule *rule = i->second;
+                BaseRule *base_rule = w.base_rules.get_base_rule(rule, 0);
+                for (bool null = true; null && !base_rule->is_reduction(); base_rule = base_rule->get_next_base_rule(w)) {
                     forward_rules.emplace(symbol, new ForwardRule(base_rule)); // base_rule not a reduction
                     Symbol *next_symbol = base_rule->get_next_symbol();
                     if (!next_symbol->is_token() && history.insert(next_symbol).second) {
@@ -230,9 +228,9 @@ class FirstHelper(Workspace &c) : public ForwardHelper
     // update all forward rules
     void closure()
     {
-        for (ForwardRuleMap::value_type &p: forward_rules) {
-            ForwardRule const *forward_rule = p.second;
-            BaseRule const *base_rule = forward_rule->get_base_rule();
+        for (ForwardRuleMap::value_type &p : forward_rules) {
+            ForwardRule *forward_rule = p.second;
+            BaseRule *base_rule = forward_rule->get_base_rule();
             Symbol *next_symbol = base_rule->get_next_symbol();
             if (!next_symbol->is_token() && base_rule->get_first_priority() != Priority()) {
                 BaseRuleSet base_rules {base_rule};
@@ -248,7 +246,7 @@ class FirstHelper(Workspace &c) : public ForwardHelper
         for (ForwardRuleMap::const_iterator i = p.first, endi = p.second; i != endi; ++i) {
             ForwardRule *forward_rule = i->second;
             if (forward_rule->update(base_rules)) {
-                BaseRule const *base_rule = forward_rule->get_base_rule();
+                BaseRule *base_rule = forward_rule->get_base_rule();
                 Symbol *next_symbol = base_rule->get_next_symbol(); // we know base_rule is not a reduction
                 if (!next_symbol->is_token()) {
                     if (base_rule->get_first_priority() == Priority() || base_rules.find(base_rule) != base_rules.end()) {
@@ -266,7 +264,7 @@ class FirstHelper(Workspace &c) : public ForwardHelper
 };
 
 // set symbol shift rules helper
-class ShiftHelper(Workspace &c) : public ForwardHelper
+class ShiftHelper(Workspace &w) : public ForwardHelper
 {
   public:
     // set shift rules for nonterminal
@@ -276,11 +274,11 @@ class ShiftHelper(Workspace &c) : public ForwardHelper
         closure();
         ShiftRuleVector shift_rules;
         shift_rules.reserve(forward_rules.size());
-        for (ForwardRuleMap::value_type &p: forward_rules) {
-            ForwardRule const *forward_rule = p.second;
-            BaseRule const *base_rule = forward_rule->get_base_rule();
+        for (ForwardRuleMap::value_type &p : forward_rules) {
+            ForwardRule *forward_rule = p.second;
+            BaseRule *base_rule = forward_rule->get_base_rule();
             Priority sp = forward_rule->get_shift_priority();
-            shift_rules.push_back(c.get_shift_rule(base_rule, sp));
+            shift_rules.push_back(w.shift_rules.get_shift_rule(base_rule, sp));
         }
         static_cast<Nonterminal &>(*symbol).set_shift_rules(shift_rules); // steals rules
     }
@@ -293,10 +291,10 @@ class ShiftHelper(Workspace &c) : public ForwardHelper
         SymbolSet history {symbol};
         SymbolVector stack;
         for (;;) {
-            RuleMapRange const &r = c.get_rules(symbol);
+            RuleMapRange const &r = w.rules.get_rules(symbol);
             for (RuleMap::const_iterator i = r.first; i != r.second; ++i) {
-                Rule const *rule = i->second;
-                BaseRule const *base_rule = c.get_base_rule(rule);
+                Rule *rule = i->second;
+                BaseRule *base_rule = w.base_rules.get_base_rule(rule, 0);
                 forward_rules.emplace(symbol, new ForwardRule(base_rule));
                 if (!base_rule->is_reduction()) {
                     Symbol *next_symbol = base_rule->get_next_symbol();
@@ -316,9 +314,9 @@ class ShiftHelper(Workspace &c) : public ForwardHelper
     // update all forward rules
     void closure()
     {
-        for (ForwardRuleMap::value_type &p: forward_rules) {
-            ForwardRule const *forward_rule = p.second;
-            BaseRule const *base_rule = forward_rule->get_base_rule();
+        for (ForwardRuleMap::value_type &p : forward_rules) {
+            ForwardRule *forward_rule = p.second;
+            BaseRule *base_rule = forward_rule->get_base_rule();
             if (!base_rule->is_reduction()) {
                 Symbol *next_symbol = base_rule->get_next_symbol();
                 if (!next_symbol->is_token() && base_rule->get_shift_priority() != Priority ()) {
@@ -336,7 +334,7 @@ class ShiftHelper(Workspace &c) : public ForwardHelper
         for (ForwardRuleMap::const_iterator i = p.first, endi = p.second; i != endi; ++i) {
             ForwardRule *forward_rule = i->second;
             if (forward_rule->update(base_rules)) {
-                BaseRule const *base_rule = forward_rule->get_base_rule();
+                BaseRule *base_rule = forward_rule->get_base_rule();
                 if (!base_rule->is_reduction()) {
                     Symbol *next_symbol = base_rule->get_next_symbol();
                     if (!symbol->is_token()) {
@@ -356,15 +354,16 @@ class ShiftHelper(Workspace &c) : public ForwardHelper
 };
 
 } // unnamed
-} // basilcc
+} // basilcx
 
 #src
 #include <basilcx_base_rule.h>
-#include <basilcx_workspace.h>
 #include <basilcx_first.h>
 #include <basilcx_rule.h>
 #include <basilcx_symbol.h>
 #include <basilcx_util.h>
+#include <basilcx_workspace.h>
+
 #include <algorithm>
 #include <set>
 #end

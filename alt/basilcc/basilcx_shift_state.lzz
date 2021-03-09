@@ -1,0 +1,39 @@
+namespace basilcx {
+
+class State;
+
+class ShiftState
+{
+  public:
+    inline ShiftState(int shift_num, State *state)
+        : _shift_num(shift_num), _state(state)
+    {}
+
+    inline ~ShiftState()
+    {}
+
+    // get shift selection number
+    inline int get_shift_number() const
+    {
+        return _shift_num;
+    }
+
+    // get state
+    inline State *get_state() const
+    {
+        return _state;
+    }
+
+  private:
+    // shift selection number
+    int _shift_num;
+    State *_state;
+};
+
+} // basilcx
+
+#hdr
+#end
+
+#src
+#end

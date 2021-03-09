@@ -17,25 +17,25 @@ public:
     }
 
     // get shared rule from components
-    ShiftRule const *get_shift_rule(BaseRule const *base_rule, Priority const &sp)
+    ShiftRule *get_shift_rule(BaseRule *base_rule, Priority const &sp)
     {
         ShiftRulePtr shift_rule(new ShiftRule(base_rule, sp));
         return freeze_shift_rule(shift_rule);
     }
 
     // freeze shift rule, return shared frozen rule, may steal ownership
-    ShiftRule const *freeze_shift_rule(ShiftRulePtr &shift_rule_ptr)
+    ShiftRule *freeze_shift_rule(ShiftRulePtr &shift_rule_ptr)
     {
         std::pair<ShiftRuleSet::iterator, bool> r = _shift_rules.insert(shift_rule_ptr.get());
         if (r.second) {
-            shift_rule.release();
+            shift_rule_ptr.release();
         }
         return *r.first;
     }
 
   private:
-    inline bool ShiftRuleLess(; ShiftRule const *a, ShiftRule const *b) const { return *a < *b; }
-    typedef std::set<ShiftRule const *, ShiftRuleLess> ShiftRuleSet;
+    inline bool ShiftRuleLess(; ShiftRule *a, ShiftRule *b) const { return *a < *b; }
+    typedef std::set<ShiftRule *, ShiftRuleLess> ShiftRuleSet;
     ShiftRuleSet _shift_rules;
 };
 

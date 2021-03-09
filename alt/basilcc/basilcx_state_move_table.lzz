@@ -27,7 +27,7 @@ class StateMoveTable {
     }
 
   private:
-    inline bool StateMoveLess(; StateMove *a, StateMove *b) const { return *a < *b; }
+    bool StateMoveLess(; StateMove *a, StateMove *b) const { return *a < *b; }
     typedef std::set<StateMove *, StateMoveLess> StateMoveSet;
     StateMoveSet _state_moves;
 };

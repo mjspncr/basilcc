@@ -1,6 +1,4 @@
-// basilcc conflict
-
-namespace basilcc {
+namespace basilcx {
 
 class TempAction;
 class Symbol;
@@ -47,7 +45,7 @@ class Conflict {
     TempActionVector _temp_actions;
 };
 
-} // basilcc
+} // basilcx
 
 #hdr
 #include <vector>

@@ -14,7 +14,7 @@ class BaseRuleTable {
     }
     
     // get base rule
-    BaseRule const *get_base_rule(Rule const *rule, int pos)
+    BaseRule *get_base_rule(Rule *rule, int pos)
     {
         std::unique_ptr<BaseRule> base_rule_ptr(new BaseRule(rule, pos));
         std::pair<BaseRuleSet::iterator, bool> r = _base_rules.insert(base_rule_ptr.get());
@@ -26,7 +26,7 @@ class BaseRuleTable {
     }
 
   private:
-    bool BaseRuleLess(; BaseRule const *a, BaseRule const *b) const { return *a < *b; }
+    bool BaseRuleLess(; BaseRule *a, BaseRule *b) const { return *a < *b; }
     typedef std::set<BaseRule *, BaseRuleLess> BaseRuleSet;
     BaseRuleSet _base_rules;
 };

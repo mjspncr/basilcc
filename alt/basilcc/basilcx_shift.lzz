@@ -41,7 +41,7 @@ bool operator<(Shift const &a, Shift const &b)
 
 // get shift state given symbol number, 0 if symbol not found
 typedef std::vector<Shift> ShiftVector;
-State const *get_shift_state(ShiftVector const &shifts, Symbol *symbol)
+State *get_shift_state(ShiftVector const &shifts, Symbol *symbol)
 {
     ShiftVector::const_iterator p = std::lower_bound(shifts.begin(), shifts.end(), symbol, ShiftSymbolLess());
     if (p != shifts.end()) {

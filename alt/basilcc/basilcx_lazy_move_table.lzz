@@ -16,7 +16,7 @@ class LazyMoveTable
     }
 
     // get lazy move from token and action sequence 
-    LazyMove *get_lazy_move(Symbol *token, LazyActionSeq const *lazy_action_seq)
+    LazyMove *get_lazy_move(Symbol *token, LazyActionSeq *lazy_action_seq)
     {
         std::unique_ptr<LazyMove> lazy_move_ptr(new LazyMove(token, lazy_action_seq));
         std::pair<LazyMoveSet::iterator, bool> r = _lazy_moves.insert(lazy_move_ptr.get());
@@ -27,7 +27,7 @@ class LazyMoveTable
     }
 
 private:
-    bool LazyMoveLess(; LazyMove const *a, LazyMove const *b) const { return *a < *b; }
+    bool LazyMoveLess(; LazyMove *a, LazyMove *b) const { return *a < *b; }
     typedef std::set<LazyMove *, LazyMoveLess> LazyMoveSet;
     LazyMoveSet _lazy_moves;
 };

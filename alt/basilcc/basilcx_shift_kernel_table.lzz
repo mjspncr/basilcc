@@ -26,7 +26,7 @@ class ShiftKernelTable {
     }
 
   private:
-    inline bool ShiftKernelLess(; ShiftKernel *a, ShiftKernel *b) const { return *a < *b; }
+    bool ShiftKernelLess(; ShiftKernel *a, ShiftKernel *b) const { return *a < *b; }
     typedef std::set<ShiftKernel *, ShiftKernelLess> ShiftKernelSet;
     ShiftKernelSet _shift_kernels;
 };

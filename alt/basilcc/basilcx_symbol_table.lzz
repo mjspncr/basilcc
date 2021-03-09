@@ -49,16 +49,18 @@ class SymbolTable
     // no more symbols
     void freeze()
     {
-        // tokens, EOT always 0
+        // tokens
         {
+            // first token is EOT, always 0
             std::sort(_tokens.begin() + 1, _tokens.end(), SymbolNameLess());
             int num = 0;
             for (Symbol *symbol: _tokens) {
                 const_cast<int &>(symbol->_num) = num++;
             }
         }
-        // nonterminals
+        // nonterminals 
         {
+            // also numbered from 0
             std::sort(_nonterminals.begin(), _nonterminals.end(), SymbolNameLess());
             int num = 0;
             for (Symbol *symbol: _nonterminals) {

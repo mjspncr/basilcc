@@ -1,7 +1,7 @@
 namespace basilcx {
 
 class BaseRule;
-typedef std::vector<BaseRule const *> BaseRuleVector;
+typedef std::vector<BaseRule *> BaseRuleVector;
 
 class BaseKernel
 {
@@ -32,7 +32,7 @@ private:
     BaseRuleVector _base_rules;
 };
 
-// true if a < b, compares pointers
+// true if a < b
 bool operator <(BaseKernel const &a, BaseKernel const &b)
 {
     BaseRuleVector const &a_rules = a.get_base_rules();
@@ -40,14 +40,7 @@ bool operator <(BaseKernel const &a, BaseKernel const &b)
     if (a_rules.size() != b_rules.size()) {
         return a_rules.size() < b_rules.size();
     }
-    for (BaseRuleVector::const_iterator i = a_rules.begin(), endi = a_rules.end(), j = b_rules.begin(); i != endi; ++ i, ++ j) {
-        BaseRule const *a_rule = *i;
-        BaseRule const *b_rule = *j;
-        if (a_rule != b_rule) {
-            return a_rule < b_rule;
-        }
-    }
-    return false;
+    return a_rules < b_rules;
 }
 
 } // basilcx

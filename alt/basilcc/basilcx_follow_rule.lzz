@@ -4,8 +4,6 @@ class Follow;
 class ShiftRule;
 class Workspace;
 
-typedef std::unique_ptr<Follow> FollowPtr;
-
 class FollowRule {
   public:
     FollowRule(ShiftRule *shift_rule)

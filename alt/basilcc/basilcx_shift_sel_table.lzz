@@ -1,6 +1,8 @@
 namespace basilcx {
 
 class ShiftSel;
+bool ShiftSelLess(; ShiftSel *a, ShiftSel *b) const { return *a < *b; }
+typedef std::set<ShiftSel *, ShiftSelLess> ShiftSelSet;
 
 class ShiftSelTable
 {
@@ -19,15 +21,19 @@ class ShiftSelTable
         std::unique_ptr<ShiftSel> shift_sel_ptr(new ShiftSel(shifts));
         std::pair<ShiftSelSet::iterator, bool> r = _shift_sels.insert(shift_sel_ptr.get());
         if (r.second) {
-            const_cast<int &>(shift_sel_ptr->_num) = _shift_sels.size() - 1; // TODO - need number?
+            shift_sel_ptr->_num = _shift_sels.size() - 1;
             shift_sel_ptr.release();
         }
         return *r.first;
     }
 
+    // get shift sels, called by get_goto
+    ShiftSelSet const &get_shift_sels() const
+    {
+        return _shift_sels;
+    }
+
   private:
-    inline bool ShiftSelLess(; ShiftSel *a, ShiftSel *b) const { return *a < *b; }
-    typedef std::set<ShiftSel *, ShiftSelLess> ShiftSelSet;
     ShiftSelSet _shift_sels;
 };
 

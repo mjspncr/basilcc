@@ -1,0 +1,80 @@
+namespace basilcx {
+
+class Workspace;
+
+// compile grammar to FSM, set num conflicts and return number of states
+bool compile_fsm(Workspace &w, int &num_conflicts, int &num_lex_state_conflicts)
+{
+    // freeze input tables
+    w.symbols.freeze();
+    w.nodes.freeze();
+    w.rules.freeze();
+    // set first set on all symbols
+    set_first(w);
+    // create the start states
+    create_start_states(w);
+    // create remaining states, if conflicts will not generate a parser so need to set gotos
+    if (!w.create_states(num_conflicts, num_lex_state_conflicts))
+    {
+        return false;
+    }
+    set_goto(w);
+    return true;
+}
+
+namespace {
+
+// get start states -- just primes the state_table
+void create_start_states(Workspace &w)
+{
+    RuleMapRange const &r = w.get_start_rules();
+    for (RuleMap::const_iterator i = r.first; i != r.second; ++i) {
+        Rule *rule = i->second;
+        BaseRule *base_rule = w.base_rules.get_base_rule(rule, 0);
+        ShiftRule *shift_rule = w.shift_rules.get_shift_rule(base_rule, Priority());
+        FollowRuleVector follow_rules(1, w.follow_rules.get_follow_rule(shift_rule, get_start_follow(w, rule)));
+        FollowKernel *follow_kernel = w.follow_kernels.get_follow_kernel(follow_rules);
+        w.get_state(follow_kernel);
+    }
+}
+
+// return follow set for start rule
+Follow get_start_follow(Workspace &w, Rule *rule)
+{
+    Follow follow;
+    bool sticky = true, accept = true;
+    Symbol *shortcut = w.start_symbol;
+    bool null = true;
+    RuleSymbolVector const &explicit_follow = rule->get_explicit_follow();
+    if (!explicit_follow.empty ()) {
+        null = false;
+        for (RuleSymbol const &rule_symbol : explicit_follow) {
+            Symbol *symbol = rule_symbol.get_symbol();
+            First const &first = symbol->get_first();
+            follow.add_first(first, rule_symbol.get_lex_state(), shortcut, rule_symbol.get_first_priority(), sticky, accept);
+            if (first.has_null()) {
+                null = true;
+            }
+        }
+    }
+    if (null) {
+        First const& first = w.eot_symbol->get_first();
+        follow.add_first(first, LexState(), shortcut, Priority(), sticky, accept);
+    }
+    return follow;
+}
+
+} // unnamed
+} // basilcx
+
+#hdr
+#end
+
+#src
+#include <basilcx_follow_rule.h>
+#include <basilcx_rule.h>
+#include <basilcx_shift_rule.h>
+#include <basilcx_get_goto.h>
+#include <basilcx_symbol.h>
+#include <basilcx_workspace.h>
+#end

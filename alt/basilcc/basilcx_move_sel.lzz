@@ -38,16 +38,6 @@ bool operator<(MoveSel const &a, MoveSel const &b)
     return a_moves < b_moves;
 }
 
-inline bool MoveSelLess(; MoveSel const *a, MoveSel const *b) const
-{
-    return *a < *b;
-}
-
-inline bool MoveSelNumberLess(; MoveSel const *a, MoveSel const *b) const
-{
-    return a->_num < b->_num;
-}
-
 } // basilcx
 
 #hdr

@@ -1,6 +1,8 @@
 namespace basilcx {
 
-typedef std::set<ActionSeq *, ActionSeqLess> ActionSeqSet;
+class Action;
+class ActionSeq;
+typedef std::vector<Action *> ActionVector;
 typedef std::vector<ActionSeq *> ActionSeqVector;
 
 // action sequence table
@@ -15,7 +17,7 @@ class ActionSeqTable {
     }
 
     // get shared action seq, steals actions
-    ActionSeq const *get_action_seq(ActionVector &actions)
+    ActionSeq *get_action_seq(ActionVector &actions)
     {
         std::unique_ptr<ActionSeq> action_seq_ptr(new ActionSeq(actions));
         std::pair<ActionSeqSet::iterator, bool> r = _action_seqs.insert(action_seq_ptr.get());
@@ -33,24 +35,30 @@ class ActionSeqTable {
         std::sort(action_seqs.begin(), action_seqs.end(), ActionSeqNumberLess());
     }
 
-    inline ActionSeqSet const &get_action_seqs() const
-    {
-        return _action_seqs;
-    }
-
   private:
+    bool ActionSeqLess(; ActionSeq *a, ActionSeq *b) const { return *a < *b; }
+    typedef std::set<ActionSeq *, ActionSeqLess> ActionSeqSet;
     ActionSeqSet _action_seqs;
 };
 
+namespace {
+
+// true if action seq number is less
+inline bool ActionSeqNumberLess(; ActionSeq *a, ActionSeq *b) const
+{
+    return a->_num < b->_num;
+}
+
+} // unnamed
 } // basilcx
 
 #hdr
-#include <basilcx_action_seq.h>
-
 #include <set>
+#include <vector>
 #end
 
 #src
+#include <basilcx_action_seq.h>
 #include <basilcx_util.h>
 
 #include <memory>

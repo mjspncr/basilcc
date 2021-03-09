@@ -48,21 +48,21 @@ class ShiftKernel
         return _shift_base.get();
     }
 
-  prinvate:
+  private:
     BaseKernel *_base_kernel;
     ShiftRuleVector _shift_rules;
     std::unique_ptr<ShiftBase> _shift_base; // owns _shift_base
 };
 
-// true if a < b, compares pointers
+// true if a < b
 bool operator <(ShiftKernel const &a, ShiftKernel const &b)
 {
-    ShiftRuleVector &a_shift_rules = a.get_shift_rules();
-    ShiftRuleVector &b_shift_rules = b.get_shift_rules();
+    ShiftRuleVector const &a_shift_rules = a.get_shift_rules();
+    ShiftRuleVector const &b_shift_rules = b.get_shift_rules();
     if (a_shift_rules.size() != b_shift_rules.size()) {
         return a_shift_rules.size() < b_shift_rules.size();
     }
-    return a_get_shift_rules < b_get_shift_rules;
+    return a_shift_rules < b_shift_rules;
 }
 
 } // basilcx
@@ -75,6 +75,7 @@ bool operator <(ShiftKernel const &a, ShiftKernel const &b)
 #src
 #include <basilcx_shift_base.h>
 #include <basilcx_shift_rule.h>
+#include <basilcx_workspace.h>
 
 #include <algorithm>
 #end

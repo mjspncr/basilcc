@@ -3,7 +3,7 @@ namespace basilcx {
 class BaseKernel;
 class ShiftRule;
 class Workspace;
-typedef std::vector<ShiftRule const *> ShiftRuleVector;
+typedef std::vector<ShiftRule *> ShiftRuleVector;
 
 class ShiftBase
 {

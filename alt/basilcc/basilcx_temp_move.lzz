@@ -55,9 +55,9 @@ class TempMove {
     void add_shift(Priority const &priority)
     {
         // search for shift action, if present update it
-        for (TempAction *action: _temp_actions) {
-            // only shift
+        for (TempAction *action : _temp_actions) {
             if (action->is_shift()) {
+                // can only have one shift
                 action->update(priority);
                 return; 
             }
@@ -83,12 +83,12 @@ class TempMove {
         trim();
         LazyActionVector lazy_actions;
         lazy_actions.reserve(_temp_actions.size());
-        for (TempAction const *temp_action: _temp_actions) {
+        for (TempAction *temp_action : _temp_actions) {
             lazy_actions.push_back(temp_action->get_lazy_action(w));
         }
-        LazyActionSeq const *lazy_action_seq = c.get_lazy_action_seq(lazy_actions);
+        LazyActionSeq *lazy_action_seq = w.lazy_action_seqs.get_lazy_action_seq(lazy_actions);
         get_conflicts(conflicts);
-        return c.get_lazy_move(_token, lazy_action_seq);
+        return w.lazy_moves.get_lazy_move(_token, lazy_action_seq);
     }
 
     // true if move is sticky, can't include as default

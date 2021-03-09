@@ -1,7 +1,4 @@
-// basilcc follow
-//
-
-namespace basilcc {
+namespace basilcx {
 
 class First;
 typedef std::set<FollowItem> FollowItemSet;
@@ -120,17 +117,19 @@ std::string follow_items_to_string(FollowItemSet const &follow_items, Symbol *le
     return ss.str();
 }
 
-} // unnamed namespace
-} // basilcc namespace
+} // unnamed
+} // basilcx
 
 #hdr
 #include <basilcx_follow_item.h>
 #include <basilcx_lex_state.h>
+
 #include <set>
 #end
 
 #src
 #include <basilcx_first.h>
 #include <basilcx_util.h>
+
 #include <sstream>
 #end

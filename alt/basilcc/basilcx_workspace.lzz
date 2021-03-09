@@ -3,9 +3,19 @@ namespace basilcx {
 class Action;
 class ActionSeq;
 class Move;
-typedef std::map<Symbol *, Goto> GotoMap;
 
-struct Workspace {
+class Workspace {
+  public:
+    Workspace()
+        : rules(*this)
+    {
+        start_symbol = symbols.get_symbol(intern("start"));
+        eot_symbol = symbols.get_symbol(intern("EOT"));
+    }
+
+    ~Workspace()
+    {}
+
     // tables
     SymbolTable symbols;
     NodeTable nodes;
@@ -29,18 +39,9 @@ struct Workspace {
     StateMoveTable state_moves;
     StateTable states;
     ShiftStateSelTable shift_state_sels;
-    GotoMap go2s;
-
     // special symbols
-    Symbol *start_symbols;
+    Symbol *start_symbol;
     Symbol *eot_symbol;
-
-    Workspace()
-        : rules(*this)
-    {
-        start_symbol = symbols.get_symbol(intern("start"));
-        eot_symbol = symbols.get_symbol(intern("EOT"));
-    }
 
     // intern string, return shared char const *
     inline char const *intern(std::string const &str)
@@ -48,74 +49,11 @@ struct Workspace {
       return strings.insert(str).first->c_str ();
     }
 
-  private:
-    std::set<std::string> strings;
-
-  public:
-
     /*
     // generated parser namespace 
     std::string parser_namespace;
     std::string userdata_class;
     */
-
-    // compile grammmar, generate all states, set number of lex state conflicts and
-    // return number of parser conflicts
-    int compile(int &num_conflicts, int &num_lex_state_conflicts)
-    {
-        _symbols.freeze();
-        _nodes.freeze();
-        _rules.freeze();
-        set_first(*this);
-        int num_states = _states.closure(*this, num_conflicts, num_lex_state_conflicts);
-        get_goto(*this, _go2s);
-        return num_states;
-    }
-
-
-    // symbols
-    inline Symbol *get_symbol(std::string const &name)
-    {
-        return _symbols.get_symbol(intern(name));
-    }
-    SymbolVector const &get_tokens() const
-    {
-        return _symbols.get_tokens();
-    }
-    SymbolVector const &get_nonterminals() const
-    {
-        return _symbols.get_nonterminals();
-    }
-    inline SymbolMap const &get_symbols() const
-    {
-        return _symbols.get_symbols();
-    }
-
-    inline Symbol *get_eot_symbol() const
-    {
-        return _symbols.get_eot_symbol();
-    }
-
-    inline Symbol *get_start_symbol() const
-    {
-        return _symbols.get_start_symbol();
-    }
-
-    inline bool is_start_symbol(Symbol *symbol) const
-    {
-        return get_start_symbol() == symbol;
-    }
-
-    // nodes
-    inline Node *get_node(std::string const &name)
-    {
-        return _nodes.get_node(intern(name));
-    }
-    // get nodes ordered by number
-    inline void get_nodes(NodeVector &nodes) const
-    {
-        return _nodes.get_nodes(nodes);
-    }
 
     // rules
     inline Rule *add_rule(
@@ -126,7 +64,7 @@ struct Workspace {
         bool no_bypass
     )
     {
-        return _rules.add_rule(
+        return rules.add_rule(
             node,
             left_rule_symbol,
             right_rule_symbols,
@@ -134,187 +72,26 @@ struct Workspace {
             no_bypass);
     }
 
-    // get vector of rules ordered by number
-    void get_rules(RuleVector &rules) const
-    {
-        return _rules.get_rules(rules);
-    }
-    // get start rules
+    // get all start rules
     inline RuleMapRange get_start_rules() const
     {
-        return _rules.get_rules(get_start_symbol());
-    }
-    // get rules with left hand symbol
-    inline RuleMapRange get_rules(Symbol *left_symbol) const
-    {
-        return _rules.get_rules(left_symbol);
+        return rules.get_rules(start_symbol);
     }
 
-    // get base rule
-    inline BaseRule const *get_base_rule(Rule const *rule, int pos = 0)
+    // get state from follow kernel
+    inline State *get_state(FollowKernel *follow_kernel)
     {
-        return _base_rules.get_base_rule(rule, pos);
+        return states.get_state(*this, follow_kernel);
     }
 
-    // freeze shift rule, return shared frozen rule
-    inline ShiftRule const *freeze_shift_rule(ShiftRulePtr &shift_rule)
+    // create all states, return true if no conflicts, otherwise set number of conflicts and return false
+    inline bool create_states(int &num_conflicts, int &num_lex_state_conflicts)
     {
-        return _shift_rules.freeze_shift_rule(shift_rule);
-    }
-    // get frozen shift rule from components
-    inline ShiftRule const *get_shift_rule(BaseRule const *base_rule, Priority const &sp)
-    {
-        return _shift_rules.get_shift_rule(base_rule, sp);
+        return states.create_states(*this, num_conflicts, num_lex_state_conflicts);
     }
 
-    // follow rules
-    FollowRule const *freeze_follow_rule(FollowRulePtr &follow_rule)
-    {
-        return _follow_rules.freeze_follow_rule(follow_rule);
-    }
-    FollowRule const *get_follow_rule(ShiftRule const *shift_rule, Follow const &follow)
-    {
-        return _follow_rules.get_follow_rule(shift_rule, follow);
-    }
-
-    // base kernels
-    inline BaseKernel const *get_base_kernel(BaseRuleVector &base_rules) // steals rules
-    {
-        return _base_kernels.get_base_kernel(base_rules);
-    }
-
-    // shift kernels
-    inline ShiftKernel *get_shift_kernel(ShiftRuleVector &shift_rules) // steals rules
-    {
-        return _shift_kernels.get_shift_kernel(shift_rules);
-    }        
-
-    // follow kernel
-    FollowKernel *get_follow_kernel(FollowRuleVector &follow_rules) // steals rules
-    {
-        return _follow_kernels.get_follow_kernel(follow_rules);
-    }
-
-    // actions
-    inline Action *get_shift_action(State const *state)
-    {
-        return _actions.get_shift_action(state);
-    }
-    inline Action *get_reduce_action(Rule const *rule, Symbol *shortcut, bool accept)
-    {
-        return _actions.get_reduce_action(rule, shortcut, accept);
-    }
-    inline void get_actions(ActionVector &actions) const
-    {
-        return _actions.get_actions(actions);
-    }
-
-    // action seqs
-    inline ActionSeq const *get_action_seq(ActionVector &actions) // steals actions
-    {
-        return _action_seqs.get_action_seq(actions);
-    }
-    // get action sequences in order
-    void get_action_seqs(ActionSeqVector &action_seqs) const
-    {
-        return _action_seqs.get_action_seqs(action_seqs);
-    }
-
-    // moves
-    inline Move *get_move(Symbol *token, ActionSeq const *action_seq)
-    {
-        return _moves.get_move(token, action_seq);
-    }
-    void get_moves(MoveVector &moves) const
-    {
-        return _moves.get_moves(moves);
-    }
-
-    // move sels
-    inline MoveSel const *get_move_sel(MoveVector &moves) // steals moves
-    {
-        return _move_sels.get_move_sel(moves);
-    }
-    void get_move_sels(MoveSelVector &move_sels) const
-    {
-        _move_sels.get_move_sels(move_sels);
-    }
-
-    // lazy actions
-    inline LazyAction const *get_shift_lazy_action()
-    {
-        return _lazy_actions.get_shift_lazy_action();
-    }
-    inline LazyAction const *get_reduce_lazy_action(Rule const *rule, Symbol *shortcut, bool accept)
-    {
-        return _lazy_actions.get_reduce_lazy_action(rule, shortcut, accept);
-    }
-
-    // lazy action seqs
-    inline LazyActionSeq const *get_lazy_action_seq(LazyActionVector &lazy_actions) // steals lazy actions
-    {
-        return _lazy_action_seqs.get_lazy_action_seq(lazy_actions);
-    }
-
-    // lazy moves
-    inline LazyMove *get_lazy_move(Symbol *token, LazyActionSeq const *lazy_action_seq)
-    {
-        return _lazy_moves.get_lazy_move(token, lazy_action_seq);
-    }
-
-    // lazy move sels
-    LazyMoveSel const *get_lazy_move_sel(LazyMoveVector &lazy_moves)
-    {
-        return _lazy_move_sels.get_lazy_move_sel(lazy_moves); // steals lazy moves
-    }
-
-    // lazy follow moves
-    LazyFollowMove const *get_lazy_follow_move(LazyMoveSel const *lazy_move_sel, LazyActionSeq const *def_lazy_action_seq)
-    {
-        return _lazy_follow_moves.get_lazy_follow_move(lazy_move_sel, def_lazy_action_seq);
-    }
-
-    // shift sel
-    inline ShiftSel const *get_shift_sel(ShiftVector &shifts)
-    {
-        return _shift_sels.get_shift_sel(shifts);
-    }
-    inline ShiftSelSet const &get_shift_sels() const
-    {
-        return _shift_sels.get_shift_sels();
-    }
-
-    // state move
-    StateMove const *get_state_move(MoveSel const *move_sel, ActionSeq const *def_action_seq)
-    {
-        return _state_moves.get_state_move(move_sel, def_action_seq);
-    }
-
-    // state
-    State const *get_state(FollowKernel *follow_kernel)
-    {
-        return _states.get_state(*this, follow_kernel);
-    }
-    // get states in number order
-    void get_states(StateVector &states) const
-    {
-        return _states.get_states(states);
-    }
-
-    // shift state sels
-    inline ShiftStateSel const *get_shift_state_sel(ShiftStateVector &shift_states)
-    {
-        return _shift_state_sels.get_shift_state_sel(shift_states); // steals shift states
-    }
-    inline ShiftStateSelVector const &get_shift_state_sels() const
-    {
-        return _shift_state_sels.get_shift_state_sels();
-    }
-
-    GotoMap const &get_go2s() const
-    {
-        return _go2s;
-    }
+  private:
+    std::set<std::string> strings;
 };
 
 } // basilcx
@@ -323,9 +100,10 @@ struct Workspace {
 #include <basilcx_action_seq_table.h>
 #include <basilcx_action_table.h>
 #include <basilcx_base_kernel_table.h>
+#include <basilcx_base_rule_table.h>
 #include <basilcx_follow_kernel_table.h>
 #include <basilcx_follow_rule_table.h>
-#include <basilcc_get_goto.h>
+#include <basilcx_get_goto.h>
 #include <basilcx_lazy_action_seq_table.h>
 #include <basilcx_lazy_action_table.h>
 #include <basilcx_lazy_follow_move_table.h>
@@ -333,17 +111,15 @@ struct Workspace {
 #include <basilcx_lazy_move_table.h>
 #include <basilcx_move_sel_table.h>
 #include <basilcx_move_table.h>
-#include <basilcc_set_first.h>
+#include <basilcx_node_table.h>
+#include <basilcx_rule_table.h>
+#include <basilcx_set_first.h>
 #include <basilcx_shift_kernel_table.h>
+#include <basilcx_shift_rule_table.h>
 #include <basilcx_shift_sel_table.h>
 #include <basilcx_shift_state_sel_table.h>
 #include <basilcx_state_move_table.h>
 #include <basilcx_state_table.h>
-
-#include <basilcx_base_rule_table.h>
-#include <basilcx_node_table.h>
-#include <basilcx_rule_table.h>
-#include <basilcx_shift_rule_table.h>
 #include <basilcx_symbol_table.h>
 
 #include <set>

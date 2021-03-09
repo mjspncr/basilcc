@@ -9,7 +9,7 @@ class Workspace;
 class BaseRule
 {
   public:
-    BaseRule(Rule const *rule, int pos)
+    BaseRule(Rule *rule, int pos)
         : _num(-1), _rule(rule), _pos(pos)
     {}
 
@@ -17,7 +17,7 @@ class BaseRule
     {}
 
     // get rule
-    inline Rule const *get_rule() const
+    inline Rule *get_rule() const
     {
         return _rule;
     }
@@ -67,7 +67,7 @@ class BaseRule
     }
 
     // get base rule at next pos
-    BaseRule const *get_next_base_rule(Workspace &w) const
+    BaseRule *get_next_base_rule(Workspace &w) const
     {
         return w.base_rules.get_base_rule(_rule, _pos + 1);
     }
@@ -80,7 +80,7 @@ class BaseRule
 
     int const _num;
   private:
-    Rule const *_rule;
+    Rule *_rule;
     int _pos;
 };
 
@@ -100,7 +100,7 @@ inline bool operator<(BaseRule const &a, BaseRule const &b)
 #end
 
 #inl
-#include <basilcx_workspace.h>
 #include <basilcx_rule.h>
 #include <basilcx_rule_symbol.h>
+#include <basilcx_workspace.h>
 #end

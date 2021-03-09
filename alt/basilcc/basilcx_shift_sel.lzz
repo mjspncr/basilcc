@@ -24,7 +24,7 @@ class ShiftSel
         return basilcx::get_shift_state(_shifts, symbol);
     }
 
-    int const _num;
+    int _num;
   private:
     ShiftVector _shifts; // ordered
 };

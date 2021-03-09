@@ -12,7 +12,7 @@ class LazyFollowMoveTable
     
     ~LazyFollowMoveTable ()
     {
-      delete_objects(_lazy_follow_moves);
+        delete_objects(_lazy_follow_moves);
     }
 
     // get lazy follow move from components
@@ -27,8 +27,8 @@ class LazyFollowMoveTable
     }
 
   private:
-    inline bool LazyFollowMoveLess(; LazyFollowMove *a, LazyFollowMove *b) const { return *a < *b; }
-    typedef std::set<LazyFollowMove const *, LazyFollowMoveLess> LazyFollowMoveSet;
+    bool LazyFollowMoveLess(; LazyFollowMove *a, LazyFollowMove *b) const { return *a < *b; }
+    typedef std::set<LazyFollowMove *, LazyFollowMoveLess> LazyFollowMoveSet;
     LazyFollowMoveSet _lazy_follow_moves;
 };
 

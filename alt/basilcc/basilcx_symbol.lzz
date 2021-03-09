@@ -1,7 +1,10 @@
 namespace basilcx {
 
 class ShiftRule;
-typedef std::vector<ShiftRule const *> ShiftRuleVector;
+class State;
+class ShiftState;
+typedef std::vector<ShiftState> ShiftStateVector;
+typedef std::vector<ShiftRule *> ShiftRuleVector;
 
 class Symbol
 {
@@ -82,8 +85,18 @@ class Nonterminal : public Symbol
         return _shift_rules;
     }
 
+    // set goto shift states, steals shift states 
+    void set_goto(ShiftStateVector &shift_states, State *def_state)
+    {
+        _shift_states.swap(shift_states);
+        _def_state = def_state;
+    }
+
   private:
     ShiftRuleVector _shift_rules;
+    // shift states ordered by shift number
+    ShiftStateVector _shift_states;
+    State * _def_state;
 };
 
 // true if a < b, tokens first, otherwise order by number
@@ -105,12 +118,14 @@ void print_first(Symbol *symbol)
 
 #hdr
 #include <basilcx_first.h>
-#include <basilcx_goto.h>
 
 #include <string>
+#include <vector>
 #include <memory>
 #end
 
 #src
+#include <basilcx_shift_state.h>
+
 #include <iostream>
 #end

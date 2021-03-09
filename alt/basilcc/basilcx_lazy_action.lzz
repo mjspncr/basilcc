@@ -55,8 +55,7 @@ class ShiftLazyAction : public LazyAction {
 // reduce
 class ReduceLazyAction : public LazyAction {
   public:
-
-    ReduceLazyAction(Rule const *rule, Symbol *shortcut, bool accept)
+    ReduceLazyAction(Rule *rule, Symbol *shortcut, bool accept)
         : _rule(rule), _shortcut(shortcut), _accept(accept)
     {}
 
@@ -69,7 +68,7 @@ class ReduceLazyAction : public LazyAction {
     }
 
     // get rule
-    inline Rule const *get_rule() const
+    inline Rule *get_rule() const
     {
         return _rule;
     }
@@ -90,17 +89,17 @@ class ReduceLazyAction : public LazyAction {
     // get action
     Action *get_action(Workspace &w, ShiftVector const &token_shifts, Symbol *token) const
     {
-        return c.actions.get_reduce_action(_rule, _shortcut, _accept);
+        return w.actions.get_reduce_action(_rule, _shortcut, _accept);
     }
 
   private:
-    Rule const *_rule;
+    Rule *_rule;
     Symbol *_shortcut;
     bool _accept;
 };
 
-// if a < b, compares pointers 
-bool operator <(ReduceLazyAction const &a, ReduceLazyAction const &b)
+// true if a < b
+bool operator<(ReduceLazyAction const &a, ReduceLazyAction const &b)
 {
     Rule *a_rule = a.get_rule();
     Rule *b_rule = b.get_rule();
@@ -115,18 +114,6 @@ bool operator <(ReduceLazyAction const &a, ReduceLazyAction const &b)
     return !a.has_accept() && b.has_accept();
 }
 
-bool operator <(LazyAction const &a, LazyAction const &b)
-{
-    bool a_is_shift = a.is_shift(), b_is_shift = b.is_shift();
-    if (a_is_shift != b_is_shift) {
-        return a_is_shift;
-    }
-    if (a_is_shift) {
-        return false; // only one lazy shift action
-    }
-    return static_cast<ReduceLazyAction const &>(a) < static_cast<ReduceLazyAction const &>(b);
-}
-
 } // basilcx
 
 #hdr
@@ -135,7 +122,8 @@ bool operator <(LazyAction const &a, LazyAction const &b)
 #end
 
 #src
-#include <assert.h>
 #include <basilcx_shift.h>
 #include <basilcx_workspace.h>
+
+#include <assert.h>
 #end

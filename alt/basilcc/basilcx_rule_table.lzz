@@ -53,7 +53,7 @@ class RuleTable
                     left_rule_symbol,
                     right_rule_symbols,
                     explicit_follow,
-                    _w.is_start_symbol(left_symbol),
+                    _w.start_symbol == left_symbol,
                     can_bypass))->second;
     }
 
@@ -61,7 +61,7 @@ class RuleTable
     void get_rules(RuleVector &rules) const
     {
         rules.reserve(_rules.size());
-        for (RuleMap::value_type const &p: _rules) {
+        for (RuleMap::value_type const &p : _rules) {
             rules.push_back(p.second);
         }
         std::sort(rules.begin(), rules.end(), RuleNumberLess());
@@ -83,16 +83,16 @@ class RuleTable
     void freeze() const
     {
         // make sure at least one start rule
-        if (!is_left_symbol(_w.get_start_symbol())) {
+        if (!is_left_symbol(_w.start_symbol)) {
             throw std::runtime_error("missing at least one start rule");
         }
         // make sure each right hand nonterminal is defined
-        for (RuleMap::value_type const &p: _rules) {
+        for (RuleMap::value_type const &p : _rules) {
             Rule const *rule = p.second;
-            for (RuleSymbol const &rule_symbol: rule->get_right_rule_symbols()) {
+            for (RuleSymbol const &rule_symbol : rule->get_right_rule_symbols()) {
                 Symbol *symbol = rule_symbol.get_symbol();
                 if (!symbol->is_token()) {
-                    if (_w.is_start_symbol(symbol)) {
+                    if (symbol == _w.start_symbol) {
                         throw std::runtime_error("start symbol on right hand side of rule");
                     }
                     if (!is_left_symbol(symbol)) {

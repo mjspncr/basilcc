@@ -1,7 +1,8 @@
-namespace basilcxx {
+namespace basilcx {
 
 class Action;
 class LazyAction;
+class ReduceLazyAction;
 class Rule;
 class Symbol;
 
@@ -10,30 +11,24 @@ class LazyActionTable
   public:
     LazyActionTable()
     {
-        _shift_lazy_action = get_lazy_action(LazyActionPtr(new ShiftLazyAction));
+        _shift_lazy_action = new ShiftLazyAction;
     }
 
     ~LazyActionTable()
     {
-        delete_objects(_lazy_actions);
+        delete _shift_lazy_action;
+        delete_objects(_reduce_lazy_actions);
     }
 
-    LazyAction const *get_shift_lazy_action()
+    LazyAction *get_shift_lazy_action()
     {
         return _shift_lazy_action;
     }
 
-    LazyAction const *get_reduce_lazy_action(Rule const *rule, Symbol *shortcut, bool accept)
+    LazyAction *get_reduce_lazy_action(Rule *rule, Symbol *shortcut, bool accept)
     {
-        return get_lazy_action(LazyActionPtr(new ReduceLazyAction(rule, shortcut, accept)));
-    }
-
-  private:
-    // helper function, get lazy action
-    typedef std::unique_ptr<LazyAction> LazyActionPtr;
-    LazyAction const *get_lazy_action(LazyActionPtr action_ptr)
-    {
-        std::pair<LazyActionSet::iterator, bool> r = _lazy_actions.insert(action_ptr.get());
+        std::unique_ptr<ReduceLazyAction> action_ptr(new ReduceLazyAction(rule, shortcut, accept));
+        std::pair<ReduceLazyActionSet::iterator, bool> r = _reduce_lazy_actions.insert(action_ptr.get());
         if (r.second) {
             action_ptr.release();
         }
@@ -41,10 +36,10 @@ class LazyActionTable
     }
 
   private:
-    bool LazyActionLess(; LazyAction const *a, LazyAction const *b) const { return *a < *b; }
-    typedef std::set<LazyAction const *, LazyActionLess> LazyActionSet;
-    LazyActionSet _lazy_actions;
-    LazyAction const *_shift_lazy_action; // only one lazy shift action
+    bool ReduceLazyActionLess(; ReduceLazyAction *a, ReduceLazyAction *b) const { return *a < *b; }
+    typedef std::set<ReduceLazyAction *, ReduceLazyActionLess> ReduceLazyActionSet;
+    ReduceLazyActionSet _reduce_lazy_actions;
+    LazyAction *_shift_lazy_action; // only one shift
 };
 
 } // basilcx

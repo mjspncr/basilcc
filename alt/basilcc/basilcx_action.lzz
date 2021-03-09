@@ -7,7 +7,6 @@ class Symbol;
 class Action {
   public:
     inline Action()
-      : _num(-1)
     {}
 
     virtual ~Action()
@@ -17,13 +16,11 @@ class Action {
     inline  bool is_reduction() const { return ! is_shift(); }
     // print to stream
     virtual void format(std::ostream &os) const = 0;
-
-    int _num;
 };
 
 class ShiftAction : public Action {
   public:
-    ShiftAction(State const *state)
+    ShiftAction(State *state)
         : _state(state)
     {}
 
@@ -37,7 +34,7 @@ class ShiftAction : public Action {
     }
 
     // get state
-    inline State const *get_state() const
+    inline State *get_state() const
     {
         return _state;
     }
@@ -49,7 +46,7 @@ class ShiftAction : public Action {
 
   private:
     // state on shift
-    State const *_state;
+    State *_state;
 };
 
 // true if a < b
@@ -65,7 +62,7 @@ bool operator <(ShiftAction const &a, ShiftAction const &b)
 
 class ReduceAction : public Action {
   public:
-    ReduceAction(Rule const *rule, Symbol *shortcut, bool accept)
+    ReduceAction(Rule *rule, Symbol *shortcut, bool accept)
         : _rule(rule), _shortcut(shortcut), _accept(accept)
     {}
 
@@ -73,13 +70,13 @@ class ReduceAction : public Action {
     {}
 
     // true if shift
-    virtual bool is_shift() const
+    bool is_shift() const
     {
         return false;
     }
 
     // get rule
-    inline Rule const *get_rule() const
+    inline Rule *get_rule() const
     {
         return _rule;
     }
@@ -91,9 +88,9 @@ class ReduceAction : public Action {
     }
 
     // true if has accept
-    bool has_accept() const
+    inline bool has_accept() const
     {
-      return _accept;
+        return _accept;
     }
 
     void format(std::ostream &os) const
@@ -114,7 +111,7 @@ class ReduceAction : public Action {
 
   private:
     // reduce on this rule
-    Rule const *_rule;
+    Rule *_rule;
     // shortcut
     Symbol *_shortcut;
     // true if accept
@@ -124,8 +121,8 @@ class ReduceAction : public Action {
 // true if reduce actions a < b, compares pointers
 bool operator<(ReduceAction const &a, ReduceAction const &b)
 {
-    Rule const *a_rule = a.get_rule();
-    Rule const *b_rule = b.get_rule();
+    Rule *a_rule = a.get_rule();
+    Rule *b_rule = b.get_rule();
     if (a_rule != b_rule) {
         return a_rule < b_rule;
     }
@@ -148,16 +145,6 @@ bool operator<(Action const &a, Action const &b)
         return static_cast<ShiftAction const &>(a) < static_cast<ShiftAction const &>(b);
     }
     return static_cast<ReduceAction const &>(a) < static_cast<ReduceAction const &>(b);
-}
-
-inline bool ActionLess(; Action const *a, Action const *b) const
-{
-    return *a < *b;
-}
-
-inline bool ActionNumberLess(; Action const *a, Action const *b) const
-{
-    return a->_num < b->_num;
 }
 
 // actions to string

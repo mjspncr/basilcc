@@ -20,7 +20,7 @@ class TempFollowMove {
     }
 
     // add reduction to move
-    void add_reduction(Rule const *rule, Follow const &follow, Priority const &priority, bool accept, bool sticky)
+    void add_reduction(Rule *rule, Follow const &follow, Priority const &priority, bool accept, bool sticky)
     {
         for (FollowItem const &follow_item: follow.get_follow_items()) {
             TempMove *temp_move = get_temp_move(follow_item.get_token());
@@ -42,18 +42,14 @@ class TempFollowMove {
     }
 
     // return lazy follow move and set conflicts
-    LazyFollowMove const *get_lazy_follow_move(Workspace &w, ConflictVector &conflicts) const
+    LazyFollowMove *get_lazy_follow_move(Workspace &w, ConflictVector &conflicts) const
     {
-        if (!_temp_moves.empty() && _temp_moves.begin()->second->debug()) {
-            _temp_moves.begin()->second->debug();
-        }
-
         // get lazy moves and conflicts, put moves that can be replaced with a default action seq reduce_moves
-        typedef std::vector<LazyMove const *> LazyMoveVector;
+        typedef std::vector<LazyMove *> LazyMoveVector;
         LazyMoveVector moves, reduce_moves;
         {
             LazyReduceSet sticky_reductions;
-            for (TempMoveMap::value_type const &p: _temp_moves) {
+            for (TempMoveMap::value_type const &p : _temp_moves) {
                 TempMove *temp_move = p.second;
                 LazyMove *lazy_move = temp_move->get_lazy_move(w, conflicts);
                 bool sticky = temp_move->is_sticky();
@@ -63,7 +59,7 @@ class TempFollowMove {
                 else {
                     // if sticky note all reductions
                     if (sticky) {
-                        for (LazyAction const *action: lazy_move->get_lazy_action_seq()->get_lazy_actions()) {
+                        for (LazyAction *action : lazy_move->get_lazy_action_seq()->get_lazy_actions()) {
                             if (action->is_reduction()) {
                                 sticky_reductions.insert(action);
                             }
@@ -79,7 +75,7 @@ class TempFollowMove {
         }
 
         // get the default move
-        LazyActionSeq const *def_lazy_action_seq = NULL;
+        LazyActionSeq *def_lazy_action_seq = NULL;
         if (!reduce_moves.empty()) {
             std::sort(reduce_moves.begin(), reduce_moves.end(), LazyMoveReduceSeqLess());
             std::pair<LazyMoveVector::iterator, LazyMoveVector::iterator> r = most(reduce_moves.begin(), reduce_moves.end(), LazyMoveReduceSeqSame());
@@ -95,7 +91,7 @@ class TempFollowMove {
 
         // sort lazy moves by token then get lazy move sel
         std::sort(moves.begin(), moves.end(), LazyMoveTokenLess());
-        LazyMoveSel const *lazy_move_sel = w.lazy_move_sels.get_lazy_move_sel(moves);
+        LazyMoveSel *lazy_move_sel = w.lazy_move_sels.get_lazy_move_sel(moves);
         return w.lazy_follow_moves.get_lazy_follow_move(lazy_move_sel, def_lazy_action_seq);
     }
 
@@ -118,12 +114,12 @@ class TempFollowMove {
 namespace {
 
 // true if token less in lazy move, used to sort lazy moves, does NOT compare pointers
-bool LazyMoveTokenLess(; LazyMove const *a, LazyMove const *b) const
+bool LazyMoveTokenLess(; LazyMove *a, LazyMove *b) const
 {
     return *a->get_token() < *b->get_token();
 }
 
-bool LazyReduceLess(; LazyAction const *a, LazyAction const *b) const
+bool LazyReduceLess(; LazyAction *a, LazyAction *b) const
 {
     if (a != b) {
         ReduceLazyAction const &a_reduce = static_cast<ReduceLazyAction const &>(*a);
@@ -137,12 +133,12 @@ bool LazyReduceLess(; LazyAction const *a, LazyAction const *b) const
     }
     return false;
 }
-typedef std::set<LazyAction const *, LazyReduceLess> LazyReduceSet;
+typedef std::set<LazyAction *, LazyReduceLess> LazyReduceSet;
 
 // true if actions contains any action in lazy move
 bool ContainsLazyAction(LazyReduceSet const &actions; LazyMove const *a) const
 {
-    for (LazyAction const *reduce_action: a->get_lazy_action_seq()->get_lazy_actions()) {
+    for (LazyAction *reduce_action : a->get_lazy_action_seq()->get_lazy_actions()) {
         if (actions.find(reduce_action) != actions.end()) {
             return true;
         }
@@ -151,7 +147,7 @@ bool ContainsLazyAction(LazyReduceSet const &actions; LazyMove const *a) const
 }
 
 // true if reduce action seq in moves the same
-bool LazyMoveReduceSeqLess(; LazyMove const *a, LazyMove const *b) const
+bool LazyMoveReduceSeqLess(; LazyMove *a, LazyMove *b) const
 {
     LazyActionVector const &a_actions = a->get_lazy_action_seq()->get_lazy_actions();
     LazyActionVector const &b_actions = b->get_lazy_action_seq()->get_lazy_actions();
@@ -160,8 +156,8 @@ bool LazyMoveReduceSeqLess(; LazyMove const *a, LazyMove const *b) const
     }
     LazyActionVector::const_iterator j = b_actions.begin();
     for (LazyActionVector::const_iterator i = a_actions.begin(), endi = a_actions.end(); i != endi; ++i, ++j) {
-        LazyAction const *a_action = *i;
-        LazyAction const *b_action = *j;
+        LazyAction *a_action = *i;
+        LazyAction *b_action = *j;
         if (i == j) {
             continue;
         }
@@ -181,7 +177,7 @@ bool LazyMoveReduceSeqLess(; LazyMove const *a, LazyMove const *b) const
     return false;
 }
 
-bool LazyMoveReduceSeqSame(; LazyMove const *a, LazyMove const *b) const
+bool LazyMoveReduceSeqSame(; LazyMove *a, LazyMove *b) const
 {
     LazyActionVector const &a_actions = a->get_lazy_action_seq()->get_lazy_actions();
     LazyActionVector const &b_actions = b->get_lazy_action_seq()->get_lazy_actions();
@@ -190,8 +186,8 @@ bool LazyMoveReduceSeqSame(; LazyMove const *a, LazyMove const *b) const
     }
     LazyActionVector::const_iterator j = b_actions.begin();
     for (LazyActionVector::const_iterator i = a_actions.begin(), endi = a_actions.end(); i != endi; ++i, ++j) {
-        LazyAction const *a_action = *i;
-        LazyAction const *b_action = *j;
+        LazyAction *a_action = *i;
+        LazyAction *b_action = *j;
         if (i == j) {
             continue;
         }

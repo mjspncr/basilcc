@@ -6,7 +6,7 @@ class Symbol;
 
 class ShiftRule {
   public:
-    ShiftRule(BaseRule const *base_rule, Priority const &sp)
+    ShiftRule(BaseRule *base_rule, Priority const &sp)
       : _base_rule(base_rule), _sp(sp)
     {}
 
@@ -20,7 +20,7 @@ class ShiftRule {
     }
 
     // get base rule
-    inline BaseRule const *get_base_rule() const
+    inline BaseRule *get_base_rule() const
     {
         return _base_rule;
     }
@@ -38,7 +38,7 @@ class ShiftRule {
     }
 
     // get shift rule at next pos
-    ShiftRule const *get_next_shift_rule(Workspace &w) const
+    ShiftRule *get_next_shift_rule(Workspace &w) const
     {
         return w.shift_rules.get_shift_rule(_base_rule->get_next_base_rule(w), _sp);
     }
@@ -54,7 +54,7 @@ class ShiftRule {
     }
 
   private:
-    BaseRule const *_base_rule;
+    BaseRule *_base_rule;
     Priority _sp;
 };
 

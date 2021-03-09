@@ -26,7 +26,7 @@ class BaseKernelTable {
     }
 
   private:
-    inline bool BaseKernelLess(; BaseKernel *a, BaseKernel *b) const { return *a < *b; }
+    bool BaseKernelLess(; BaseKernel *a, BaseKernel *b) const { return *a < *b; }
     typedef std::set<BaseKernel *, BaseKernelLess> BaseKernelSet;
     BaseKernelSet _base_kernels;
 };

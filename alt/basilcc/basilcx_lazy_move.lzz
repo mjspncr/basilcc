@@ -9,7 +9,7 @@ typedef std::vector<Shift> ShiftVector;
 
 class LazyMove {
   public:
-    LazyMove(Symbol *token, LazyActionSeq const *lazy_action_seq)
+    LazyMove(Symbol *token, LazyActionSeq *lazy_action_seq)
         : _token(token), _lazy_action_seq(lazy_action_seq)
     {}
 
@@ -23,7 +23,7 @@ class LazyMove {
     }
 
     // get lazy action seq
-    inline LazyActionSeq const *get_lazy_action_seq() const
+    inline LazyActionSeq *get_lazy_action_seq() const
     {
         return _lazy_action_seq;
     }
@@ -31,13 +31,13 @@ class LazyMove {
     // get move
     Move *get_move(Workspace &w, ShiftVector const &token_shifts) const
     {
-        ActionSeq const *action_seq = _lazy_action_seq->get_action_seq(w, token_shifts, _token);
-        return c.get_move(_token, action_seq);
+        ActionSeq *action_seq = _lazy_action_seq->get_action_seq(w, token_shifts, _token);
+        return w.moves.get_move(_token, action_seq);
     } 
 
   private:
     Symbol *_token;
-    LazyActionSeq const *_lazy_action_seq;
+    LazyActionSeq *_lazy_action_seq;
 };
 
 // a < b, compares pointers

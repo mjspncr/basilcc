@@ -5,8 +5,8 @@ class ActionSeq;
 
 class Move {
   public:
-    Move(Symbol *token, ActionSeq const *action_seq)
-        : _num(-1), _token(token), _action_seq(action_seq)
+    Move(Symbol *token, ActionSeq *action_seq)
+        : _token(token), _action_seq(action_seq)
     {}
 
     ~Move()
@@ -20,7 +20,7 @@ class Move {
     }
 
     // get action seq
-    inline ActionSeq const *get_action_seq() const
+    inline ActionSeq *get_action_seq() const
     {
         return _action_seq;
     }
@@ -32,10 +32,9 @@ class Move {
         format_actions(_action_seq->get_actions(), os);
     }
 
-    int _num;
   private:
     Symbol *_token;
-    ActionSeq const *_action_seq;
+    ActionSeq *_action_seq;
 };
 
 // true if a < b
@@ -45,16 +44,6 @@ bool operator<(Move const &a, Move const &b)
         return a.get_token() < b.get_token();
     }
     return a.get_action_seq() < b.get_action_seq();
-}
-
-bool MoveLess(; Move const *a, Move const *b) const
-{
-    return *a < *b; 
-}
-
-bool MoveNumberLess(; Move const *a, Move const *b) const
-{
-    return a->_num < b->_num;
 }
 
 } // basilcx

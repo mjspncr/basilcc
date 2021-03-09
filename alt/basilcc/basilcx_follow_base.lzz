@@ -51,7 +51,7 @@ class FollowBase {
     // true if has conflicts
     inline bool has_conflicts() const
     {
-        return !_conflicts.empty ();
+        return !_conflicts.empty();
     }
 
     // get conflicts
@@ -79,8 +79,7 @@ LazyFollowMove *init_follow_base(
     FollowShiftMap &follow_shifts,
     ConflictVector &conflicts)
 {
-    // can get lex state from kernel rules
-    FollowRuleVector const &kernel_rules = kernel.get_follow_rules();
+    // can get lex state just from kernel rules
     for (FollowRule *follow_rule : kernel_rules) {
         lex_state.update(follow_rule->get_lex_state());
     }
@@ -113,7 +112,7 @@ class FollowBaseHelper(FollowRuleVector const &kernel_rules, FollowRulePtrMap co
     // update non kernel rules
     void run()
     {
-        for (FollowRule *follow_rule: kernel_rules) {
+        for (FollowRule *follow_rule : kernel_rules) {
             update(follow_rule);
         }
     }
@@ -165,10 +164,10 @@ void get_follow_shifts(Workspace &w, FollowRuleVector const &follow_rules, Follo
 }
 
 // get lazy follow move
-LazyFollowMove const *get_lazy_follow_move(Workspace &w, FollowRuleVector const &follow_rules, ConflictVector &conflicts)
+LazyFollowMove *get_lazy_follow_move(Workspace &w, FollowRuleVector const &follow_rules, ConflictVector &conflicts)
 {
     TempFollowMove temp_follow_move;
-    for (FollowRule *follow_rule: follow_rules) {
+    for (FollowRule *follow_rule : follow_rules) {
       ShiftRule *shift_rule = follow_rule->get_shift_rule();
       BaseRule *base_rule = shift_rule->get_base_rule();
       if (base_rule->is_reduction()) {

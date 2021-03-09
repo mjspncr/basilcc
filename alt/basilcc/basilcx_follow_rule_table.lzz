@@ -17,14 +17,14 @@ class FollowRuleTable
     }
 
     // get follow rule from shift rule and follow
-    FollowRule const *get_follow_rule(ShiftRule *shift_rule, Follow const &follow)
+    FollowRule *get_follow_rule(ShiftRule *shift_rule, Follow const &follow)
     {
         FollowRulePtr follow_rule(new FollowRule(shift_rule, follow));
         return freeze_follow_rule(follow_rule);
     }
 
     // freeze follow rule
-    FollowRule const *freeze_follow_rule(FollowRulePtr &follow_rule)
+    FollowRule *freeze_follow_rule(FollowRulePtr &follow_rule)
     {
         std::pair<FollowRuleSet::iterator, bool> r = _follow_rules.insert(follow_rule.get());
         if (r.second) {
@@ -42,11 +42,12 @@ class FollowRuleTable
 } // basilcx
 
 #hdr
+#include <basilcx_follow_rule.h>
+
 #include <set>
 #include <memory>
 #end
 
 #src
-#include <basilcx_follow_rule.h>
 #include <basilcx_util.h>
 #end

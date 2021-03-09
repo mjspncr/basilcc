@@ -26,7 +26,7 @@ class FollowKernelTable {
     }
 
   private:
-    inline bool FollowKernelLess(; FollowKernel *a, FollowKernel *b) const { return *a < *b; }
+    bool FollowKernelLess(; FollowKernel *a, FollowKernel *b) const { return *a < *b; }
     typedef std::set<FollowKernel *, FollowKernelLess> FollowKernelSet;
     FollowKernelSet _follow_kernels;
 };

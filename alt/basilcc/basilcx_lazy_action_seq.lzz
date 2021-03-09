@@ -5,14 +5,17 @@ class LazyAction;
 class Shift;
 class Symbol;
 class Workspace;
-typedef std::vector<LazyAction const *> LazyActionVector;
+typedef std::vector<LazyAction *> LazyActionVector;
 typedef std::vector<Shift> ShiftVector;
 
+// lazy action sequence
 class LazyActionSeq {
   public:
-    LazyActionSeq(LazyActionVector const &lazy_actions)
-        : _lazy_actions(lazy_actions)
-    {}
+    // steals lazy actions
+    LazyActionSeq(LazyActionVector &lazy_actions)
+    {
+        _lazy_actions.swap(lazy_actions);
+    }
 
     ~LazyActionSeq()
     {}
@@ -28,7 +31,7 @@ class LazyActionSeq {
     {
         ActionVector actions;
         actions.reserve(_lazy_actions.size());
-        for (LazyAction const *lazy_action : _lazy_actions) {
+        for (LazyAction *lazy_action : _lazy_actions) {
             actions.push_back(lazy_action->get_action(w, token_shifts, token));
         }
         return w.action_seqs.get_action_seq(actions);
@@ -37,7 +40,7 @@ class LazyActionSeq {
     // true if actions all reductions (or if action seq can be the default)
     bool is_reduction() const
     {
-        for (LazyAction const *lazy_action : _lazy_actions) {
+        for (LazyAction *lazy_action : _lazy_actions) {
             if (lazy_action->is_shift()) {
                 return false;
             }
@@ -49,6 +52,7 @@ class LazyActionSeq {
     LazyActionVector _lazy_actions;
 };
 
+// true if a < b
 bool operator<(LazyActionSeq const &a, LazyActionSeq const &b)
 {
     LazyActionVector const &a_lazy_actions = a.get_lazy_actions();
@@ -56,7 +60,7 @@ bool operator<(LazyActionSeq const &a, LazyActionSeq const &b)
     if (a_lazy_actions.size() != b_lazy_actions.size()) {
         return a_lazy_actions.size() < b_lazy_actions.size();
     }
-    return a_lazy_actions < b_lazy_actions; // OK to compare pointers
+    return a_lazy_actions < b_lazy_actions;
 }
 
 } // basilcx

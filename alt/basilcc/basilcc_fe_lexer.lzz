@@ -1,3 +1,4 @@
+#if 0
 // baislcc rule lexer
 
 namespace basilcc {
@@ -382,3 +383,4 @@ enum
 #include <stddef.h>
 #include <stdexcept>
 #end
+#endif

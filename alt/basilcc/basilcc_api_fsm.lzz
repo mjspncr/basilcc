@@ -1,3 +1,4 @@
+#if 0
 // basilcc_api_fsm
 //
 
@@ -39,12 +40,8 @@ struct ShiftState {
     int num;
     int state;
 };
-typedef ShiftState const *ShiftStateSel;
 
-struct Goto {
-    int shift_state_sel;
-    int def_state;
-};
+typedef ShiftState const *ShiftStateSel;
 
 struct FSM
 {
@@ -53,7 +50,7 @@ struct FSM
     MoveSel const *move_sels;
     State const *states;
     ShiftStateSel const *shift_state_sels;
-    Goto const *go2s;
+    int *goto_def_states;
 };
 
 } // basilcc_api
@@ -64,3 +61,4 @@ struct FSM
 
 #src
 #end
+#endif

@@ -1,3 +1,4 @@
+#if 0
 // basilcc_lr_parser
 
 namespace basilcc_api {
@@ -305,3 +306,4 @@ inline bool ShiftStateNumberLess(; ShiftState const &a, int num) const
 #include <cstring>
 #include <stddef.h>
 #end
+#endif

@@ -2,7 +2,7 @@ namespace basilcx {
 
 class Workspace;
 
-// compile grammar to FSM, set num conflicts and return number of states
+// compile to FSM, return true if no conflicts, otherwise set number of conflicts and return false
 bool compile_fsm(Workspace &w, int &num_conflicts, int &num_lex_state_conflicts)
 {
     // freeze input tables
@@ -13,18 +13,20 @@ bool compile_fsm(Workspace &w, int &num_conflicts, int &num_lex_state_conflicts)
     set_first(w);
     // create the start states
     create_start_states(w);
-    // create remaining states, if conflicts will not generate a parser so need to set gotos
+    // create remaining states
     if (!w.create_states(num_conflicts, num_lex_state_conflicts))
     {
+        // conflicts, no need to set gotos since FSM will not be serialized
         return false;
     }
+    // set goto on all nonterminals
     set_goto(w);
     return true;
 }
 
 namespace {
 
-// get start states -- just primes the state_table
+// get start states
 void create_start_states(Workspace &w)
 {
     RuleMapRange const &r = w.get_start_rules();
@@ -73,8 +75,9 @@ Follow get_start_follow(Workspace &w, Rule *rule)
 #src
 #include <basilcx_follow_rule.h>
 #include <basilcx_rule.h>
+#include <basilcx_set_first.h>
+#include <basilcx_set_goto.h>
 #include <basilcx_shift_rule.h>
-#include <basilcx_get_goto.h>
 #include <basilcx_symbol.h>
 #include <basilcx_workspace.h>
 #end

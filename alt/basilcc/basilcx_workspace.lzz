@@ -49,6 +49,10 @@ class Workspace {
       return strings.insert(str).first->c_str ();
     }
 
+    // type of user object
+    std::string usertype;
+    std::string fsm_namespace;
+
     /*
     // generated parser namespace 
     std::string parser_namespace;
@@ -70,6 +74,11 @@ class Workspace {
             right_rule_symbols,
             explicit_follow,
             no_bypass);
+    }
+
+    inline bool is_start_symbol(Symbol *symbol) const
+    {
+        return symbol == start_symbol;
     }
 
     // get all start rules
@@ -103,7 +112,6 @@ class Workspace {
 #include <basilcx_base_rule_table.h>
 #include <basilcx_follow_kernel_table.h>
 #include <basilcx_follow_rule_table.h>
-#include <basilcx_get_goto.h>
 #include <basilcx_lazy_action_seq_table.h>
 #include <basilcx_lazy_action_table.h>
 #include <basilcx_lazy_follow_move_table.h>
@@ -113,15 +121,10 @@ class Workspace {
 #include <basilcx_move_table.h>
 #include <basilcx_node_table.h>
 #include <basilcx_rule_table.h>
-#include <basilcx_set_first.h>
 #include <basilcx_shift_kernel_table.h>
 #include <basilcx_shift_rule_table.h>
 #include <basilcx_shift_sel_table.h>
-#include <basilcx_shift_state_sel_table.h>
 #include <basilcx_state_move_table.h>
 #include <basilcx_state_table.h>
 #include <basilcx_symbol_table.h>
-
-#include <set>
-#include <string>
 #end

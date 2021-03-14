@@ -92,6 +92,17 @@ class Nonterminal : public Symbol
         _def_state = def_state;
     }
 
+    inline ShiftStateVector const &get_goto_shift_states() const
+    {
+        return _shift_states;
+    }
+
+
+    inline State *get_goto_def_state() const
+    {
+        return _def_state;
+    }
+
   private:
     ShiftRuleVector _shift_rules;
     // shift states ordered by shift number

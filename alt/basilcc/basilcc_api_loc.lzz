@@ -1,3 +1,4 @@
+#if 0
 // basilcc api loc
 
 namespace basilcc_api {
@@ -83,3 +84,4 @@ std::string loc_to_string(Loc const &loc)
 #src
 #include <sstream>
 #end
+#endif

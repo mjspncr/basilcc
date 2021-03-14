@@ -1,3 +1,4 @@
+#if 0
 // basilcc_fe_parser.cc
 
 namespace basilcc {
@@ -34,3 +35,4 @@ class GetRuleSymbol : NodeVisitor {
 #include <basilcx_workspace.h>
 #include <iostream>
 #end
+#endif

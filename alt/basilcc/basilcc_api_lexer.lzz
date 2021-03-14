@@ -1,3 +1,4 @@
+#if 0
 // basilcc api lexer
 
 namespace basilcc_api {
@@ -22,3 +23,4 @@ class Lexer {
 #hdr
 #include <string>
 #end
+#endif

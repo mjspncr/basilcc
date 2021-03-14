@@ -1,3 +1,4 @@
+#if 0
 // basilcc generated LR parser
 
 namespace basilcc_api {
@@ -716,3 +717,4 @@ basilcc_api::FSM fsm = {rules, action_seqs, move_sels, states, shift_state_sels,
 #src
 #include <basilcc_api_fsm.h>
 #end
+#endif

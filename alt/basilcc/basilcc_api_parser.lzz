@@ -1,3 +1,4 @@
+#if 0
 // basilcc parser
 
 namespace basilcc_api {
@@ -28,3 +29,4 @@ class Parser : public LRParser {
 
 #src
 #end
+#endif

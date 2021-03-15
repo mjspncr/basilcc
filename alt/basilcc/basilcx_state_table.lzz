@@ -46,7 +46,7 @@ class StateTable {
     }
 
     // create states
-    bool create_states(Workspace &w, int &num_conflicts, int &num_lex_state_conflicts)
+    int create_states(Workspace &w, int &num_conflicts, int &num_lex_state_conflicts)
     {
         num_conflicts = 0;
         num_lex_state_conflicts = 0;
@@ -58,7 +58,7 @@ class StateTable {
                 ++num_lex_state_conflicts;
             }
         }
-        return num_conflicts == 0 && num_lex_state_conflicts == 0;
+        return _states.size();
     }
 
   private:

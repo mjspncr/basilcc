@@ -1,0 +1,49 @@
+namespace basilcx {
+
+class State;
+class ShiftState;
+typedef std::vector<ShiftState> ShiftStateVector;
+
+class Goto {
+  public:
+    Goto()
+        : _def_state(nullptr)
+    {}
+
+    ~Goto()
+    {}
+
+    // set goto shift states and default state, steals shift_states
+    void set(ShiftStateVector &shift_states, State *def_state)
+    {
+        _shift_states.swap(shift_states);
+        _def_state = def_state;
+    }
+
+    // get shift states
+    inline ShiftStateVector const &get_shift_states() const
+    {
+        return _shift_states;
+    }
+
+    // get default goto state
+    inline State *get_def_state() const
+    {
+        return _def_state;
+    }
+
+  private:
+    // shift states ordered by shift number
+    ShiftStateVector _shift_states;
+    State * _def_state;
+};
+
+} // basilcx
+
+#hdr
+#include <vector>
+#end
+
+#src
+#include <basilcx_shift_state.h>
+#end

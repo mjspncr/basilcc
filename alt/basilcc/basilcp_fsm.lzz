@@ -1,0 +1,703 @@
+// basilcc generated LR parser
+
+namespace basilcc {
+struct FSM;
+}
+
+namespace basilcp {
+// token numbers
+enum {
+    TOKEN_EOT = 0, // end of tokens
+
+    TOKEN_ARROW,
+    TOKEN_BANG,
+    TOKEN_CARET,
+    TOKEN_GT,
+    TOKEN_IDENT,
+    TOKEN_LBRACK,
+    TOKEN_LT,
+    TOKEN_NUMBER,
+    TOKEN_PLUS,
+    TOKEN_RBRACK,
+    TOKEN_SLASH,
+    TOKEN_STAR,
+};
+
+// return reference to finite state machine
+basilcc::FSM const &get_FSM() { return fsm; }
+
+// return pointer to array of node constructors
+typedef basilcc::AbstractNode *NodeCtor(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children);
+NodeCtor *const *get_nodes() { return node_ctors; }
+
+// nodes
+class NodeVisitor;
+
+// base node
+class Node : public basilcc::AbstractNode {
+  public:
+    virtual void accept(NodeVisitor const &visitor) const = 0;
+  protected:
+    inline Node(basilcc::AbstractNodeVector &children) {
+        _children.swap(children);
+    }
+    basilcc::AbstractNodeVector _children;
+};
+
+// rule nodes
+class AttribSeq1Node;
+class AttribSeq2Node;
+class AttribSeq3Node;
+class AttribSeq4Node;
+class AttribSeq5Node;
+class AttribSeq6Node;
+class AttribSeq7Node;
+class BangSeq1Node;
+class BangSeq2Node;
+class NodeQualifierNode;
+class NodeTypeNode;
+class RootNode;
+class RuleNode;
+class RuleSeqNode;
+class SymbolNode;
+class SymbolSeqNode;
+
+// attrib-seq ->
+class AttribSeq1Node : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        std::unique_ptr<AttribSeq1Node> node(new AttribSeq1Node(children));
+        node->on_node(userdata);
+        return node.release();
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+  private:
+    inline AttribSeq1Node(basilcc::AbstractNodeVector &children) : Node(children) {}
+    void on_node(basilcx::Workspace &userdata) const;
+};
+
+// attrib-seq -> attrib-seq NUMBER
+class AttribSeq2Node : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        std::unique_ptr<AttribSeq2Node> node(new AttribSeq2Node(children));
+        node->on_node(userdata);
+        return node.release();
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+    Node const &get_attrib_seq() const {
+        return static_cast<Node const &>(*_children[0]);
+    }
+    basilcc::Token const &get_NUMBER() const {
+        return static_cast<basilcc::Token const &>(*_children[1]);
+    }
+  private:
+    inline AttribSeq2Node(basilcc::AbstractNodeVector &children) : Node(children) {}
+    void on_node(basilcx::Workspace &userdata) const;
+};
+
+// attrib-seq -> attrib-seq LT
+class AttribSeq3Node : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        std::unique_ptr<AttribSeq3Node> node(new AttribSeq3Node(children));
+        node->on_node(userdata);
+        return node.release();
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+    Node const &get_attrib_seq() const {
+        return static_cast<Node const &>(*_children[0]);
+    }
+    basilcc::Token const &get_LT() const {
+        return static_cast<basilcc::Token const &>(*_children[1]);
+    }
+  private:
+    inline AttribSeq3Node(basilcc::AbstractNodeVector &children) : Node(children) {}
+    void on_node(basilcx::Workspace &userdata) const;
+};
+
+// attrib-seq -> attrib-seq STAR
+class AttribSeq4Node : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        std::unique_ptr<AttribSeq4Node> node(new AttribSeq4Node(children));
+        node->on_node(userdata);
+        return node.release();
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+    Node const &get_attrib_seq() const {
+        return static_cast<Node const &>(*_children[0]);
+    }
+    basilcc::Token const &get_STAR() const {
+        return static_cast<basilcc::Token const &>(*_children[1]);
+    }
+  private:
+    inline AttribSeq4Node(basilcc::AbstractNodeVector &children) : Node(children) {}
+    void on_node(basilcx::Workspace &userdata) const;
+};
+
+// attrib-seq -> attrib-seq PLUS bang-seq
+class AttribSeq5Node : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        std::unique_ptr<AttribSeq5Node> node(new AttribSeq5Node(children));
+        node->on_node(userdata);
+        return node.release();
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+    Node const &get_attrib_seq() const {
+        return static_cast<Node const &>(*_children[0]);
+    }
+    basilcc::Token const &get_PLUS() const {
+        return static_cast<basilcc::Token const &>(*_children[1]);
+    }
+    Node const &get_bang_seq() const {
+        return static_cast<Node const &>(*_children[2]);
+    }
+  private:
+    inline AttribSeq5Node(basilcc::AbstractNodeVector &children) : Node(children) {}
+    void on_node(basilcx::Workspace &userdata) const;
+};
+
+// attrib-seq -> attrib-seq CARET bang-seq
+class AttribSeq6Node : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        std::unique_ptr<AttribSeq6Node> node(new AttribSeq6Node(children));
+        node->on_node(userdata);
+        return node.release();
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+    Node const &get_attrib_seq() const {
+        return static_cast<Node const &>(*_children[0]);
+    }
+    basilcc::Token const &get_CARET() const {
+        return static_cast<basilcc::Token const &>(*_children[1]);
+    }
+    Node const &get_bang_seq() const {
+        return static_cast<Node const &>(*_children[2]);
+    }
+  private:
+    inline AttribSeq6Node(basilcc::AbstractNodeVector &children) : Node(children) {}
+    void on_node(basilcx::Workspace &userdata) const;
+};
+
+// attrib-seq -> attrib-seq GT bang-seq
+class AttribSeq7Node : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        std::unique_ptr<AttribSeq7Node> node(new AttribSeq7Node(children));
+        node->on_node(userdata);
+        return node.release();
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+    Node const &get_attrib_seq() const {
+        return static_cast<Node const &>(*_children[0]);
+    }
+    basilcc::Token const &get_GT() const {
+        return static_cast<basilcc::Token const &>(*_children[1]);
+    }
+    Node const &get_bang_seq() const {
+        return static_cast<Node const &>(*_children[2]);
+    }
+  private:
+    inline AttribSeq7Node(basilcc::AbstractNodeVector &children) : Node(children) {}
+    void on_node(basilcx::Workspace &userdata) const;
+};
+
+// bang-seq ->
+class BangSeq1Node : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        std::unique_ptr<BangSeq1Node> node(new BangSeq1Node(children));
+        node->on_node(userdata);
+        return node.release();
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+  private:
+    inline BangSeq1Node(basilcc::AbstractNodeVector &children) : Node(children) {}
+    void on_node(basilcx::Workspace &userdata) const;
+};
+
+// bang-seq -> BANG
+class BangSeq2Node : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        std::unique_ptr<BangSeq2Node> node(new BangSeq2Node(children));
+        node->on_node(userdata);
+        return node.release();
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+    basilcc::Token const &get_BANG() const {
+        return static_cast<basilcc::Token const &>(*_children[0]);
+    }
+  private:
+    inline BangSeq2Node(basilcc::AbstractNodeVector &children) : Node(children) {}
+    void on_node(basilcx::Workspace &userdata) const;
+};
+
+// node-qualifier -> SLASH ident-opt
+class NodeQualifierNode : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        return new NodeQualifierNode(children);
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+    basilcc::Token const &get_SLASH() const {
+        return static_cast<basilcc::Token const &>(*_children[0]);
+    }
+    bool has_ident_opt() const {
+        return _children[1].get();
+    }
+    basilcc::Token const &get_ident_opt() const {
+        return static_cast<basilcc::Token const &>(*_children[1]);
+    }
+  private:
+    inline NodeQualifierNode(basilcc::AbstractNodeVector &children) : Node(children) {}
+};
+
+// node-type -> LBRACK IDENT node-qualifier RBRACK
+class NodeTypeNode : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        return new NodeTypeNode(children);
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+    basilcc::Token const &get_LBRACK() const {
+        return static_cast<basilcc::Token const &>(*_children[0]);
+    }
+    basilcc::Token const &get_IDENT() const {
+        return static_cast<basilcc::Token const &>(*_children[1]);
+    }
+    bool has_node_qualifier() const {
+        return _children[2].get();
+    }
+    NodeQualifierNode const &get_node_qualifier() const {
+        return static_cast<NodeQualifierNode const &>(*_children[2]);
+    }
+    basilcc::Token const &get_RBRACK() const {
+        return static_cast<basilcc::Token const &>(*_children[3]);
+    }
+  private:
+    inline NodeTypeNode(basilcc::AbstractNodeVector &children) : Node(children) {}
+};
+
+// start -> rule-seq
+class RootNode : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        std::unique_ptr<RootNode> node(new RootNode(children));
+        node->on_node(userdata);
+        return node.release();
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+    bool has_rule_seq() const {
+        return _children[0].get();
+    }
+    RuleSeqNode const &get_rule_seq() const {
+        return static_cast<RuleSeqNode const &>(*_children[0]);
+    }
+  private:
+    inline RootNode(basilcc::AbstractNodeVector &children) : Node(children) {}
+    void on_node(basilcx::Workspace &userdata) const;
+};
+
+// rule -> node-type symbol ARROW symbol-seq >
+class RuleNode : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        return new RuleNode(children);
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+    bool has_node_type() const {
+        return _children[0].get();
+    }
+    NodeTypeNode const &get_node_type() const {
+        return static_cast<NodeTypeNode const &>(*_children[0]);
+    }
+    SymbolNode const &get_symbol() const {
+        return static_cast<SymbolNode const &>(*_children[1]);
+    }
+    basilcc::Token const &get_ARROW() const {
+        return static_cast<basilcc::Token const &>(*_children[2]);
+    }
+    bool has_symbol_seq() const {
+        return _children[3].get();
+    }
+    SymbolSeqNode const &get_symbol_seq() const {
+        return static_cast<SymbolSeqNode const &>(*_children[3]);
+    }
+  private:
+    inline RuleNode(basilcc::AbstractNodeVector &children) : Node(children) {}
+};
+
+// rule-seq -> rule-seq rule
+class RuleSeqNode : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        return new RuleSeqNode(children);
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+    bool has_rule_seq() const {
+        return _children[0].get();
+    }
+    RuleSeqNode const &get_rule_seq() const {
+        return static_cast<RuleSeqNode const &>(*_children[0]);
+    }
+    RuleNode const &get_rule() const {
+        return static_cast<RuleNode const &>(*_children[1]);
+    }
+  private:
+    inline RuleSeqNode(basilcc::AbstractNodeVector &children) : Node(children) {}
+};
+
+// symbol -> IDENT attrib-seq
+class SymbolNode : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        return new SymbolNode(children);
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+    basilcc::Token const &get_IDENT() const {
+        return static_cast<basilcc::Token const &>(*_children[0]);
+    }
+    Node const &get_attrib_seq() const {
+        return static_cast<Node const &>(*_children[1]);
+    }
+  private:
+    inline SymbolNode(basilcc::AbstractNodeVector &children) : Node(children) {}
+};
+
+// symbol-seq -> symbol-seq symbol
+class SymbolSeqNode : public Node {
+  public:
+    static basilcc::AbstractNode *_create(basilcx::Workspace &userdata, basilcc::AbstractNodeVector &children) {
+        return new SymbolSeqNode(children);
+    }
+    void accept(NodeVisitor const &visitor) const {
+        visitor.visit(*this);
+    }
+    bool has_symbol_seq() const {
+        return _children[0].get();
+    }
+    SymbolSeqNode const &get_symbol_seq() const {
+        return static_cast<SymbolSeqNode const &>(*_children[0]);
+    }
+    SymbolNode const &get_symbol() const {
+        return static_cast<SymbolNode const &>(*_children[1]);
+    }
+  private:
+    inline SymbolSeqNode(basilcc::AbstractNodeVector &children) : Node(children) {}
+};
+
+class NodeVisitor {
+  public:
+    virtual ~NodeVisitor() {};
+    // attrib-seq ->
+    virtual void visit(AttribSeq1Node const &node) const {}
+    // attrib-seq -> attrib-seq NUMBER
+    virtual void visit(AttribSeq2Node const &node) const {}
+    // attrib-seq -> attrib-seq LT
+    virtual void visit(AttribSeq3Node const &node) const {}
+    // attrib-seq -> attrib-seq STAR
+    virtual void visit(AttribSeq4Node const &node) const {}
+    // attrib-seq -> attrib-seq PLUS bang-seq
+    virtual void visit(AttribSeq5Node const &node) const {}
+    // attrib-seq -> attrib-seq CARET bang-seq
+    virtual void visit(AttribSeq6Node const &node) const {}
+    // attrib-seq -> attrib-seq GT bang-seq
+    virtual void visit(AttribSeq7Node const &node) const {}
+    // bang-seq ->
+    virtual void visit(BangSeq1Node const &node) const {}
+    // bang-seq -> BANG
+    virtual void visit(BangSeq2Node const &node) const {}
+    // node-qualifier -> SLASH ident-opt
+    virtual void visit(NodeQualifierNode const &node) const {}
+    // node-type -> LBRACK IDENT node-qualifier RBRACK
+    virtual void visit(NodeTypeNode const &node) const {}
+    // start -> rule-seq
+    virtual void visit(RootNode const &node) const {}
+    // rule -> node-type symbol ARROW symbol-seq >
+    virtual void visit(RuleNode const &node) const {}
+    // rule-seq -> rule-seq rule
+    virtual void visit(RuleSeqNode const &node) const {}
+    // symbol -> IDENT attrib-seq
+    virtual void visit(SymbolNode const &node) const {}
+    // symbol-seq -> symbol-seq symbol
+    virtual void visit(SymbolSeqNode const &node) const {}
+};
+
+namespace {
+// node constructors
+NodeCtor *const node_ctors[] = {
+    AttribSeq1Node::_create,
+    AttribSeq2Node::_create,
+    AttribSeq3Node::_create,
+    AttribSeq4Node::_create,
+    AttribSeq5Node::_create,
+    AttribSeq6Node::_create,
+    AttribSeq7Node::_create,
+    BangSeq1Node::_create,
+    BangSeq2Node::_create,
+    NodeQualifierNode::_create,
+    NodeTypeNode::_create,
+    RootNode::_create,
+    RuleNode::_create,
+    RuleSeqNode::_create,
+    SymbolNode::_create,
+    SymbolSeqNode::_create,
+};
+
+// FSM rules
+basilcc::Rule const rules[] = {
+    {1, 11},
+    {0, -1},
+    {2, 13},
+    {4, 12},
+    {0, -1},
+    {4, 10},
+    {0, -1},
+    {2, 9},
+    {0, -1},
+    {1, -1},
+    {0, -1},
+    {2, 15},
+    {2, 14},
+    {0, 0},
+    {2, 1},
+    {2, 2},
+    {2, 3},
+    {3, 4},
+    {3, 5},
+    {3, 6},
+    {0, 7},
+    {1, 8},
+};
+
+// FSM actions
+basilcc::Action const seq_actions[] = {
+    {basilcc::ACTION_REDUCE, 1, 6},
+    {basilcc::ACTION_DONE, 0, 7},
+    {basilcc::ACTION_SHIFT, 4},
+    {basilcc::ACTION_REDUCE, 4, 4},
+    {basilcc::ACTION_REDUCE, 2, 6},
+    {basilcc::ACTION_SHIFT, 6},
+    {basilcc::ACTION_SHIFT, 7},
+    {basilcc::ACTION_SHIFT, 8},
+    {basilcc::ACTION_REDUCE, 13, 0},
+    {basilcc::ACTION_SHIFT, 11},
+    {basilcc::ACTION_REDUCE, 6, 3},
+    {basilcc::ACTION_REDUCE, 10, 9},
+    {basilcc::ACTION_SHIFT, 17},
+    {basilcc::ACTION_SHIFT, 18},
+    {basilcc::ACTION_SHIFT, 14},
+    {basilcc::ACTION_SHIFT, 13},
+    {basilcc::ACTION_SHIFT, 16},
+    {basilcc::ACTION_SHIFT, 15},
+    {basilcc::ACTION_REDUCE, 12, 8},
+    {basilcc::ACTION_SHIFT, 19},
+    {basilcc::ACTION_SHIFT, 20},
+    {basilcc::ACTION_REDUCE, 8, 2},
+    {basilcc::ACTION_SHIFT, 6},
+    {basilcc::ACTION_REDUCE, 3, 5},
+    {basilcc::ACTION_REDUCE, 3, 5},
+    {basilcc::ACTION_REDUCE, 14, 0},
+    {basilcc::ACTION_REDUCE, 15, 0},
+    {basilcc::ACTION_REDUCE, 16, 0},
+    {basilcc::ACTION_SHIFT, 24},
+    {basilcc::ACTION_REDUCE, 20, 1},
+    {basilcc::ACTION_REDUCE, 5, 4},
+    {basilcc::ACTION_REDUCE, 9, 2},
+    {basilcc::ACTION_REDUCE, 7, 3},
+    {basilcc::ACTION_REDUCE, 11, 9},
+    {basilcc::ACTION_REDUCE, 17, 0},
+    {basilcc::ACTION_REDUCE, 21, 1},
+    {basilcc::ACTION_REDUCE, 18, 0},
+    {basilcc::ACTION_REDUCE, 19, 0},
+};
+
+basilcc::ActionSeq const action_seqs[] = {
+    &seq_actions[0],
+    &seq_actions[1],
+    &seq_actions[2],
+    &seq_actions[3],
+    &seq_actions[4],
+    &seq_actions[5],
+    &seq_actions[6],
+    &seq_actions[6],
+    &seq_actions[7],
+    &seq_actions[8],
+    &seq_actions[9],
+    &seq_actions[10],
+    &seq_actions[11],
+    &seq_actions[12],
+    &seq_actions[13],
+    &seq_actions[14],
+    &seq_actions[15],
+    &seq_actions[16],
+    &seq_actions[17],
+    &seq_actions[18],
+    &seq_actions[19],
+    &seq_actions[20],
+    &seq_actions[21],
+    &seq_actions[22],
+    &seq_actions[24],
+    &seq_actions[25],
+    &seq_actions[26],
+    &seq_actions[27],
+    &seq_actions[28],
+    &seq_actions[29],
+    &seq_actions[30],
+    &seq_actions[31],
+    &seq_actions[32],
+    &seq_actions[33],
+    &seq_actions[34],
+    &seq_actions[35],
+    &seq_actions[36],
+    &seq_actions[37],
+    &seq_actions[38],
+};
+
+// FSM moves
+basilcc::Move const sel_moves[] = {
+    {0, 1},
+    {6, 2},
+    {5, 5},
+    {5, 7},
+    {1, 8},
+    {11, 10},
+    {3, 13},
+    {4, 14},
+    {7, 15},
+    {8, 16},
+    {9, 17},
+    {12, 18},
+    {10, 20},
+    {5, 21},
+    {5, 23},
+    {2, 28},
+};
+
+basilcc::MoveSel const move_sels[] = {
+    &sel_moves[0],
+    &sel_moves[0],
+    &sel_moves[2],
+    &sel_moves[3],
+    &sel_moves[4],
+    &sel_moves[5],
+    &sel_moves[6],
+    &sel_moves[12],
+    &sel_moves[13],
+    &sel_moves[14],
+    &sel_moves[15],
+    &sel_moves[16],
+};
+
+// FSM states
+basilcc::State const states[] = {
+    {0, 0, 0, 0},
+    {1, 3, 0, 1},
+    {0, 4, 0, 2},
+    {2, 6, 0, 3},
+    {3, 6, 0, 2},
+    {4, 6, 0, 2},
+    {0, 9, 0, 4},
+    {5, 11, 0, 5},
+    {0, 12, 0, 6},
+    {6, 19, 0, 2},
+    {7, 6, 0, 2},
+    {8, 22, 0, 7},
+    {9, 24, 0, 8},
+    {0, 25, 0, 2},
+    {0, 26, 0, 2},
+    {0, 27, 0, 2},
+    {10, 29, 0, 9},
+    {10, 29, 0, 10},
+    {10, 29, 0, 11},
+    {0, 30, 0, 2},
+    {0, 31, 0, 2},
+    {0, 32, 0, 2},
+    {0, 33, 0, 2},
+    {0, 34, 0, 2},
+    {0, 35, 0, 2},
+    {0, 36, 0, 2},
+    {0, 37, 0, 2},
+};
+
+// FSM gotos
+basilcc::ShiftState const sel_shift_states[] = {
+    {10, 25},
+    {11, 26},
+    {8, 22},
+};
+
+basilcc::ShiftStateSel const goto_shift_states[] = {
+    &sel_shift_states[0],
+    &sel_shift_states[0],
+    &sel_shift_states[2],
+    &sel_shift_states[2],
+    &sel_shift_states[2],
+    &sel_shift_states[2],
+    &sel_shift_states[2],
+    &sel_shift_states[2],
+    &sel_shift_states[2],
+    &sel_shift_states[3],
+    &sel_shift_states[3],
+};
+
+int goto_def_states[] = {
+    9,
+    23,
+    21,
+    10,
+    3,
+    2,
+    1,
+    -1,
+    5,
+    12,
+};
+
+// finite state machine
+basilcc::FSM fsm = {rules, action_seqs, move_sels, states, goto_shift_states, goto_def_states};
+} // unnamed
+}
+
+#hdr
+#include <basilcc_node.h>
+#include <memory>
+#end
+
+#src
+#include <basilcc_fsm.h>
+#end

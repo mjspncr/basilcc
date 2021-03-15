@@ -2,7 +2,6 @@ namespace basilcx {
 
 class Symbol;
 typedef std::vector<Symbol *> SymbolVector;
-typedef std::map<char const *, Symbol *> SymbolMap;
 
 class SymbolTable
 {
@@ -15,17 +14,14 @@ class SymbolTable
         delete_values(_symbols);
     }
 
-    SymbolMap const &get_symbols() const
-    {
-        return _symbols;
-    }
-
-    SymbolVector const &get_tokens() const
+    // get tokens in number order
+    inline SymbolVector const &get_tokens() const
     {
         return _tokens;
     }
 
-    SymbolVector const &get_nonterminals() const
+    // get nonterminals in number order
+    inline SymbolVector const &get_nonterminals() const
     {
         return _nonterminals;
     }
@@ -70,6 +66,7 @@ class SymbolTable
     }
 
   private:
+    typedef std::map<char const *, Symbol *> SymbolMap;
     SymbolMap _symbols;
     SymbolVector _tokens, _nonterminals;
 };
@@ -105,6 +102,5 @@ bool SymbolNameLess(; Symbol const *a, Symbol const *b) const
 #src
 #include <basilcx_symbol.h>
 #include <basilcx_util.h>
-
 #include <string.h>
 #end

@@ -3,25 +3,21 @@ namespace basilcx {
 class Workspace;
 
 // compile to FSM, return true if no conflicts, otherwise set number of conflicts and return false
-bool compile_fsm(Workspace &w, int &num_conflicts, int &num_lex_state_conflicts)
+int compile_fsm(Workspace &w, int &num_conflicts, int &num_lex_state_conflicts)
 {
     // freeze input tables
-    w.symbols.freeze();
-    w.nodes.freeze();
-    w.rules.freeze();
+    w.freeze_rules();
     // set first set on all symbols
     set_first(w);
     // create the start states
     create_start_states(w);
     // create remaining states
-    if (!w.create_states(num_conflicts, num_lex_state_conflicts))
+    int num_states = w.create_states(num_conflicts, num_lex_state_conflicts);
+    if (num_conflicts == 0 && num_lex_state_conflicts == 0)
     {
-        // conflicts, no need to set gotos since FSM will not be serialized
-        return false;
+        set_goto(w);
     }
-    // set goto on all nonterminals
-    set_goto(w);
-    return true;
+    return num_states;
 }
 
 namespace {

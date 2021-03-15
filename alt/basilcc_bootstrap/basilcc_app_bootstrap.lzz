@@ -6,20 +6,22 @@ int main(int argc, char **argv)
 {
     try {
 #if 1
-        Compiler c;
-        bootstrap_grammar(c);
+        Workspace w;
+        Bootstrap(w).grammar();
         int num_conflicts = 0;
         int num_lex_state_conflicts = 0;
-        int num_states = c.compile(num_conflicts, num_lex_state_conflicts);
+        int num_states = compile_fsm(w, num_conflicts, num_lex_state_conflicts);
         std::cout << "num states: " << num_states << std::endl;
         std::cout << "num conflicts: " << num_conflicts << std::endl;
         std::cout << "num lex state conflicts: " << num_lex_state_conflicts << std::endl;
-
-        c.parser_namespace = "basilcc_fe";
-        c.userdata_class = "basilcc::Compiler";
-        std::ofstream os("/home/mike/dev/basilcc/alt/basilcc/basilcc_fe_parser_fsm.lzz");
-        serialize_fsm(c, os);
-        print_states(c, "/home/mike/dev/basilcc/alt/basilcc_bootstrap/states.txt");
+        print_states(w, "/home/mike/dev/basilcc/alt/basilcc_bootstrap/states.txt");
+        w.fsm_namespace = "basilcp";
+        w.usertype = "basilcx::Workspace";
+        w.usercode << "namespace basilcx {\n";
+        w.usercode << "    class Workspace;\n";
+        w.usercode << "}\n";
+        std::ofstream os("/home/mike/dev/basilcc/alt/basilcc/basilcp_fsm.lzz");
+        serialize_fsm(w, os);
 #else
         Compiler c;
         std::string filename = "/home/mike/dev/basilcc/alt/basilcc_bootstrap/basil_rules.txt";
@@ -35,826 +37,313 @@ int main(int argc, char **argv)
     return 0;
 }
 
-using namespace basilcc;
+using namespace basilcx;
 
 namespace
 {
-void bootstrap_grammar(Compiler &c)
-{
-    // [RootNode/void]
-    // start -> rule-seq
+class Bootstrap(Workspace &w) {
+  public:
+    void grammar()
     {
-        RuleSymbolVector right_rule_symbols {
-            RuleSymbol(
-                c.get_symbol("rule-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-        };
-        Node *node = c.get_node("RootNode");
-        Rule *rule = c.add_rule(
-            node, // node
-            RuleSymbol(
-                c.get_symbol("start"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            right_rule_symbols,
-            RuleSymbolVector(), // explicit_follow
-            false  // no_bypass
-        );
-        node->define(rule, true, "void");
-    }
-
-    // rule-seq ->
-    {
-        c.add_rule(
-            NULL, // node
-            RuleSymbol(
-                c.get_symbol("rule-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbolVector(), // right_rule_symbols
-            RuleSymbolVector(), // explicit_follow
-            false // no_bypass
-        );
-    }
-    // [RuleSeqNode]
-    // rule-seq -> rule-seq rule
-    {
-        RuleSymbolVector right_rule_symbols {
-            RuleSymbol(
-                c.get_symbol("rule-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("rule"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            )
-        };
-        Node *node = c.get_node("RuleSeqNode");
-        Rule *rule = c.add_rule(
-            node, // node
-            RuleSymbol(
-                c.get_symbol("rule-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            right_rule_symbols,
-            RuleSymbolVector(), // explicit_follow
-            false  // no_bypass
-        );
-        node->define(rule, false);
-    }
-
-    // [RuleNode]
-    // rule -> node-type symbol ARROW symbol-seq >
-    {
-        RuleSymbolVector right_rule_symbols {
-            RuleSymbol(
-                c.get_symbol("node-type"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("symbol"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("ARROW"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("symbol-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(1, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-        };
-        Node *node = c.get_node("RuleNode");
-        Rule *rule = c.add_rule(
-            node,
-            RuleSymbol(
-                c.get_symbol("rule"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            right_rule_symbols,
-            RuleSymbolVector(), // explicit_follow
-            false  // no_bypass
-
-        );
-        node->define(rule, false);
-
-    }
-
-    // node-type ->
-    {
-        c.add_rule(
-            NULL, // node
-            RuleSymbol(
-                c.get_symbol("node-type"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbolVector(), // right_rule_symbols
-            RuleSymbolVector(), // explicit_follow
-            false // no_bypass
-        );
-    }
-    // [NodeTypeNode]
-    // node-type -> LBRACK IDENT node-qualifier RBRACK
-    {
-        RuleSymbolVector right_rule_symbols {
-            RuleSymbol(
-                c.get_symbol("LBRACK"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("IDENT"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("node-qualifier"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("RBRACK"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-        };
-        Node *node = c.get_node("NodeTypeNode");
-        Rule *rule = c.add_rule(
-            NULL, // node
-            RuleSymbol(
-                c.get_symbol("node-type"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            right_rule_symbols,
-            RuleSymbolVector(), // explicit_follow
-            false  // no_bypass
-        );
-        node->define(rule, false);
-    }
-
-    // node-qualifier ->
-    {
-        c.add_rule(
-            NULL, // node
-            RuleSymbol(
-                c.get_symbol("node-qualifier"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbolVector(), // right_rule_symbols
-            RuleSymbolVector(), // explicit_follow
-            false // no_bypass
-        );
-    }
-    // [NodeQualifierNode]
-    // node-qualifier -> SLASH ident-opt
-    {
-        RuleSymbolVector right_rule_symbols {
-            RuleSymbol(
-                c.get_symbol("SLASH"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("ident-opt"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-        };
-        Node *node = c.get_node("NodeQualifierNode");
-        Rule *rule = c.add_rule(
-            node,
-            RuleSymbol(
-                c.get_symbol("node-qualifier"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            right_rule_symbols,
-            RuleSymbolVector(), // explicit_follow
-            false // no_bypass
-        );
-        node->define(rule, false);
-    }
-
-    // ident-opt ->
-    {
-        c.add_rule(
-            NULL, // node
-            RuleSymbol(
-                c.get_symbol("ident-opt"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbolVector(), // right_rule_symbols
-            RuleSymbolVector(), // explicit_follow
-            false // no_bypass
-        );
-    }        
-    // ident-opt -> IDENT
-    {
-        RuleSymbolVector right_rule_symbols {
-            RuleSymbol(
-                c.get_symbol("IDENT"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            )
-        };
-        c.add_rule(
-            NULL, // node
-            RuleSymbol(
-                c.get_symbol("ident-opt"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            right_rule_symbols,
-            RuleSymbolVector(), // explicit_follow
-            false  // no_bypass
-        );
-    }
-
-    // symbol-seq ->
-    {
-        c.add_rule(
-            NULL, // node
-            RuleSymbol(
-                c.get_symbol("symbol-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbolVector(), // right_rule_symbols
-            RuleSymbolVector(), // explicit_follow
-            false // no_bypass
-        );
-    }
-    // [SymbolSeqNode]
-    // symbol-seq -> symbol-seq symbol
-    {
-        RuleSymbolVector right_rule_symbols {
-            RuleSymbol(
-                c.get_symbol("symbol-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("symbol"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            )
-        };
-        Node *node = c.get_node("SymbolSeqNode");
-        Rule *rule = c.add_rule(
-            node,
-            RuleSymbol(
-                c.get_symbol("symbol-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            right_rule_symbols,
-            RuleSymbolVector(), // explicit_follow
-            false  // no_bypass
-        );
-        node->define(rule, false);
-    }
-
-    // [SymbolNode]
-    // symbol <* -> IDENT attrib-seq
-    {
-        RuleSymbolVector right_rule_symbols {
-            RuleSymbol(
-                c.get_symbol("IDENT"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("attrib-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-        };
-        Node *node = c.get_node("SymbolNode");
-        Rule *rule =c.add_rule(
-            node,
-            RuleSymbol(
-                c.get_symbol("symbol"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                true, // sticky
-                true  // accept
-            ),
-            right_rule_symbols,
-            RuleSymbolVector(), // explicit_follow
-            false  // no_bypass
-        );
-        node->define(rule, false);
+        // [RootNode/void]
+        // start -> rule-seq
+        {
+            Node *node = get_node("RootNode");
+            Rule *rule = add_rule(
+                node,
+                symbol("start"), symbol("rule-seq")
+            );
+            node->define(rule, true, "void");
+        }
+        // rule-seq ->
+        {
+            add_rule(NULL, symbol("rule-seq"));
+        }
+        // [RuleSeqNode]
+        // rule-seq -> rule-seq rule
+        {
+            Node *node = get_node("RuleSeqNode");
+            Rule *rule = add_rule(
+                node,
+                symbol("rule-seq"), symbol("rule-seq"), symbol("rule")
+            );
+            node->define(rule, false);
+        }
+        // [RuleNode]
+        // rule -> node-type symbol ARROW symbol-seq >
+        {
+            Node *node = get_node("RuleNode");
+            Rule *rule = add_rule(
+                node,
+                symbol("rule"), symbol("node-type"), symbol("symbol"), symbol("ARROW"), symbol("symbol-seq", 1)
+            );
+            node->define(rule, false);
+        }
+        // node-type ->
+        {
+            add_rule(
+                NULL,
+                symbol("node-type")
+            );
+        }
+        // [NodeTypeNode]
+        // node-type -> LBRACK IDENT node-qualifier RBRACK
+        {
+            Node *node = get_node("NodeTypeNode");
+            Rule *rule = add_rule(
+                node,
+                symbol("node-type"), symbol("LBRACK"), symbol("IDENT"), symbol("node-qualifier"), symbol("RBRACK")
+            );
+            node->define(rule, false);
+        }
+        // node-qualifier ->
+        {
+            add_rule(
+                NULL,
+                symbol("node-qualifier")
+            );
+        }
+        // [NodeQualifierNode]
+        // node-qualifier -> SLASH ident-opt
+        {
+            Node *node = get_node("NodeQualifierNode");
+            Rule *rule = add_rule(
+                node,
+                symbol("node-qualifier"), symbol("SLASH"), symbol("ident-opt")
+            );
+            node->define(rule, false);
+        }
+        // ident-opt ->
+        {
+            add_rule(
+                NULL,
+                symbol("ident-opt")
+            );
+        }        
+        // ident-opt -> IDENT
+        {
+            add_rule(
+                NULL,
+                symbol("ident-opt"), symbol("IDENT")
+            );
+        }
+        // symbol-seq ->
+        {
+            add_rule(
+                NULL,
+                symbol("symbol-seq")
+            );
+        }
+        // [SymbolSeqNode]
+        // symbol-seq -> symbol-seq symbol
+        {
+            Node *node = get_node("SymbolSeqNode");
+            Rule *rule = add_rule(
+                node,
+                symbol("symbol-seq"), symbol("symbol-seq"), symbol("symbol")
+            );
+            node->define(rule, false);
+        }
+        // [SymbolNode]
+        // symbol <* -> IDENT attrib-seq
+        {
+            Node *node = get_node("SymbolNode");
+            Rule *rule = add_rule(
+                node,
+                symbol("symbol"), symbol("IDENT"), symbol("attrib-seq")
+            );
+            node->define(rule, false);
+        }
+        // [AttribSeq1Node/Attributes]
+        // attrib-seq ->
+        {
+            Node *node = get_node("AttribSeq1Node");
+            Rule *rule = add_rule(
+                node,
+                symbol("attrib-seq")
+            );
+            node->define(rule, true, "Attributes");
+        }
+        // [AttribSeq2Node/Attributes]
+        // attrib-seq -> attrib-seq NUMBER
+        {
+            Node *node = get_node("AttribSeq2Node");
+            Rule *rule = add_rule(
+                node,
+                symbol("attrib-seq"), symbol("attrib-seq"), symbol("NUMBER")
+            );
+            node->define(rule, true, "Attributes");
+        }
+        // [AttribSeq3Node/Attributes]
+        // attrib-seq -> attrib-seq LT
+        {
+            Node *node = get_node("AttribSeq3Node");
+            Rule *rule = add_rule(
+                node,
+                symbol("attrib-seq"), symbol("attrib-seq"), symbol("LT")
+            );
+            node->define(rule, true, "Attributes");
+        }
+        // [AttribSeq4Node/Attributes]
+        // attrib-seq -> attrib-seq STAR
+        {
+            Node *node = get_node("AttribSeq4Node");
+            Rule *rule = add_rule(
+                node,
+                symbol("attrib-seq"), symbol("attrib-seq"), symbol("STAR")
+            );
+            node->define(rule, true, "Attributes");
+        }
+        // [AttribSeq5Node/Attributes]
+        // attrib-seq -> attrib-seq PLUS bang-seq
+        {
+            Node *node = get_node("AttribSeq5Node");
+            Rule *rule = add_rule(
+                node,
+                symbol("attrib-seq"), symbol("attrib-seq"), symbol("PLUS"), symbol("bang-seq")
+            );
+            node->define(rule, true, "Attributes");
+        }
+        // [AttribSeq6Node/Attributes]
+        // attrib-seq -> attrib-seq CARET bang-seq
+        {
+            Node *node = get_node("AttribSeq6Node");
+            Rule *rule = add_rule(
+                node,
+                symbol("attrib-seq"), symbol("attrib-seq"), symbol("CARET"), symbol("bang-seq")
+            );
+            node->define(rule, true, "Attributes");
+        }
+        // [AttribSeq7Node/Attributes]
+        // attrib-seq -> attrib-seq GT bang-seq
+        {
+            Node *node = get_node("AttribSeq7Node");
+            Rule *rule = add_rule(
+                node,
+                symbol("attrib-seq"), symbol("attrib-seq"), symbol("GT"), symbol("bang-seq")
+            );
+            node->define(rule, true, "Attributes");
+        }
+        // [BangSeq1Node/int]
+        // bang-seq ->
+        {
+            Node *node = get_node("BangSeq1Node");
+            Rule *rule = add_rule(
+                node,
+                symbol("bang-seq")
+            );
+            node->define(rule, true, "int");
+        }
+        // [BangSeq2Node/int]
+        // bang-seq -> bang-seq BANG
+        {
+            Node *node = get_node("BangSeq2Node");
+            Rule *rule = add_rule(
+                node,
+                symbol("bang-seq"), symbol("BANG")
+            );
+            node->define(rule, true, "int");
+            node->define(rule, true, "int");
+        }
     }
     
-    // [AttribSeq1Node/Attributes]
-    // attrib-seq ->
+    RuleSymbol symbol(char const *name, int shift_priority = 0)
     {
-        Node *node = c.get_node("AttribSeq1Node");
-        Rule *rule = c.add_rule(
-            node,
+        return
             RuleSymbol(
-                c.get_symbol("attrib-seq"),
+                w.get_symbol(name),
                 Priority(0, 0), // reduce
                 Priority(0, 0), // first
-                Priority(0, 0), // shift
+                Priority(shift_priority, 0), // shift
                 LexState(),
                 false, // sticky
                 false  // accept
-            ),
-            RuleSymbolVector(), // right_rule_symbols
-            RuleSymbolVector(), // explicit_follow
-            false // no_bypass
-        );
-        node->define(rule, true, "Attributes");
-    }        
-    // [AttribSeq2Node/Attributes]
-    // attrib-seq -> attrib-seq NUMBER
-    {
-        RuleSymbolVector right_rule_symbols {
-            RuleSymbol(
-                c.get_symbol("attrib-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("NUMBER"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            )
-        };
-        Node *node = c.get_node("AttribSeq2Node");
-        Rule *rule = c.add_rule(
-            node,
-            RuleSymbol(
-                c.get_symbol("attrib-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            right_rule_symbols,
-            RuleSymbolVector(), // explicit_follow
-            false  // no_bypass
-        );
-        node->define(rule, true, "Attributes");
-    }
-    // [AttribSeq3Node/Attributes]
-    // attrib-seq -> attrib-seq LT
-    {
-        RuleSymbolVector right_rule_symbols {
-            RuleSymbol(
-                c.get_symbol("attrib-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("LT"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            )
-        };
-        Node *node = c.get_node("AttribSeq3Node");
-        Rule *rule = c.add_rule(
-            node,
-            RuleSymbol(
-                c.get_symbol("attrib-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            right_rule_symbols,
-            RuleSymbolVector(), // explicit_follow
-            false  // no_bypass
-        );
-        node->define(rule, true, "Attributes");
-    }
-    // [AttribSeq4Node/Attributes]
-    // attrib-seq -> attrib-seq STAR
-    {
-        RuleSymbolVector right_rule_symbols {
-            RuleSymbol(
-                c.get_symbol("attrib-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("STAR"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            )
-        };
-        Node *node = c.get_node("AttribSeq4Node");
-        Rule *rule = c.add_rule(
-            node,
-            RuleSymbol(
-                c.get_symbol("attrib-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            right_rule_symbols,
-            RuleSymbolVector(), // explicit_follow
-            false  // no_bypass
-        );
-        node->define(rule, true, "Attributes");
-    }
-    // [AttribSeq5Node/Attributes]
-    // attrib-seq -> attrib-seq PLUS bang-seq
-    {
-        RuleSymbolVector right_rule_symbols {
-            RuleSymbol(
-                c.get_symbol("attrib-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("PLUS"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("bang-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            )
-        };
-        Node *node = c.get_node("AttribSeq5Node");
-        Rule *rule = c.add_rule(
-            node,
-            RuleSymbol(
-                c.get_symbol("attrib-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            right_rule_symbols,
-            RuleSymbolVector(), // explicit_follow
-            false  // no_bypass
-        );
-        node->define(rule, true, "Attributes");
-    }
-    // [AttribSeq6Node/Attributes]
-    // attrib-seq -> attrib-seq CARET bang-seq
-    {
-        RuleSymbolVector right_rule_symbols {
-            RuleSymbol(
-                c.get_symbol("attrib-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("CARET"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("bang-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            )
-        };
-        Node *node = c.get_node("AttribSeq6Node");
-        Rule *rule = c.add_rule(
-            node,
-            RuleSymbol(
-                c.get_symbol("attrib-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            right_rule_symbols,
-            RuleSymbolVector(), // explicit_follow
-            false  // no_bypass
-        );
-        node->define(rule, true, "Attributes");
-    }
-    // [AttribSeq7Node/Attributes]
-    // attrib-seq -> attrib-seq GT bang-seq
-    {
-        RuleSymbolVector right_rule_symbols {
-            RuleSymbol(
-                c.get_symbol("attrib-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("GT"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("bang-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            )
-        };
-        Node *node = c.get_node("AttribSeq7Node");
-        Rule *rule = c.add_rule(
-            node,
-            RuleSymbol(
-                c.get_symbol("attrib-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            right_rule_symbols,
-            RuleSymbolVector(), // explicit_follow
-            false  // no_bypass
-        );
-        node->define(rule, true, "Attributes");
+            );
     }
 
-    // [BangSeq1Node/int]
-    // bang-seq ->
+    Node *get_node(char const *name)
     {
-        Node *node = c.get_node("BangSeq1Node");
-        Rule *rule = c.add_rule(
-            node,
-            RuleSymbol(
-                c.get_symbol("bang-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbolVector(), // right_rule_symbols
-            RuleSymbolVector(), // explicit_follow
-            false // no_bypass
-        );
-        node->define(rule, true, "int");
+        return w.nodes.get_node(name);
     }
-    // [BangSeq2Node/int]
-    // bang-seq -> bang-seq BANG
+
+    Rule *add_rule(
+        Node *node,
+        RuleSymbol const &left_symbol,
+        RuleSymbolVector const &right_symbols)
     {
-        RuleSymbolVector right_rule_symbols {
-            RuleSymbol(
-                c.get_symbol("bang-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            RuleSymbol(
-                c.get_symbol("BANG"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            )
-        };
-        Node *node = c.get_node("BangSeq2Node");
-        Rule *rule = c.add_rule(
-            node,
-            RuleSymbol(
-                c.get_symbol("bang-seq"),
-                Priority(0, 0), // reduce
-                Priority(0, 0), // first
-                Priority(0, 0), // shift
-                LexState(),
-                false, // sticky
-                false  // accept
-            ),
-            right_rule_symbols,
-            RuleSymbolVector(), // explicit_follow
-            false  // no_bypass
-        );
-        node->define(rule, true, "int");
+        return w.add_rule(node, left_symbol, right_symbols, RuleSymbolVector(), false);
     }
-}
+    Rule *add_rule(
+        Node *node,
+        RuleSymbol const &left_symbol)
+    {
+        return add_rule(node, left_symbol, RuleSymbolVector()); 
+    }
+    Rule *add_rule(
+        Node *node,
+        RuleSymbol const &left_symbol,
+        RuleSymbol const &right_symbol1)
+    {
+        RuleSymbolVector right_symbols {right_symbol1};
+        return add_rule(node, left_symbol, right_symbols); 
+    }
+    Rule *add_rule(
+        Node *node,
+        RuleSymbol const &left_symbol,
+        RuleSymbol const &right_symbol1,
+        RuleSymbol const &right_symbol2)
+    {
+        RuleSymbolVector right_symbols {right_symbol1, right_symbol2};
+        return add_rule(node, left_symbol, right_symbols); 
+    }
+    Rule *add_rule(
+        Node *node,
+        RuleSymbol const &left_symbol,
+        RuleSymbol const &right_symbol1,
+        RuleSymbol const &right_symbol2,
+        RuleSymbol const &right_symbol3)
+    {
+        RuleSymbolVector right_symbols {right_symbol1, right_symbol2, right_symbol3};
+        return add_rule(node, left_symbol, right_symbols); 
+    }
+    Rule *add_rule(
+        Node *node,
+        RuleSymbol const &left_symbol,
+        RuleSymbol const &right_symbol1,
+        RuleSymbol const &right_symbol2,
+        RuleSymbol const &right_symbol3,
+        RuleSymbol const &right_symbol4)
+    {
+        RuleSymbolVector right_symbols {right_symbol1, right_symbol2, right_symbol3, right_symbol4};
+        return add_rule(node, left_symbol, right_symbols); 
+    }
+    Rule *add_rule(
+        Node *node,
+        RuleSymbol const &left_symbol,
+        RuleSymbol const &right_symbol1,
+        RuleSymbol const &right_symbol2,
+        RuleSymbol const &right_symbol3,
+        RuleSymbol const &right_symbol4,
+        RuleSymbol const &right_symbol5)
+    {
+        RuleSymbolVector right_symbols {right_symbol1, right_symbol2, right_symbol3, right_symbol4, right_symbol5};
+        return add_rule(node, left_symbol, right_symbols); 
+    }
+};
 
 } // unnamed
 
 #src
-#include <basilcc_compiler.h>
-#include <basilcc_rule.h>
-#include <basilcc_node.h>
-#include <basilcc_print_states.h>
-#include <basilcc_serialize_fsm.h>
+#include <basilcx_workspace.h>
+#include <basilcx_rule.h>
+#include <basilcx_node.h>
+#include <basilcx_print_states.h>
+#include <basilcx_serialize_fsm.h>
+#include <basilcx_compile_fsm.h>
 
-#include <basilcc_fe_lexer.h>
-#include <basilcc_fe_parser_fsm.h>
-#include <basilcc_api_parser.h>
+//#include <basilcc_fe_lexer.h>
+//#include <basilcc_fe_parser_fsm.h>
+//#include <basilcc_api_parser.h>
 
 #include <iostream>
 #include <fstream>

@@ -13,8 +13,7 @@ typedef std::pair<RuleMap::const_iterator, RuleMap::const_iterator> RuleMapRange
 class RuleTable
 {
   public:
-    RuleTable(Workspace &w)
-        : _w(w)
+    RuleTable()
     {
         _enable_bypass = false; // TODO: read from config
     }
@@ -30,6 +29,7 @@ class RuleTable
         RuleSymbol const &left_rule_symbol,
         RuleSymbolVector const &right_rule_symbols,
         RuleSymbolVector const &explicit_follow,
+        bool is_start,
         bool no_bypass
     )
     {
@@ -53,7 +53,7 @@ class RuleTable
                     left_rule_symbol,
                     right_rule_symbols,
                     explicit_follow,
-                    _w.start_symbol == left_symbol,
+                    is_start,
                     can_bypass))->second;
     }
 
@@ -80,10 +80,10 @@ class RuleTable
     }
 
     // no more rules
-    void freeze() const
+    void freeze(Workspace &w) const
     {
         // make sure at least one start rule
-        if (!is_left_symbol(_w.start_symbol)) {
+        if (!is_left_symbol(w.start_symbol)) {
             throw std::runtime_error("missing at least one start rule");
         }
         // make sure each right hand nonterminal is defined
@@ -92,7 +92,7 @@ class RuleTable
             for (RuleSymbol const &rule_symbol : rule->get_right_rule_symbols()) {
                 Symbol *symbol = rule_symbol.get_symbol();
                 if (!symbol->is_token()) {
-                    if (symbol == _w.start_symbol) {
+                    if (symbol == w.start_symbol) {
                         throw std::runtime_error("start symbol on right hand side of rule");
                     }
                     if (!is_left_symbol(symbol)) {
@@ -106,7 +106,6 @@ class RuleTable
     }
 
   private:
-    Workspace &_w;
     bool _enable_bypass; // true if option to bypass rules is enabled
     RuleMap _rules; // rules indexed by left hand symbol
 };

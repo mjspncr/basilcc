@@ -1,16 +1,10 @@
-#if 0
-// basilcc api node
-
-namespace basilcc_api {
+namespace basilcc {
 
 class AbstractNode {
   public:
     AbstractNode() {}
     virtual ~AbstractNode() {}
 };
-
-typedef std::shared_ptr<AbstractNode> AbstractNodePtr;
-typedef std::vector<AbstractNodePtr> AbstractNodeVector;
 
 class Token : public AbstractNode {
   public:
@@ -22,14 +16,12 @@ class Token : public AbstractNode {
     std::string lexeme;
 };
 
-} // basilcc_api
+} // basilcc
 
 #hdr
-#include <basilcc_api_loc.h>
-#include <vector>
-#include <memory>
+#include <basilcc_loc.h>
 #end
 
 #src
 #end
-#endif
+

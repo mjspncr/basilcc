@@ -1,7 +1,4 @@
-#if 0
-// basilcc api loc
-
-namespace basilcc_api {
+namespace basilcc {
 
 // file location
 class Loc {
@@ -10,11 +7,11 @@ class Loc {
         : _filename(0), _line(0), _column(1)
     {}
     
-    Loc(char const * filename, int line, int column)
+    Loc(char const *filename, int line, int column)
         : _filename(filename), _fullname(filename), _line(line), _column(column)
     {}
 
-    Loc(char const * filename, char const * fullname, int line, int column)
+    Loc(char const *filename, char const *fullname, int line, int column)
         : _filename(filename), _fullname(fullname), _line(line), _column(column)
     {}
 
@@ -31,7 +28,7 @@ class Loc {
     }
     
     // get fullname
-    inline char const * get_fullname() const
+    inline char const *get_fullname() const
     {
         return _fullname;
     }
@@ -74,7 +71,7 @@ std::string loc_to_string(Loc const &loc)
     return ss.str();
 }
 
-} // basilcc_api
+} // basilcc
 
 #hdr
 #include <iosfwd>
@@ -84,4 +81,4 @@ std::string loc_to_string(Loc const &loc)
 #src
 #include <sstream>
 #end
-#endif
+

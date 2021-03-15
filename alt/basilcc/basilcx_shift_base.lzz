@@ -91,7 +91,7 @@ void get_non_kernel_rules(Workspace &w, ShiftSymbolMap const &shift_symbols, Shi
 }
 
 // true if non-kernel shift rule a < b, for final ordering
-inline bool NonKernelShiftRuleLess(; ShiftRule const *a, ShiftRule const *b) const
+inline bool NonKernelShiftRuleLess(; ShiftRule *a, ShiftRule *b) const
 {
     // pos always 0, so just compare rule number, no pointer comparison
     return a->get_base_rule()->get_rule()->_num < b->get_base_rule()->get_rule()->_num;
@@ -110,6 +110,5 @@ inline bool NonKernelShiftRuleLess(; ShiftRule const *a, ShiftRule const *b) con
 #include <basilcx_shift_rule.h>
 #include <basilcx_symbol.h>
 #include <basilcx_workspace.h>
-
 #include <algorithm>
 #end

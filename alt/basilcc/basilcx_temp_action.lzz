@@ -66,7 +66,7 @@ class ShiftTempAction : public TempAction {
 
 class ReduceTempAction : public TempAction {
   public:
-    ReduceTempAction(Rule const *rule, Symbol *shortcut, Priority const &priority, bool accept)
+    ReduceTempAction(Rule *rule, Symbol *shortcut, Priority const &priority, bool accept)
         : TempAction(priority), _rule(rule), _shortcut(shortcut), _accept(accept)
     {}
 
@@ -79,7 +79,7 @@ class ReduceTempAction : public TempAction {
     }
 
     // get rule
-    inline Rule const *get_rule() const
+    inline Rule *get_rule() const
     {
         return _rule;
     }
@@ -110,7 +110,7 @@ class ReduceTempAction : public TempAction {
     }
 
   private:
-    Rule const *_rule;
+    Rule *_rule;
     Symbol *_shortcut;
     bool _accept;
 };
@@ -142,7 +142,6 @@ bool operator<(TempAction const &a, TempAction const &b)
 
 #hdr
 #include <basilcx_priority.h>
-
 #include <memory>
 #end
 

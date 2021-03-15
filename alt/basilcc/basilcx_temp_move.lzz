@@ -34,7 +34,7 @@ class TempMove {
     }
 
     // add reduction action
-    void add_reduction(Rule const *rule, Symbol *shortcut, Priority const &priority, bool accept, bool sticky)
+    void add_reduction(Rule *rule, Symbol *shortcut, Priority const &priority, bool accept, bool sticky)
     {
         _sticky = _sticky || sticky;
         // search priority action set for same rule and shortcut, if present just update it

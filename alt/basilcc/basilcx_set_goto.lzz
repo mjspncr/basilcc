@@ -26,7 +26,7 @@ void set_goto(Workspace &w)
             shift_states.erase(def_shift_states.first, def_shift_states.second);
             // reorder remaining by shift number then save to symbol 
             std::sort(shift_states.begin(), shift_states.end(), ShiftStateLess());
-            symbol->set_goto(shift_states, def_state);
+            static_cast<Nonterminal *>(symbol)->set_goto(shift_states, def_state);
         }
     }
 }
@@ -62,6 +62,7 @@ inline bool ShiftStateLess(; ShiftState const &a, ShiftState const &b) const
 #src
 #include <basilcx_shift.h>
 #include <basilcx_shift_sel.h>
+#include <basilcx_shift_state.h>
 #include <basilcx_state.h>
 #include <basilcx_symbol.h>
 #include <basilcx_util.h>

@@ -7,10 +7,9 @@ class Move;
 class Workspace {
   public:
     Workspace()
-        : rules(*this)
     {
-        start_symbol = symbols.get_symbol(intern("start"));
-        eot_symbol = symbols.get_symbol(intern("EOT"));
+        start_symbol = get_symbol("start");
+        eot_symbol = get_symbol("EOT");
     }
 
     ~Workspace()
@@ -38,28 +37,22 @@ class Workspace {
     ShiftSelTable shift_sels;
     StateMoveTable state_moves;
     StateTable states;
-    ShiftStateSelTable shift_state_sels;
     // special symbols
     Symbol *start_symbol;
     Symbol *eot_symbol;
 
-    // intern string, return shared char const *
-    inline char const *intern(std::string const &str)
-    {
-      return strings.insert(str).first->c_str ();
-    }
-
-    // type of user object
+    // serialization options
     std::string usertype;
     std::string fsm_namespace;
+    std::ostringstream usercode;
 
-    /*
-    // generated parser namespace 
-    std::string parser_namespace;
-    std::string userdata_class;
-    */
+    // get symbol for name
+    Symbol *get_symbol(std::string const &name)
+    {
+        return symbols.get_symbol(intern(name));
+    }
 
-    // rules
+    // add rule
     inline Rule *add_rule(
         Node *node,
         RuleSymbol const &left_rule_symbol,
@@ -73,15 +66,25 @@ class Workspace {
             left_rule_symbol,
             right_rule_symbols,
             explicit_follow,
+            left_rule_symbol.get_symbol() == start_symbol,
             no_bypass);
     }
 
+    // no more rules
+    void freeze_rules()
+    {
+        symbols.freeze();
+        nodes.freeze();
+        rules.freeze(*this);
+    }
+
+    // return true if symbol is a start symbol
     inline bool is_start_symbol(Symbol *symbol) const
     {
         return symbol == start_symbol;
     }
 
-    // get all start rules
+    // get start rules
     inline RuleMapRange get_start_rules() const
     {
         return rules.get_rules(start_symbol);
@@ -94,9 +97,15 @@ class Workspace {
     }
 
     // create all states, return true if no conflicts, otherwise set number of conflicts and return false
-    inline bool create_states(int &num_conflicts, int &num_lex_state_conflicts)
+    inline int create_states(int &num_conflicts, int &num_lex_state_conflicts)
     {
         return states.create_states(*this, num_conflicts, num_lex_state_conflicts);
+    }
+
+    // intern string, return shared char const *
+    inline char const *intern(std::string const &str)
+    {
+      return strings.insert(str).first->c_str();
     }
 
   private:
@@ -120,6 +129,7 @@ class Workspace {
 #include <basilcx_move_sel_table.h>
 #include <basilcx_move_table.h>
 #include <basilcx_node_table.h>
+#include <basilcx_rule_symbol.h>
 #include <basilcx_rule_table.h>
 #include <basilcx_shift_kernel_table.h>
 #include <basilcx_shift_rule_table.h>
@@ -127,4 +137,5 @@ class Workspace {
 #include <basilcx_state_move_table.h>
 #include <basilcx_state_table.h>
 #include <basilcx_symbol_table.h>
+#include <sstream>
 #end
